@@ -10,7 +10,7 @@ export function createTicketsRouter({ service, authenticate, authorize }) {
 
   // GET /tickets/me - My tickets
   router.get('/tickets/me', authenticate, async (req, res) => {
-    res.json({ data: await service.getUserTickets(req.user.sub) });
+    res.json(await service.getUserTickets(req.user.sub, req.query));
   });
 
   // GET /tickets/:id - Single ticket details

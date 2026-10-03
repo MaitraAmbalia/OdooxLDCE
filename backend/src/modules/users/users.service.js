@@ -1,5 +1,6 @@
 import { AppError } from '../../lib/AppError.js';
 import { hashPassword, verifyPassword } from '../../utils/security.js';
+import { parsePagination, createPageMeta } from '../../lib/pagination.js';
 
 const missing = () => new AppError('NOT_FOUND', 404, 'User was not found');
 
@@ -63,7 +64,8 @@ export function createUsersService({ prisma }) {
     },
 
     async directory(query = {}) {
-      const { page = 1, limit = 20, q = '' } = query;
+      const pageInfo = parsePagination(query, { defaultLimit: 20 });
+      const { q = '' } = query;
       const where = {
         isDisabled: false,
         ...(q
@@ -79,8 +81,8 @@ export function createUsersService({ prisma }) {
       const [users, total] = await Promise.all([
         prisma.user.findMany({
           where,
-          skip: (page - 1) * limit,
-          take: limit,
+          skip: pageInfo.skip,
+          take: pageInfo.take,
           select: {
             id: true,
             name: true,
@@ -117,7 +119,7 @@ export function createUsersService({ prisma }) {
         expiresAt: u.memberships[0]?.expiresAt ?? null,
       }));
 
-      return { data: formatted, meta: { page, limit, total } };
+      return { data: formatted, meta: createPageMeta(pageInfo, total) };
     },
 
     async disable(actorId, userId, input) {

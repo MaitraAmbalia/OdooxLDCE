@@ -1,4 +1,5 @@
 import { AppError } from '../../lib/AppError.js';
+import { parsePagination, createPageMeta } from '../../lib/pagination.js';
 
 const applyHandlers = new Map();
 
@@ -18,13 +19,20 @@ export function createApprovalsService({ prisma }) {
       });
     },
 
-    async listPending(type) {
+    async listPending(type, query = {}) {
+      const page = parsePagination(query, { defaultLimit: 50 });
       const where = { status: 'PENDING' };
       if (type) where.type = type;
-      return prisma.approval.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-      });
+      const [data, total] = await Promise.all([
+        prisma.approval.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: page.skip,
+          take: page.take,
+        }),
+        prisma.approval.count({ where }),
+      ]);
+      return { data, meta: createPageMeta(page, total) };
     },
 
     async decide(userId, approvalId, { decision, comment }) {

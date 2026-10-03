@@ -1,11 +1,12 @@
 import { Router } from 'express';
+import { parsePagination, createPageMeta } from '../../lib/pagination.js';
 
 export function createNotificationsRouter({ service, authenticate, prisma }) {
   const router = Router();
 
   // 1. In-App Notifications
   router.get('/notifications', authenticate, async (req, res) => {
-    res.json({ data: await service.listUserNotifications(req.user.sub) });
+    res.json(await service.listUserNotifications(req.user.sub, req.query));
   });
 
   router.patch('/notifications/:id/read', authenticate, async (req, res) => {
@@ -17,22 +18,31 @@ export function createNotificationsRouter({ service, authenticate, prisma }) {
   });
 
   // 2. Announcements Feed (Fully Database Driven)
-  router.get('/announcements', async (_req, res) => {
+  router.get('/announcements', async (req, res) => {
     try {
-      const announcements = await prisma.announcement.findMany({
-        where: { status: 'PUBLISHED' },
-        orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
-        include: {
-          corrections: true,
-          author: { select: { id: true, name: true } },
-        },
-      });
+      const page = parsePagination(req.query, { defaultLimit: 20 });
+      const where = { status: 'PUBLISHED' };
+
+      const [announcements, total] = await Promise.all([
+        prisma.announcement.findMany({
+          where,
+          orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
+          skip: page.skip,
+          take: page.take,
+          include: {
+            corrections: true,
+            author: { select: { id: true, name: true } },
+          },
+        }),
+        prisma.announcement.count({ where }),
+      ]);
 
       return res.json({
         data: announcements.map((a) => ({
           ...a,
           body: a.bodyMd,
         })),
+        meta: createPageMeta(page, total),
       });
     } catch (e) {
       return res.status(500).json({ error: { message: 'Failed to fetch announcements' } });

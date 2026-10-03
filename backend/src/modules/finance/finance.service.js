@@ -225,16 +225,23 @@ export function createFinanceService({ prisma, files }) {
     };
   }
 
-  async function listCashCollections(status) {
-    const rows = await prisma.cashCollection.findMany({
-      where: status ? { status: status === 'PENDING' ? 'PENDING_VERIFICATION' : status } : undefined,
-      include: {
-        collectedBy: { select: { id: true, name: true } },
-        payer: { select: { id: true, name: true, studentId: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    return rows.map((c) => ({
+  async function listCashCollections(status, query = {}) {
+    const page = parsePagination(query, { defaultLimit: 50 });
+    const where = status ? { status: status === 'PENDING' ? 'PENDING_VERIFICATION' : status } : undefined;
+    const [rows, total] = await Promise.all([
+      prisma.cashCollection.findMany({
+        where,
+        include: {
+          collectedBy: { select: { id: true, name: true } },
+          payer: { select: { id: true, name: true, studentId: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: page.skip,
+        take: page.take,
+      }),
+      prisma.cashCollection.count({ where }),
+    ]);
+    const data = rows.map((c) => ({
       id: c.id,
       operator: c.collectedBy?.name || 'Cash Operator',
       payerInfo: c.payer ? `${c.payer.name} / ${c.payer.studentId}` : 'Student',
@@ -243,6 +250,7 @@ export function createFinanceService({ prisma, files }) {
       status: c.status === 'PENDING_VERIFICATION' ? 'PENDING' : c.status,
       recordedAt: c.createdAt,
     }));
+    return { data, meta: createPageMeta(page, total) };
   }
 
   async function createCashCollection(user, input) {
@@ -271,14 +279,28 @@ export function createFinanceService({ prisma, files }) {
   }
 
   async function listClaims(filter = {}) {
-    const rows = await prisma.expenseClaim.findMany({
-      include: {
-        submittedBy: { select: { id: true, name: true, studentId: true } },
-        event: { select: { id: true, title: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    return rows.map((c) => ({
+    const page = parsePagination(filter, { defaultLimit: 50 });
+    const where = {};
+    if (filter.userId) {
+      where.submittedById = filter.userId;
+    }
+    if (filter.status) {
+      where.status = filter.status;
+    }
+    const [rows, total] = await Promise.all([
+      prisma.expenseClaim.findMany({
+        where,
+        include: {
+          submittedBy: { select: { id: true, name: true, studentId: true } },
+          event: { select: { id: true, title: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: page.skip,
+        take: page.take,
+      }),
+      prisma.expenseClaim.count({ where }),
+    ]);
+    const data = rows.map((c) => ({
       id: c.id,
       submitter: c.submittedBy?.name || 'Volunteer',
       amountPaise: Number(c.amountPaise),
@@ -288,6 +310,7 @@ export function createFinanceService({ prisma, files }) {
       ageDays: Math.floor((Date.now() - new Date(c.createdAt).getTime()) / (24 * 3600 * 1000)),
       receiptUrls: [],
     }));
+    return { data, meta: createPageMeta(page, total) };
   }
 
   async function submitClaim(user, input) {

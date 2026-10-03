@@ -13,7 +13,7 @@ function parsePositiveInteger(value, fallback, field) {
   return parsed;
 }
 
-export function parsePagination(query, options = {}) {
+export function parsePagination(query = {}, options = {}) {
   const defaultLimit = options.defaultLimit ?? 20;
   const maxLimit = options.maxLimit ?? 100;
   const page = parsePositiveInteger(query.page, 1, 'page');
@@ -45,5 +45,12 @@ export function parseSort(value, allowedFields, defaultSort) {
 }
 
 export function createPageMeta({ page, limit }, total) {
-  return { page, limit, total };
+  const totalPages = Math.ceil(total / limit) || 1;
+  return {
+    page,
+    limit,
+    total,
+    totalPages,
+    hasMore: page < totalPages,
+  };
 }

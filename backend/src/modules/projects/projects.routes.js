@@ -7,8 +7,8 @@ export function createProjectsRouter({ service, authenticate }) {
     res.status(201).json({ data: await service.createProject(req.user.sub, req.body) });
   });
 
-  router.get('/projects', authenticate, async (_req, res) => {
-    res.json({ data: await service.listProjects() });
+  router.get('/projects', authenticate, async (req, res) => {
+    res.json(await service.listProjects(req.query));
   });
 
   router.get('/projects/:id', authenticate, async (req, res) => {
@@ -21,6 +21,10 @@ export function createProjectsRouter({ service, authenticate }) {
 
   router.post('/projects/:id/tasks', authenticate, async (req, res) => {
     res.status(201).json({ data: await service.createTask(req.user.sub, req.params.id, req.body) });
+  });
+
+  router.get('/tasks/me', authenticate, async (req, res) => {
+    res.json(await service.getUserTasks(req.user.sub, req.query));
   });
 
   router.patch('/tasks/:id/status', authenticate, async (req, res) => {

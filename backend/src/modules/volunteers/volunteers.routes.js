@@ -7,8 +7,8 @@ export function createVolunteersRouter({ service, authenticate }) {
     res.status(201).json({ data: await service.register(req.user.sub, req.body) });
   });
 
-  router.get('/volunteers', authenticate, async (_req, res) => {
-    res.json({ data: await service.list() });
+  router.get('/volunteers', authenticate, async (req, res) => {
+    res.json(await service.list(req.query));
   });
 
   router.patch('/volunteers/me', authenticate, async (req, res) => {

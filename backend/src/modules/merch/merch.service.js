@@ -1,4 +1,5 @@
 import { AppError } from '../../lib/AppError.js';
+import { parsePagination, createPageMeta } from '../../lib/pagination.js';
 import { registerPurposeHandler } from '../payments/payments.service.js';
 import { registerApprovalHandler } from '../approvals/approvals.service.js';
 
@@ -90,14 +91,23 @@ export function createMerchService({ prisma, createPayment }) {
   );
 
   return {
-    async listProducts() {
-      const products = await prisma.product.findMany({
-        include: {
-          variants: true,
-        },
-      });
+    async listProducts(query = {}) {
+      const page = parsePagination(query, { defaultLimit: 50 });
+      const [products, total] = await Promise.all([
+        prisma.product.findMany({
+          skip: page.skip,
+          take: page.take,
+          include: {
+            variants: true,
+          },
+        }),
+        prisma.product.count(),
+      ]);
 
-      return products.map(formatProduct);
+      return {
+        data: products.map(formatProduct),
+        meta: createPageMeta(page, total),
+      };
     },
 
     async getProduct(id) {
@@ -196,25 +206,35 @@ export function createMerchService({ prisma, createPayment }) {
       };
     },
 
-    async getUserOrders(userId) {
-      const orders = await prisma.order.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        include: {
-          items: {
-            include: {
-              variant: {
-                include: { product: true },
+    async getUserOrders(userId, query = {}) {
+      const page = parsePagination(query, { defaultLimit: 20 });
+      const where = { userId };
+
+      const [orders, total] = await Promise.all([
+        prisma.order.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: page.skip,
+          take: page.take,
+          include: {
+            items: {
+              include: {
+                variant: {
+                  include: { product: true },
+                },
               },
             },
           },
-        },
-      });
+        }),
+        prisma.order.count({ where }),
+      ]);
 
-      return orders.map((o) => ({
+      const data = orders.map((o) => ({
         ...o,
         totalPaise: Number(o.totalPaise),
       }));
+
+      return { data, meta: createPageMeta(page, total) };
     },
   };
 }

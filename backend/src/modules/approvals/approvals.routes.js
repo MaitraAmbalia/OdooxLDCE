@@ -11,7 +11,7 @@ export function createApprovalsRouter({ service, authenticate, requirePermission
   });
 
   router.get('/approvals/pending', authenticate, requireApprovalManager, async (req, res) => {
-    res.json({ data: await service.listPending(req.query.type) });
+    res.json(await service.listPending(req.query.type, req.query));
   });
 
   router.post('/approvals/:id/decide', authenticate, requireApprovalManager, async (req, res) => {

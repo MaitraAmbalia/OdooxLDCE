@@ -1,4 +1,5 @@
 import { AppError } from '../../lib/AppError.js';
+import { parsePagination, createPageMeta } from '../../lib/pagination.js';
 
 export function createVolunteersService({ prisma }) {
   return {
@@ -31,14 +32,22 @@ export function createVolunteersService({ prisma }) {
       });
     },
 
-    async list() {
-      return prisma.volunteer.findMany({
-        include: {
-          user: {
-            select: { id: true, name: true, email: true, studentId: true, phone: true },
+    async list(query = {}) {
+      const page = parsePagination(query, { defaultLimit: 50 });
+      const [data, total] = await Promise.all([
+        prisma.volunteer.findMany({
+          skip: page.skip,
+          take: page.take,
+          include: {
+            user: {
+              select: { id: true, name: true, email: true, studentId: true, phone: true },
+            },
           },
-        },
-      });
+        }),
+        prisma.volunteer.count(),
+      ]);
+
+      return { data, meta: createPageMeta(page, total) };
     },
   };
 }

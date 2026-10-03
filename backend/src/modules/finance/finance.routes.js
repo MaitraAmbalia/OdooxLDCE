@@ -61,15 +61,17 @@ export function createFinanceRouter({ service, authenticate, requirePermission }
 
   // ---- cash collections
   router.get('/cash-collections', authenticate, async (req, res) =>
-    res.json({ data: await service.listCashCollections(req.query.status) }));
+    res.json(await service.listCashCollections(req.query.status, req.query)));
   router.post('/cash-collections', authenticate, async (req, res) =>
     res.status(201).json({ data: await service.createCashCollection(req.user, req.body) }));
   router.patch('/cash-collections/:id/verify', authenticate, async (req, res) =>
     res.json({ data: await service.verifyCashCollection(req.user, req.params.id) }));
 
   // ---- expense claims
+  router.get('/claims/me', authenticate, async (req, res) =>
+    res.json(await service.listClaims({ ...req.query, userId: req.user.sub })));
   router.get('/claims', authenticate, async (req, res) =>
-    res.json({ data: await service.listClaims(req.query) }));
+    res.json(await service.listClaims(req.query)));
   router.post('/claims', authenticate, async (req, res) =>
     res.status(201).json({ data: await service.submitClaim(req.user, req.body) }));
   router.post('/claims/:id/review', authenticate, async (req, res) =>

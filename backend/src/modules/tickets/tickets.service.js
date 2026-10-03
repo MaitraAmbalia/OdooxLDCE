@@ -1,4 +1,5 @@
 import { AppError } from '../../lib/AppError.js';
+import { parsePagination, createPageMeta } from '../../lib/pagination.js';
 
 export function createTicketsService({ prisma }) {
   return {
@@ -72,17 +73,25 @@ export function createTicketsService({ prisma }) {
       };
     },
 
-    async getUserTickets(userId) {
-      const tickets = await prisma.ticket.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        include: {
-          event: { select: { title: true, venue: true, startAt: true, endAt: true } },
-          ticketType: { select: { name: true } },
-        },
-      });
+    async getUserTickets(userId, query = {}) {
+      const page = parsePagination(query, { defaultLimit: 50 });
+      const where = { userId };
 
-      return tickets.map((t) => ({
+      const [tickets, total] = await Promise.all([
+        prisma.ticket.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: page.skip,
+          take: page.take,
+          include: {
+            event: { select: { title: true, venue: true, startAt: true, endAt: true } },
+            ticketType: { select: { name: true } },
+          },
+        }),
+        prisma.ticket.count({ where }),
+      ]);
+
+      const data = tickets.map((t) => ({
         ...t,
         pricePaidPaise: Number(t.pricePaidPaise),
         event: t.event
@@ -92,6 +101,8 @@ export function createTicketsService({ prisma }) {
             }
           : t.event,
       }));
+
+      return { data, meta: createPageMeta(page, total) };
     },
 
     async checkIn(doorVolunteerId, ticketId) {
