@@ -55,10 +55,12 @@ export default function SponsorshipWorkspace() {
   const eventsQuery = useQuery({
     queryKey: ["sponsorship", "events"],
     queryFn: () => api("/api/v1/sponsorship/events"),
+    enabled: Boolean(authQuery.data),
   });
   const healthQuery = useQuery({
     queryKey: ["odoo", "health"],
     queryFn: () => api("/api/v1/integrations/odoo/health"),
+    enabled: Boolean(authQuery.data),
     retry: false,
   });
 
@@ -142,6 +144,48 @@ export default function SponsorshipWorkspace() {
     setReceiptLead(lead);
     setReceipt((current) => ({ ...current, amount: (lead.remainingAmountPaise / 100).toFixed(2) }));
   };
+
+  const canRead = authQuery.data?.permissions?.includes("sponsorship.crm.read") || authQuery.data?.permissions?.includes("sponsorship.crm.manage");
+
+  if (!authQuery.isPending && !authQuery.data) {
+    return (
+      <div className="page-container py-16">
+        <div className="mx-auto max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <HandCoins className="size-6" />
+          </div>
+          <h1 className="mt-4 font-display text-2xl font-semibold">Sign in required</h1>
+          <p className="mt-2 text-sm text-muted-foreground leading-6">
+            The Sponsorship Workspace is for authorized leadership. Please sign in to view and manage event sponsor pipelines.
+          </p>
+          <Button asChild className="mt-6 w-full">
+            <Link to="/login?redirect=/manage/sponsorship">Sign in to Skyline</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authQuery.isPending && authQuery.data && !canRead) {
+    return (
+      <div className="page-container py-16">
+        <Button asChild variant="ghost" className="mb-6 -ml-3">
+          <Link to="/manage"><ArrowLeft aria-hidden="true" /> Back to manage</Link>
+        </Button>
+        <div className="mx-auto max-w-lg rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-950 sm:p-8" role="alert">
+          <h1 className="font-display text-2xl font-semibold">Sponsorship access required</h1>
+          <p className="mt-3 text-sm leading-6 text-amber-900">
+            This workspace is reserved for the <strong>Sponsorship Head</strong>, <strong>President</strong>, or <strong>Treasurer</strong>.
+          </p>
+          <div className="mt-6">
+            <Button asChild variant="outline">
+              <Link to="/manage">Back to overview</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (eventsQuery.isPending) {
     return <div className="page-container py-12"><Skeleton className="h-10 w-72" /><Skeleton className="mt-8 h-96 rounded-2xl" /></div>;

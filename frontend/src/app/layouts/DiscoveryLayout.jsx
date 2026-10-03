@@ -101,13 +101,27 @@ export default function DiscoveryLayout() {
       .map((item) => [item.to, item.label]);
   }, [userPermissions]);
 
-  const section = location.pathname.startsWith("/manage")
+  const isLeadership = Boolean(
+    user && user.roles?.some((role) =>
+      [
+        "PRESIDENT",
+        "TREASURER",
+        "EVENT_HEAD",
+        "VOLUNTEER_HEAD",
+        "MARKETING_HEAD",
+        "SPONSORSHIP_HEAD",
+        "MENTOR",
+      ].includes(role)
+    )
+  );
+
+  const section = location.pathname.startsWith("/manage") && isLeadership
     ? {
         label: "Manage Skyline",
         icon: BriefcaseBusiness,
         links: filteredManageNav,
       }
-    : location.pathname.startsWith("/volunteer")
+    : location.pathname.startsWith("/volunteer") && (user?.isVolunteer || isLeadership)
       ? {
           label: "Volunteer space",
           icon: HeartHandshake,

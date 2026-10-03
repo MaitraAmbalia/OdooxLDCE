@@ -79,7 +79,7 @@ const ALL_MODULES = [
 
 export default function ManageHome() {
   usePageTitle("Manage");
-  const { data: authData } = useQuery({
+  const { data: authData, isPending: isAuthPending } = useQuery({
     queryKey: ["auth", "me"],
     queryFn: async () => {
       const response = await fetch("/api/v1/auth/me", { credentials: "include" });
@@ -89,8 +89,12 @@ export default function ManageHome() {
     retry: false,
   });
 
+  const user = authData?.data;
+  const userPermissions = user?.permissions || [];
+
   const { data: countsData, isPending, isError, refetch } = useQuery({
     queryKey: ["dashboard", "counts"],
+    enabled: Boolean(user),
     queryFn: async () => {
       const response = await fetch("/api/v1/dashboard/counts", { credentials: "include" });
       const json = await response.json();
@@ -101,6 +105,7 @@ export default function ManageHome() {
 
   const { data: proposalsData } = useQuery({
     queryKey: ["events", { status: "PENDING_APPROVAL", limit: 5 }],
+    enabled: Boolean(userPermissions.includes("event.approve")),
     queryFn: async () => {
       const response = await fetch("/api/v1/events?status=PENDING_APPROVAL&limit=5", { credentials: "include" });
       if (!response.ok) return { data: [] };
@@ -109,8 +114,6 @@ export default function ManageHome() {
     retry: false,
   });
 
-  const user = authData?.data;
-  const userPermissions = user?.permissions || [];
   const counts = countsData?.data;
   const firstProposal = proposalsData?.data?.[0];
 
@@ -163,6 +166,25 @@ export default function ManageHome() {
       }),
     }))
     .filter((mod) => mod.links.length > 0);
+
+  if (!isAuthPending && !user) {
+    return (
+      <div className="page-container py-16">
+        <div className="mx-auto max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <ShieldCheck className="size-6" />
+          </div>
+          <h1 className="mt-4 font-display text-2xl font-semibold">Leadership sign in required</h1>
+          <p className="mt-2 text-sm text-muted-foreground leading-6">
+            The management workspace is reserved for Skyline student leaders and mentors. Please sign in to continue.
+          </p>
+          <Button asChild className="mt-6 w-full">
+            <Link to="/login?redirect=/manage">Sign in to Skyline</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container py-12 sm:py-16">
