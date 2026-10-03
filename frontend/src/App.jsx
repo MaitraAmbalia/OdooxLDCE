@@ -40,6 +40,12 @@ import NewsletterDashboard from "./features/newsletter/pages/manage/NewsletterDa
 import MeetingList from "./features/meetings/pages/manage/MeetingList";
 import MeetingBuilder from "./features/meetings/pages/manage/MeetingBuilder";
 import MeetingDetail from "./features/meetings/pages/manage/MeetingDetail";
+import SelectionHub from "./features/selection/pages/SelectionHub";
+import ApplicationForm from "./features/selection/pages/ApplicationForm";
+import CycleBuilder from "./features/selection/pages/manage/CycleBuilder";
+import ApplicationReview from "./features/selection/pages/manage/ApplicationReview";
+import ManageHome from "./features/dashboard/pages/ManageHome";
+import AccountHome from "./features/dashboard/pages/AccountHome";
 
 function App() {
   return (
@@ -59,6 +65,10 @@ function App() {
         <Route path="verify-email" element={<VerifyEmail />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
+
+        {/* Phase 10: Dashboards */}
+        <Route path="me" element={<AccountHome />} />
+        <Route path="manage" element={<ManageHome />} />
 
         {/* Phase 2: Memberships and Payments */}
         <Route path="me/membership" element={<MyMembership />} />
@@ -80,7 +90,11 @@ function App() {
         <Route path="announcements/:id" element={<AnnouncementDetail />} />
         <Route path="me/notifications" element={<NotificationList />} />
 
-        {/* Phase 3, 4, 5, 6, 7 & 8: Manage */}
+        {/* Phase 9: Selection (Public) */}
+        <Route path="selection" element={<SelectionHub />} />
+        <Route path="selection/posts/:postId/apply" element={<ApplicationForm />} />
+
+        {/* Phase 3, 4, 5, 6, 7, 8 & 9: Manage */}
         <Route path="manage/events/new" element={<EventProposalStepper />} />
         <Route path="manage/events/:id/review" element={<MentorReview />} />
         
@@ -107,6 +121,9 @@ function App() {
         <Route path="manage/meetings" element={<MeetingList />} />
         <Route path="manage/meetings/new" element={<MeetingBuilder />} />
         <Route path="manage/meetings/:id" element={<MeetingDetail />} />
+
+        <Route path="manage/selection/:id/edit" element={<CycleBuilder />} />
+        <Route path="manage/selection/:id/applications" element={<ApplicationReview />} />
       </Route>
     </Routes>
   );
