@@ -34,6 +34,7 @@ enum Role {
   VOLUNTEER_HEAD
   EVENT_HEAD
   MARKETING_HEAD
+  SPONSORSHIP_HEAD
   TREASURER
   PRESIDENT
   MENTOR
@@ -43,6 +44,7 @@ enum LeadershipRole {
   VOLUNTEER_HEAD
   EVENT_HEAD
   MARKETING_HEAD
+  SPONSORSHIP_HEAD
   TREASURER
   PRESIDENT
 }
@@ -573,6 +575,12 @@ model Event {
   logisticsNotes      String?           @map("logistics_notes") @db.Text
   coverFileId         String?           @map("cover_file_id") @db.Uuid
   approvedBudgetPaise BigInt?           @map("approved_budget_paise")
+  sponsorshipRequired Boolean           @default(false) @map("sponsorship_required")
+  sponsorshipTargetPaise BigInt?        @map("sponsorship_target_paise")
+  sponsorshipDeadline DateTime?         @map("sponsorship_deadline") @db.Timestamptz(6)
+  sponsorshipPitch    String?           @map("sponsorship_pitch") @db.Text
+  sponsorshipPackages Json?             @map("sponsorship_packages") @db.JsonB
+  sponsorBenefits     String?           @map("sponsor_benefits") @db.Text
   proposedById        String            @map("proposed_by") @db.Uuid
   approvedById        String?           @map("approved_by") @db.Uuid
   approvedAt          DateTime?         @map("approved_at") @db.Timestamptz(6)

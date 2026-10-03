@@ -338,6 +338,7 @@ export default function ProductDetail() {
               description: product.description,
               price: formatINR(memberPrice),
               venue: "Skyline Merch Desk (Counter B)",
+              imageUrl: (images && images[0]) || product.imageUrl || null,
               url: typeof window !== "undefined" ? window.location.href : "",
             }}
           />

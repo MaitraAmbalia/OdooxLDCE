@@ -1,0 +1,45 @@
+services:
+  odoo-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+    volumes:
+      - skyline-odoo-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    restart: unless-stopped
+
+  odoo:
+    image: odoo:19.0
+    depends_on:
+      odoo-db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    ports:
+      - "8069:8069"
+    environment:
+      HOST: odoo-db
+      PORT: 5432
+      USER: odoo
+      PASSWORD: odoo
+    volumes:
+      - skyline-odoo-data:/var/lib/odoo
+      - ./odoo.conf:/etc/odoo/odoo.conf:ro
+    restart: unless-stopped
+
+volumes:
+  skyline-odoo-db:
+  skyline-odoo-data:

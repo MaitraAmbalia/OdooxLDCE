@@ -38,6 +38,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useSession } from "@/hooks/useSession";
 import { useEvents } from "../hooks/useEvents";
 import { categoryLabel, eventDate } from "../lib/events";
+import { SocialShareModal } from "@/components/common/SocialShareModal";
 
 const LEAD_PERMISSIONS = ["event.approve", "event.propose", "event.publish"];
 const PROPOSAL_STATUSES = ["PENDING_APPROVAL", "CHANGES_REQUESTED", "APPROVED"];
@@ -175,6 +176,7 @@ export default function EventCalendar() {
   const { data: sessionData } = useSession();
   const user = sessionData?.data;
   const canManage = Boolean(user?.permissions?.some((permission) => LEAD_PERMISSIONS.includes(permission)));
+  const canPropose = Boolean(user?.permissions?.includes("event.propose"));
   const { data: publishedData, isPending, isError, refetch } = useEvents();
   const { data: proposalData } = useQuery({
     queryKey: ["events", "calendar-proposals"],
@@ -194,6 +196,8 @@ export default function EventCalendar() {
     try { return JSON.parse(localStorage.getItem("skyline.savedEvents") || "[]"); }
     catch { return []; }
   });
+
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const published = publishedData?.data || [];
   const proposals = canManage ? proposalData || [] : [];
@@ -244,14 +248,9 @@ export default function EventCalendar() {
   function toggleSaved(id) {
     setSavedIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
   }
-  async function shareEvent(event) {
-    const url = `${window.location.origin}/events/${event.id}`;
-    try {
-      if (navigator.share) await navigator.share({ title: event.title, text: event.description, url });
-      else { await navigator.clipboard.writeText(url); toast.success("Event link copied."); }
-    } catch (error) {
-      if (error?.name !== "AbortError") toast.error("Could not share this event.");
-    }
+  function shareEvent(event) {
+    setSelected(event);
+    setIsShareModalOpen(true);
   }
 
   if (isError) {
@@ -266,7 +265,7 @@ export default function EventCalendar() {
           <h1 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Everything happening, <span className="text-primary">in one place.</span></h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Published events for everyone{canManage ? ", with proposals layered in for the leadership team" : " — clear, current, and easy to save"}.</p>
         </div>
-        {canManage && <Button asChild className="h-11 shrink-0"><Link to="/manage/events/new"><Plus /> Propose event</Link></Button>}
+        {canPropose && <Button asChild className="h-11 shrink-0"><Link to="/manage/events/new"><Plus /> Propose event</Link></Button>}
       </div>
 
       <div className="mt-8 grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -371,6 +370,23 @@ export default function EventCalendar() {
           </>}
         </SheetContent>
       </Sheet>
+
+      {selected && (
+        <SocialShareModal
+          open={isShareModalOpen}
+          onOpenChange={setIsShareModalOpen}
+          shareData={{
+            type: "event",
+            title: selected.title,
+            description: selected.description,
+            date: selected.startAt || selected.startDate,
+            venue: selected.venue,
+            organizer: selected.proposedBy?.name || "Skyline LDCE",
+            imageUrl: selected.coverImageUrl || null,
+            url: `${window.location.origin}/events/${selected.id}`,
+          }}
+        />
+      )}
     </div>
   );
 }

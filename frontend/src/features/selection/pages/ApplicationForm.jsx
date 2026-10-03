@@ -27,6 +27,7 @@ export default function ApplicationForm() {
 
   const user = authData?.data;
   const isMember = user?.membership?.status === 'ACTIVE';
+  const isPresidentOrMentor = user?.roles?.includes('PRESIDENT') || user?.roles?.includes('MENTOR');
 
   // Fetch post details from selection cycles
   const { data: cyclesData, isPending, isError, refetch } = useQuery({
@@ -87,6 +88,10 @@ export default function ApplicationForm() {
       setErrorMsg("This leadership position is no longer available.");
       return;
     }
+    if (isPresidentOrMentor) {
+      setErrorMsg("Sitting Presidents and Mentors are not eligible to apply for leadership roles to ensure fair governance.");
+      return;
+    }
     if (!isMember) {
       setErrorMsg("Only verified active members can apply for leadership roles. Please join first.");
       return;
@@ -122,8 +127,25 @@ export default function ApplicationForm() {
         </p>
       </div>
 
+      {/* President/Mentor Conflict of Interest Guard */}
+      {isPresidentOrMentor && (
+        <div className="mb-8 rounded-2xl border border-amber-300 bg-amber-50 p-6 text-amber-900">
+          <div className="flex items-start gap-4">
+            <LockKeyhole className="mt-0.5 size-6 shrink-0 text-amber-700" />
+            <div>
+              <h2 className="font-display text-lg font-semibold">
+                Governance Ineligibility
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-amber-800">
+                Sitting Presidents and Faculty Mentors oversee the election and appointment cycle. To prevent conflicts of interest and preserve independent selection, they are not eligible to apply for leadership positions.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Member Gating Guard Alert */}
-      {!isMember && (
+      {!isPresidentOrMentor && !isMember && (
         <div className="mb-8 rounded-2xl border border-[#ead2c4] bg-[#f6e8df] p-6">
           <div className="flex items-start gap-4">
             <LockKeyhole className="mt-0.5 size-6 shrink-0 text-[#86533d]" />
@@ -174,7 +196,7 @@ export default function ApplicationForm() {
                   <textarea
                     id={`question-${q.id}`}
                     required={q.isRequired}
-                    disabled={!isMember}
+                    disabled={!isMember || isPresidentOrMentor}
                     rows={4}
                     value={answers[q.id] || ""}
                     onChange={e => handleInputChange(q.id, e.target.value)}
@@ -190,7 +212,7 @@ export default function ApplicationForm() {
                   id={`question-${q.id}`}
                   type="text"
                   required={q.isRequired}
-                  disabled={!isMember}
+                  disabled={!isMember || isPresidentOrMentor}
                   value={answers[q.id] || ""}
                   onChange={e => handleInputChange(q.id, e.target.value)}
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:bg-muted"
@@ -203,9 +225,9 @@ export default function ApplicationForm() {
             <Button asChild variant="outline"><Link to="/selection">Cancel</Link></Button>
             <Button
               type="submit"
-              disabled={!isMember || submitMutation.isPending}
+              disabled={!isMember || isPresidentOrMentor || submitMutation.isPending}
             >
-              {submitMutation.isPending ? "Submitting…" : "Submit application"}
+              {submitMutation.isPending ? "Submitting…" : isPresidentOrMentor ? "Ineligible (Leader/Mentor)" : "Submit application"}
             </Button>
           </div>
         </form>

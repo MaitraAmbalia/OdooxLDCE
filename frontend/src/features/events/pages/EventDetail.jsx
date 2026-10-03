@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Calendar, MapPin, Clock, ArrowLeft, ShieldCheck, Sparkles, 
-  Share2, CheckCircle2, Flame, Users, Info, ChevronRight, AlertCircle 
+  Share2, CheckCircle2, Flame, Users, Info, ChevronRight, AlertCircle,
+  Handshake, ArrowUpRight
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
@@ -44,6 +45,18 @@ export default function EventDetail() {
     }
   });
 
+  // Fetch current user for role-based actions
+  const { data: authData } = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: async () => {
+      const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data;
+    },
+    staleTime: 60000,
+  });
+
   const event = eventData?.data;
   const ticketTypes = ticketTypesData?.data || [];
   usePageTitle(event?.title || "Event details");
@@ -56,7 +69,10 @@ export default function EventDetail() {
   const left = (ticket) => Math.max(0, ticket.quota - ticket.sold);
   const memberTier = ticketTypes.find((t) => t.audience === "MEMBER");
   const standardTier = ticketTypes.find((t) => t.audience === "NON_MEMBER");
-
+  const canManageSponsorship = Boolean(
+    user?.permissions?.includes("sponsorship.crm.manage") ||
+    user?.permissions?.includes("sponsorship.crm.read")
+  );
   React.useEffect(() => {
     if (selectedTicket && isEligible(selectedTicket)) return;
     const preferred = ticketTypes.filter((t) => isEligible(t) && left(t) > 0).sort((a, b) => (b.audience === "MEMBER") - (a.audience === "MEMBER"))[0];
@@ -215,8 +231,78 @@ export default function EventDetail() {
               <p className="whitespace-pre-line text-sm leading-7 text-muted-foreground">
                 {event.description}
               </p>
-
             </div>
+
+            {/* Sponsorship & Partners Section */}
+            {event.sponsorshipRequired && (
+              <div className="space-y-5 rounded-2xl border border-border bg-card p-6 sm:p-8">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
+                      <Handshake className="size-5" />
+                    </span>
+                    <div>
+                      <h2 className="font-display text-xl font-semibold">
+                        Sponsorship & Partnerships
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Brand outreach & corporate partner engagement
+                      </p>
+                    </div>
+                  </div>
+
+                  {canManageSponsorship && (
+                    <Button asChild size="sm" variant="outline" className="border-amber-500/30 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400">
+                      <Link to={`/manage/sponsorship?event=${event.id}`}>
+                        Manage in Odoo CRM
+                        <ArrowUpRight className="ml-1.5 size-4" />
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+
+                {event.sponsorshipPitch && (
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {event.sponsorshipPitch}
+                  </p>
+                )}
+
+                {/* Packages */}
+                {Array.isArray(event.sponsorshipPackages) && event.sponsorshipPackages.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Available Sponsorship Packages
+                    </h3>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {event.sponsorshipPackages.map((pkg, idx) => (
+                        <Badge key={idx} variant="secondary" className="border border-border/80 px-3 py-1 text-xs font-medium">
+                          {pkg}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {event.sponsorBenefits && (
+                  <div className="rounded-xl bg-secondary/40 p-4 text-xs leading-5 text-muted-foreground">
+                    <span className="font-semibold text-foreground">Partner Deliverables: </span>
+                    {event.sponsorBenefits}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between rounded-xl border border-dashed border-border p-4 text-xs">
+                  <span className="text-muted-foreground">
+                    Want your brand featured at {event.title}?
+                  </span>
+                  <a
+                    href={`mailto:sponsorship@nirmauni.ac.in?subject=Sponsorship Inquiry: ${encodeURIComponent(event.title)}`}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    Contact Sponsorship Team &rarr;
+                  </a>
+                </div>
+              </div>
+            )}
 
           </div>
 
@@ -353,6 +439,19 @@ export default function EventDetail() {
                 <span>Instant QR pass generated • Valid for single scan entry</span>
               </div>
 
+              <div className="pt-2 border-t border-border/60">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleShare}
+                  className="w-full gap-2 border-border text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <Share2 className="size-3.5 text-primary" />
+                  <span>Share Event (WhatsApp & Instagram)</span>
+                </Button>
+              </div>
+
             </div>
           </div>
 
@@ -373,6 +472,7 @@ export default function EventDetail() {
                 ? formatINR(selectedTicket.pricePaise / 100) 
                 : (ticketTypes?.length ? `From ${formatINR(ticketTypes[0].pricePaise / 100)}` : "Free Entry"),
               organizer: event.organizer?.name || "Skyline LDCE",
+              imageUrl: event.coverImageUrl || null,
               url: typeof window !== "undefined" ? window.location.href : "",
             }}
           />

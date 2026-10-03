@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ShieldCheck, Lock, Zap, GraduationCap,
-  Crown, DollarSign, Ticket, Users, CheckCircle2 
+  Crown, DollarSign, Ticket, Users, Handshake, CheckCircle2,
+  Megaphone, UserCheck
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Badge } from "../../../components/ui/badge";
 import { usePageTitle } from "../../../hooks/usePageTitle";
+import { useSession } from "../../../hooks/useSession";
 
 export default function Login() {
   usePageTitle("Log in");
@@ -18,6 +21,24 @@ export default function Login() {
   const [searchParams] = useSearchParams();
   const registered = searchParams.get("registered");
   const [activeTab, setActiveTab] = useState("PERSONAS"); // 'PERSONAS' or 'CREDENTIALS'
+  const queryClient = useQueryClient();
+  const { data: sessionData, isPending: isSessionPending } = useSession();
+  const currentUser = sessionData?.data;
+
+  useEffect(() => {
+    if (!isSessionPending && currentUser) {
+      const redirectTarget = searchParams.get("redirect");
+      if (redirectTarget && redirectTarget.startsWith("/") && !redirectTarget.startsWith("//")) {
+        navigate(redirectTarget, { replace: true });
+      } else if (currentUser.roles && currentUser.roles.length > 0) {
+        navigate("/manage", { replace: true });
+      } else if (currentUser.isVolunteer) {
+        navigate("/volunteer", { replace: true });
+      } else {
+        navigate("/me", { replace: true });
+      }
+    }
+  }, [isSessionPending, currentUser, searchParams, navigate]);
 
   const onSubmit = async (data) => {
     setErrorMsg("");
@@ -33,12 +54,17 @@ export default function Login() {
         throw new Error(json.error?.message || json.message || "Invalid email or password");
       }
       const user = json.data;
-      if (user?.roles && user.roles.length > 0) {
-        navigate("/manage");
+      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+
+      const redirectTarget = searchParams.get("redirect");
+      if (redirectTarget && redirectTarget.startsWith("/") && !redirectTarget.startsWith("//")) {
+        navigate(redirectTarget, { replace: true });
+      } else if (user?.roles && user.roles.length > 0) {
+        navigate("/manage", { replace: true });
       } else if (user?.isVolunteer) {
-        navigate("/volunteer");
+        navigate("/volunteer", { replace: true });
       } else {
-        navigate("/me");
+        navigate("/me", { replace: true });
       }
       window.location.reload();
     } catch (err) {
@@ -51,10 +77,10 @@ export default function Login() {
       title: "Faculty Mentor",
       email: "mentor@nirmauni.ac.in",
       role: "MENTOR",
-      badge: "Faculty Supervisor",
+      badge: "Supervisory",
       icon: GraduationCap,
       color: "bg-[#272747] text-white",
-      desc: "Approve event proposals, lock budgets & appoint leaders."
+      desc: "Governance, elections timeline, nominee validation & budget allocation."
     },
     {
       title: "Club President",
@@ -63,7 +89,7 @@ export default function Login() {
       badge: "Executive Head",
       icon: Crown,
       color: "bg-primary text-primary-foreground",
-      desc: "Schedule meetings, build agendas & executive oversight."
+      desc: "Meeting builder, executive agendas, high-value claims & club oversight."
     },
     {
       title: "Treasurer",
@@ -72,34 +98,61 @@ export default function Login() {
       badge: "Finance & Ledger",
       icon: DollarSign,
       color: "bg-[#345d4a] text-white",
-      desc: "Double-entry general ledger & reimbursement approvals."
+      desc: "General ledger balance, claims audit, cash desk & Odoo Won receipts."
     },
     {
       title: "Event Head",
       email: "eventhead@nirmauni.ac.in",
       role: "EVENT_HEAD",
-      badge: "Ticketing & Door",
+      badge: "Events & Ticketing",
       icon: Ticket,
       color: "bg-[#5b568c] text-white",
-      desc: "Propose new events, configure ticket tiers & door staff."
+      desc: "Propose events, manage ticket tiers, capacities & door scanning team."
     },
     {
-      title: "Volunteer",
+      title: "Sponsorship Head",
+      email: "sponsorship@nirmauni.ac.in",
+      role: "SPONSORSHIP_HEAD",
+      badge: "Odoo CRM Lead",
+      icon: Handshake,
+      color: "bg-[#86533d] text-white",
+      desc: "Manage sponsor pipeline, CRM opportunities & event commitments in Odoo."
+    },
+    {
+      title: "Marketing Head",
+      email: "marketinghead@nirmauni.ac.in",
+      role: "MARKETING_HEAD",
+      badge: "Outreach & Merch",
+      icon: Megaphone,
+      color: "bg-[#7b4668] text-white",
+      desc: "Campus announcements, newsletter campaigns & merchandise order dispatch."
+    },
+    {
+      title: "Volunteer Head",
+      email: "volunteerhead@nirmauni.ac.in",
+      role: "VOLUNTEER_HEAD",
+      badge: "Workforce",
+      icon: UserCheck,
+      color: "bg-[#3f637a] text-white",
+      desc: "Volunteer rosters, task assignments, interviews & duty tracking."
+    },
+    {
+      title: "Active Volunteer",
       email: "volunteer1@nirmauni.ac.in",
       role: "VOLUNTEER",
-      badge: "Operations & Shifts",
+      badge: "Operations",
       icon: Users,
       color: "bg-[#47725e] text-white",
-      desc: "Task Kanban, isolated team chat & receipt upload."
+      desc: "Task Kanban board, isolated volunteer team chat & expense reimbursement."
     },
     {
       title: "Active Member",
       email: "student1@nirmauni.ac.in",
       role: "MEMBER",
-      badge: "50% Discount Perks",
+      badge: "Member Perks",
       icon: ShieldCheck,
       color: "bg-[#f5e4db] text-[#86533d]",
-      desc: "Digital QR card, member Gala passes & leadership applications."
+      desc: "Digital QR pass, member discounts, ticket wallet & election voting."
     }
   ];
 

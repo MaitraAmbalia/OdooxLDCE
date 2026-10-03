@@ -9,6 +9,7 @@
     "start": "node src/server.js",
     "seed": "node prisma/seed.js",
     "lint": "eslint src eslint.config.js",
+    "test:odoo": "node --test src/integrations/odoo/odoo.test.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio"

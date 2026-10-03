@@ -89,6 +89,7 @@ async function main() {
     { id: '10000000-0000-4000-8000-000000000004', email: 'eventhead@nirmauni.ac.in', name: 'Rohan Mehta', studentId: '22BCE103', role: 'EVENT_HEAD', isMember: true },
     { id: '10000000-0000-4000-8000-000000000005', email: 'volunteerhead@nirmauni.ac.in', name: 'Sanya Kapoor', studentId: '22BCE104', role: 'VOLUNTEER_HEAD', isMember: true },
     { id: '10000000-0000-4000-8000-000000000006', email: 'marketinghead@nirmauni.ac.in', name: 'Vikram Rathore', studentId: '22BCE105', role: 'MARKETING_HEAD', isMember: true },
+    { id: '10000000-0000-4000-8000-000000000019', email: 'sponsorship@nirmauni.ac.in', name: 'Ishita Desai', studentId: '22BCE106', role: 'SPONSORSHIP_HEAD', isMember: true },
     { id: '10000000-0000-4000-8000-000000000007', email: 'door@nirmauni.ac.in', name: 'Karan Singhania', studentId: '23BCE150', isVolunteer: true, isMember: true },
     { id: '10000000-0000-4000-8000-000000000008', email: 'cashdesk@nirmauni.ac.in', name: 'Neha Desai', studentId: '23BCE160', isVolunteer: true, isMember: true },
     { id: '10000000-0000-4000-8000-000000000009', email: 'volunteer1@nirmauni.ac.in', name: 'Ananya Joshi', studentId: '23BCE201', isVolunteer: true, isMember: true },
@@ -197,11 +198,39 @@ async function main() {
   // ==========================================
   // 4. Events, Ticket Types, Budget Lines, Reviews
   // ==========================================
-  async function upsertEvent({ id, title, description, category, venue, startAt, endAt, capacity, visibility, status = 'PUBLISHED', proposedById, approvedById, approvedAt, approvedBudgetPaise, ticketTypes = [], budgetLines = [] }) {
+  async function upsertEvent({ 
+    id, title, description, category, venue, startAt, endAt, capacity, visibility, 
+    status = 'PUBLISHED', proposedById, approvedById, approvedAt, approvedBudgetPaise, 
+    sponsorshipRequired = false,
+    sponsorshipTargetPaise = null,
+    sponsorshipDeadline = null,
+    sponsorshipPitch = null,
+    sponsorshipPackages = [],
+    sponsorBenefits = null,
+    ticketTypes = [], budgetLines = [] 
+  }) {
     const event = await prisma.event.upsert({
       where: { id },
-      update: { title, description, category, venue, startAt, endAt, capacity, visibility, status, approvedById, approvedAt, approvedBudgetPaise },
-      create: { id, title, description, category, venue, startAt, endAt, capacity, seatsSold: 0, visibility, status, proposedById, approvedById, approvedAt, approvedBudgetPaise },
+      update: { 
+        title, description, category, venue, startAt, endAt, capacity, visibility, status, 
+        approvedById, approvedAt, approvedBudgetPaise,
+        sponsorshipRequired,
+        sponsorshipTargetPaise,
+        sponsorshipDeadline,
+        sponsorshipPitch,
+        sponsorshipPackages,
+        sponsorBenefits,
+      },
+      create: { 
+        id, title, description, category, venue, startAt, endAt, capacity, seatsSold: 0, visibility, status, 
+        proposedById, approvedById, approvedAt, approvedBudgetPaise,
+        sponsorshipRequired,
+        sponsorshipTargetPaise,
+        sponsorshipDeadline,
+        sponsorshipPitch,
+        sponsorshipPackages,
+        sponsorBenefits,
+      },
     });
 
     for (const tt of ticketTypes) {
@@ -256,6 +285,12 @@ async function main() {
     approvedById: createdUsers['mentor@nirmauni.ac.in'].id,
     approvedAt: new Date(Date.now() - 5 * 24 * 3600000),
     approvedBudgetPaise: BigInt(8500000), // ₹85,000
+    sponsorshipRequired: true,
+    sponsorshipTargetPaise: BigInt(15000000), // ₹1,50,000
+    sponsorshipDeadline: new Date(Date.now() + 10 * 24 * 3600000),
+    sponsorshipPitch: 'Sponsor the premier flagship cultural evening and networking celebration of LDCE & Nirma University featuring student bands, formal dinner, and guest addresses with 350+ attendees.',
+    sponsorshipPackages: ['Title Sponsor', 'Gold Sponsor', 'Silver Sponsor', 'Food Partner'],
+    sponsorBenefits: 'Main stage banner branding, 5-minute executive pitch slot, logo on all 350+ entry passes, and dedicated booth in student lobby.',
     ticketTypes: [
       {
         id: '31000000-0000-0000-0000-000000000001',
@@ -1336,6 +1371,22 @@ async function main() {
         },
       ],
     },
+    {
+      id: '71000000-0000-0000-0000-000000000005',
+      role: 'SPONSORSHIP_HEAD',
+      seats: 1,
+      description: 'Build sponsor relationships, manage the Odoo CRM pipeline, and coordinate event sponsorship commitments.',
+      minMembershipDays: 20,
+      questions: [
+        {
+          id: '72000000-0000-0000-0000-000000000006',
+          sortOrder: 1,
+          label: 'How would you identify, approach, and follow up with sponsors for a major student event?',
+          type: 'TEXTAREA',
+          required: true,
+        },
+      ],
+    },
   ];
 
   for (const pd of postsData) {
@@ -1704,6 +1755,7 @@ async function main() {
   console.log('  - Event Head:           eventhead@nirmauni.ac.in     (Create & manage event proposals)');
   console.log('  - Volunteer Head:       volunteerhead@nirmauni.ac.in (Manage rosters and duties)');
   console.log('  - Marketing Head:       marketinghead@nirmauni.ac.in (Campaigns and drops)');
+  console.log('  - Sponsorship Head:     sponsorship@nirmauni.ac.in  (Odoo CRM sponsorship pipeline)');
   console.log('  - Door Scanner:         door@nirmauni.ac.in          (Test QR check-in at /door/00000000-0000-0000-0000-000000000001)');
   console.log('  - Cash Desk:            cashdesk@nirmauni.ac.in      (Record cash collections at /cash-desk)');
   console.log('  - Active Volunteer:     volunteer1@nirmauni.ac.in    (Active tasks & claims at /volunteer)');

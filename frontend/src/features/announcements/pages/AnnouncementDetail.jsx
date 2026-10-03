@@ -139,6 +139,7 @@ export default function AnnouncementDetail() {
           date: announcement.publishedAt,
           audience: announcement.audience,
           author: announcement.author,
+          imageUrl: announcement.imageUrl || announcement.bannerUrl || null,
           url: typeof window !== "undefined" ? window.location.href : "",
         }}
       />

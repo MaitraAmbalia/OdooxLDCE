@@ -25,6 +25,7 @@ const budgetLineData = (b) => ({ category: b.category, amountPaise: BigInt(b.amo
 const serialize = (e) => ({
   ...e,
   ...('approvedBudgetPaise' in e && { approvedBudgetPaise: e.approvedBudgetPaise != null ? Number(e.approvedBudgetPaise) : null }),
+  ...('sponsorshipTargetPaise' in e && { sponsorshipTargetPaise: e.sponsorshipTargetPaise != null ? Number(e.sponsorshipTargetPaise) : null }),
   startDate: e.startAt,
   endDate: e.endAt,
   coverImageUrl: e.coverFileId ? `/api/v1/files/${e.coverFileId}` : null,
@@ -55,6 +56,56 @@ export async function canWorkDoor(db, user, eventId) {
   return !!row && now >= row.event.startAt.getTime() - DOOR_WINDOW_MS && now <= row.event.endAt.getTime() + DOOR_WINDOW_MS;
 }
 
+function sponsorshipData(input) {
+  const required = input.sponsorshipRequired === true;
+  if (!required) {
+    return {
+      sponsorshipRequired: false,
+      sponsorshipTargetPaise: null,
+      sponsorshipDeadline: null,
+      sponsorshipPitch: null,
+      sponsorshipPackages: null,
+      sponsorBenefits: null,
+    };
+  }
+
+  const target = Number(input.sponsorshipTargetPaise);
+  const deadline = new Date(input.sponsorshipDeadline);
+  const packages = Array.isArray(input.sponsorshipPackages)
+    ? input.sponsorshipPackages.map((value) => String(value).trim()).filter(Boolean)
+    : [];
+  const pitch = String(input.sponsorshipPitch || '').trim();
+  const benefits = String(input.sponsorBenefits || '').trim();
+
+  if (!Number.isSafeInteger(target) || target <= 0) {
+    throw new AppError('VALIDATION_ERROR', 400, 'A positive sponsorship target is required');
+  }
+  if (Number.isNaN(deadline.getTime())) {
+    throw new AppError('VALIDATION_ERROR', 400, 'A valid sponsorship deadline is required');
+  }
+  if (input.startAt && deadline >= new Date(input.startAt)) {
+    throw new AppError('VALIDATION_ERROR', 400, 'The sponsorship deadline must be before the event starts');
+  }
+  if (!pitch || !benefits || packages.length === 0) {
+    throw new AppError('VALIDATION_ERROR', 400, 'Sponsorship pitch, packages, and benefits are required');
+  }
+
+  return {
+    sponsorshipRequired: true,
+    sponsorshipTargetPaise: BigInt(target),
+    sponsorshipDeadline: deadline,
+    sponsorshipPitch: pitch,
+    sponsorshipPackages: packages,
+    sponsorBenefits: benefits,
+  };
+}
+
+const withPublicAmounts = (event) => ({
+  ...event,
+  approvedBudgetPaise: event.approvedBudgetPaise != null ? Number(event.approvedBudgetPaise) : null,
+  sponsorshipTargetPaise: event.sponsorshipTargetPaise != null ? Number(event.sponsorshipTargetPaise) : null,
+});
+
 export function createEventsService({ prisma }) {
   async function notifyMentors(event, what) {
     const mentors = await prisma.roleAssignment.findMany({ where: { role: 'MENTOR', endedAt: null }, select: { userId: true } });
@@ -74,7 +125,8 @@ export function createEventsService({ prisma }) {
           ...eventFields(input),
           status: 'PENDING_APPROVAL',
           proposedById: userId,
-          ticketTypes: { create: input.ticketTypes.map((t) => ticketTypeData(t, input)) },
+          ...sponsorshipData(input),
+          ticketTypes: { create: (input.ticketTypes ?? []).map((t) => ticketTypeData(t, input)) },
           budgetLines: { create: (input.budgetLines ?? []).map(budgetLineData) },
         },
         include: { ticketTypes: true, budgetLines: true },
@@ -312,8 +364,15 @@ export function createEventsService({ prisma }) {
           data: {
             eventId: id, reviewerId: mentorId, decision, comment: note || null,
             snapshot: { title: event.title, startAt: event.startAt, endAt: event.endAt, capacity: event.capacity, venue: event.venue,
+              sponsorshipRequired: event.sponsorshipRequired,
+              sponsorshipTargetPaise: event.sponsorshipTargetPaise != null ? Number(event.sponsorshipTargetPaise) : null,
+              sponsorshipDeadline: event.sponsorshipDeadline,
+              sponsorshipPitch: event.sponsorshipPitch,
+              sponsorshipPackages: event.sponsorshipPackages,
+              sponsorBenefits: event.sponsorBenefits,
               ticketTypes: event.ticketTypes.map((t) => ({ name: t.name, audience: t.audience, pricePaise: Number(t.pricePaise), quota: t.quota })),
-              budgetLines: event.budgetLines.map((b) => ({ category: b.category, amountPaise: Number(b.amountPaise) })) },
+              budgetLines: event.budgetLines?.map((b) => ({ category: b.category, amountPaise: Number(b.amountPaise) })),
+            },
           },
         });
         const row = await tx.event.update({
@@ -335,6 +394,24 @@ export function createEventsService({ prisma }) {
           body: note ? `"${event.title}": ${note}` : `"${event.title}" is now live and tickets are on sale.`,
           link: decision === 'REQUEST_CHANGES' ? `/manage/events/${id}/edit` : `/manage/events/${id}/report`,
         });
+        if (decision === 'APPROVE' && event.sponsorshipRequired) {
+          const now = new Date();
+          const sponsorshipLeads = await tx.roleAssignment.findMany({
+            where: {
+              role: 'SPONSORSHIP_HEAD',
+              termStart: { lte: now },
+              termEnd: { gt: now },
+              endedAt: null,
+            },
+            select: { userId: true },
+          });
+          await notifyMany(tx, sponsorshipLeads.map((lead) => lead.userId), {
+            type: 'SPONSORSHIP_REQUEST_READY',
+            title: 'Approved event needs sponsorship',
+            body: `"${event.title}" is ready for sponsor outreach.`,
+            link: `/manage/sponsorship?event=${event.id}`,
+          });
+        }
         return row;
       });
       return serialize(updated);

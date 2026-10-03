@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { getIO } from '../../lib/socket.js';
 
 export function createProjectsRouter({ service, authenticate }) {
   const router = Router();
@@ -37,11 +38,21 @@ export function createProjectsRouter({ service, authenticate }) {
   });
 
   router.post('/tasks/:id/messages', authenticate, async (req, res) => {
-    res.status(201).json({ data: await service.postMessage(req.user, req.params.id, req.body) });
+    const data = await service.postMessage(req.user, req.params.id, req.body);
+    const io = getIO();
+    if (io) {
+      io.to(`task:${req.params.id}`).emit('chat:message', data);
+    }
+    res.status(201).json({ data });
   });
 
   router.patch('/tasks/:id/status', authenticate, async (req, res) => {
-    res.json({ data: await service.updateTaskStatus(req.user, req.params.id, req.body.status) });
+    const data = await service.updateTaskStatus(req.user, req.params.id, req.body.status);
+    const io = getIO();
+    if (io) {
+      io.to(`task:${req.params.id}`).emit('task:status_updated', data);
+    }
+    res.json({ data });
   });
 
   router.post('/tasks/:id/assignees', authenticate, async (req, res) => {

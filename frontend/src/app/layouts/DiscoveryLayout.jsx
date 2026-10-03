@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Link,
   NavLink,
@@ -48,22 +48,22 @@ const navigation = [
   ["/selection", "Leadership"],
 ];
 
-// Third entry: any one of these permissions shows the link (none = everyone in /manage).
-const manageNavigation = [
-  ["/manage", "Overview"],
-  ["/calendar", "Calendar"],
-  ["/manage/events", "Events", ["event.propose", "event.approve", "event.report.read"]],
-  ["/manage/meetings", "Meetings", ["meeting.manage"]],
-  ["/manage/claims", "Claims", ["claim.review", "claim.review.high", "claim.review.treasurer", "claim.pay"]],
-  ["/manage/cash", "Cash", ["cash.verify"]],
-  ["/manage/memberships", "Dues", ["member.read.any"]],
-  ["/manage/finance/ledger", "Ledger", ["ledger.read"]],
-  ["/manage/budget", "Budgets", ["ledger.read"]],
-  ["/manage/finance/reports", "Reports", ["finance.report.read"]],
-  ["/manage/projects", "Projects", ["project.manage", "volunteer.manage"]],
-  ["/manage/orders", "Orders", ["order.fulfil"]],
-  ["/manage/newsletter", "Newsletter", ["newsletter.send", "newsletter.stats.read"]],
-  ["/manage/selection/new/edit", "Leadership", ["selection.manage"]],
+const manageNavigationItems = [
+  { to: "/manage", label: "Overview" },
+  { to: "/calendar", label: "Calendar" },
+  { to: "/manage/events", label: "Events", anyPermission: ["event.propose", "event.approve", "event.report.read"] },
+  { to: "/manage/sponsorship", label: "Sponsorship", anyPermission: ["sponsorship.crm.read", "sponsorship.crm.manage"] },
+  { to: "/manage/meetings", label: "Meetings", anyPermission: ["meeting.manage"] },
+  { to: "/manage/claims", label: "Claims", anyPermission: ["claim.review", "claim.review.high", "claim.review.treasurer", "claim.pay"] },
+  { to: "/manage/cash", label: "Cash", anyPermission: ["cash.verify"] },
+  { to: "/manage/memberships", label: "Dues", anyPermission: ["member.read.any", "membership.tier.manage"] },
+  { to: "/manage/finance/ledger", label: "Ledger", anyPermission: ["ledger.read"] },
+  { to: "/manage/budget", label: "Budgets", anyPermission: ["budget.limit.manage", "budget.allocate", "ledger.read"] },
+  { to: "/manage/finance/reports", label: "Reports", anyPermission: ["finance.report.read"] },
+  { to: "/manage/projects", label: "Projects", anyPermission: ["project.manage", "volunteer.manage"] },
+  { to: "/manage/orders", label: "Orders", anyPermission: ["order.fulfil"] },
+  { to: "/manage/newsletter", label: "Newsletter", anyPermission: ["newsletter.send", "newsletter.stats.read"] },
+  { to: "/manage/selection/new/edit", label: "Leadership", anyPermission: ["selection.manage"] },
 ];
 
 const volunteerNavigation = [
@@ -96,13 +96,35 @@ export default function DiscoveryLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const section = location.pathname.startsWith("/manage")
+
+  const userPermissions = user?.permissions || [];
+  const filteredManageNav = useMemo(() => {
+    return manageNavigationItems
+      .filter((item) => !item.anyPermission || item.anyPermission.some((perm) => userPermissions.includes(perm)))
+      .map((item) => [item.to, item.label]);
+  }, [userPermissions]);
+
+  const isLeadership = Boolean(
+    user && user.roles?.some((role) =>
+      [
+        "PRESIDENT",
+        "TREASURER",
+        "EVENT_HEAD",
+        "VOLUNTEER_HEAD",
+        "MARKETING_HEAD",
+        "SPONSORSHIP_HEAD",
+        "MENTOR",
+      ].includes(role)
+    )
+  );
+
+  const section = location.pathname.startsWith("/manage") && isLeadership
     ? {
         label: "Manage Skyline",
         icon: BriefcaseBusiness,
-        links: manageNavigation.filter(([, , perms]) => !perms || perms.some((p) => user?.permissions?.includes(p))),
+        links: filteredManageNav,
       }
-    : location.pathname.startsWith("/volunteer")
+    : location.pathname.startsWith("/volunteer") && (user?.isVolunteer || isLeadership)
       ? {
           label: "Volunteer space",
           icon: HeartHandshake,
@@ -144,6 +166,7 @@ export default function DiscoveryLayout() {
         "EVENT_HEAD",
         "VOLUNTEER_HEAD",
         "MARKETING_HEAD",
+        "SPONSORSHIP_HEAD",
         "MENTOR",
       ].includes(role),
     )

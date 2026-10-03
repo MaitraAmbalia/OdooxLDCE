@@ -5,7 +5,7 @@ import { AppError } from '../lib/AppError.js';
 export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 
 export const termRoleSchema = z.enum([
-  'MENTOR', 'PRESIDENT', 'TREASURER', 'EVENT_HEAD', 'VOLUNTEER_HEAD', 'MARKETING_HEAD',
+  'MENTOR', 'PRESIDENT', 'TREASURER', 'EVENT_HEAD', 'VOLUNTEER_HEAD', 'MARKETING_HEAD', 'SPONSORSHIP_HEAD',
 ]);
 
 export const membershipClaimsSchema = z.object({
@@ -20,7 +20,7 @@ export const accessClaimsSchema = z.object({
   emailVerified: z.boolean(),
   membership: membershipClaimsSchema,
   isVolunteer: z.boolean(),
-  roles: z.array(termRoleSchema).max(6),
+  roles: z.array(termRoleSchema).max(7),
   permissions: z.array(z.string()).max(100),
   iat: z.number().int().nonnegative(),
   exp: z.number().int().positive(),

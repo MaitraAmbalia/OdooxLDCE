@@ -8,6 +8,7 @@ import { ContentState } from "@/components/common/ContentState";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { getSocket } from "@/lib/socket";
 
 export default function TaskDetail() {
   const { id } = useParams();
@@ -50,7 +51,7 @@ export default function TaskDetail() {
     }
   });
 
-  // Real-time task chat messages from backend
+  // Real-time task chat messages from backend (synced live via WebSockets)
   const { data: messages = [] } = useQuery({
     queryKey: ['tasks', id, 'messages'],
     queryFn: async () => {
@@ -59,8 +60,50 @@ export default function TaskDetail() {
       const json = await res.json();
       return json.data || [];
     },
-    refetchInterval: 3000,
+    staleTime: Infinity,
   });
+
+  // Real-time WebSocket connection for task chat & live status
+  useEffect(() => {
+    if (!id) return;
+    const socket = getSocket();
+    socket.emit("join:task", id);
+
+    const onChatMessage = (newMsg) => {
+      queryClient.setQueryData(['tasks', id, 'messages'], (old = []) => {
+        if (old.some(m => (m.id && m.id === newMsg.id) || (m.clientMsgId && newMsg.clientMsgId && m.clientMsgId === newMsg.clientMsgId))) {
+          return old;
+        }
+        return [...old, newMsg];
+      });
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 40);
+    };
+
+    const onTaskStatusUpdated = (updatedTask) => {
+      queryClient.setQueryData(['tasks', id], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            ...updatedTask,
+          },
+        };
+      });
+      toast.info(`Task status updated to ${updatedTask?.status?.replace('_', ' ').toLowerCase()}`);
+    };
+
+    socket.on("chat:message", onChatMessage);
+    socket.on("task:status_updated", onTaskStatusUpdated);
+
+    return () => {
+      socket.emit("leave:task", id);
+      socket.off("chat:message", onChatMessage);
+      socket.off("task:status_updated", onTaskStatusUpdated);
+    };
+  }, [id, queryClient]);
 
   const task = taskData?.data;
   usePageTitle(task?.title || "Volunteer task");
@@ -102,8 +145,15 @@ export default function TaskDetail() {
       }
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks', id, 'messages'] });
+    onSuccess: (resData) => {
+      if (resData?.data) {
+        queryClient.setQueryData(['tasks', id, 'messages'], (old = []) => {
+          if (old.some(m => (m.id && m.id === resData.data.id) || (m.clientMsgId && resData.data.clientMsgId && m.clientMsgId === resData.data.clientMsgId))) {
+            return old;
+          }
+          return [...old, resData.data];
+        });
+      }
     },
     onError: (err) => {
       toast.error(err.message || "Could not send message");
@@ -211,7 +261,12 @@ export default function TaskDetail() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
                 <h2 className="flex items-center gap-2 text-sm font-semibold">
-                  <MessageSquareText className="size-4 text-primary" /><span>Task Discussion</span>
+                  <MessageSquareText className="size-4 text-primary" />
+                  <span>Task Discussion</span>
+                  <span className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Live
+                  </span>
                 </h2>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   Team chat for <span className="font-semibold text-foreground">{task.title}</span>

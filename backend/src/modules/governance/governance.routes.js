@@ -115,6 +115,32 @@ export function createGovernanceRouter({ prisma, authenticate }) {
       throw new AppError('ACTIVE_MEMBERSHIP_REQUIRED', 403, 'Only active members can apply for leadership posts');
     }
 
+    // Sitting Presidents and Mentors oversee governance and cannot apply for leadership posts
+    const isPresidentOrMentor = req.user.roles?.includes('PRESIDENT') || req.user.roles?.includes('MENTOR');
+    if (isPresidentOrMentor) {
+      throw new AppError('LEADERSHIP_APPLICATION_DISALLOWED', 403, 'Sitting Presidents and Mentors are not eligible to apply for leadership positions');
+    }
+
+    const activeLeaderAssignment = await prisma.roleAssignment.findFirst({
+      where: {
+        userId: req.user.sub,
+        role: { in: ['PRESIDENT', 'MENTOR'] },
+        endedAt: null,
+        termEnd: { gte: now },
+      },
+    });
+    if (activeLeaderAssignment) {
+      throw new AppError('LEADERSHIP_APPLICATION_DISALLOWED', 403, 'Sitting Presidents and Mentors are not eligible to apply for leadership positions');
+    }
+
+    // Prevent duplicate application to the same position
+    const existingApplicationForPost = await prisma.application.findFirst({
+      where: { applicantId: req.user.sub, postId: post.id },
+    });
+    if (existingApplicationForPost) {
+      throw new AppError('ALREADY_APPLIED', 409, 'You have already applied for this leadership position');
+    }
+
     const applicationCount = await prisma.application.count({
       where: { applicantId: req.user.sub, post: { cycleId: post.cycleId } },
     });

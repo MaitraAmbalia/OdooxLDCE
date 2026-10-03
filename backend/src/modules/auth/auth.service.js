@@ -20,7 +20,7 @@ export function createAuthService({ prisma, config }) {
 
     const membership = memberships.find((m) => m.status === 'ACTIVE' && (!m.expiresAt || new Date(m.expiresAt).getTime() > instant)) || memberships[0];
 
-    const validTermRoles = new Set(['MENTOR', 'PRESIDENT', 'TREASURER', 'EVENT_HEAD', 'VOLUNTEER_HEAD', 'MARKETING_HEAD']);
+    const validTermRoles = new Set(['MENTOR', 'PRESIDENT', 'TREASURER', 'EVENT_HEAD', 'VOLUNTEER_HEAD', 'MARKETING_HEAD', 'SPONSORSHIP_HEAD']);
     const roles = [
       ...new Set(
         assignments
