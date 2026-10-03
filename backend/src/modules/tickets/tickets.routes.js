@@ -16,7 +16,7 @@ export function createTicketsRouter({ service, authenticate, authorize }) {
 
   // GET /tickets/event/:eventId/attendance - Live Attendance List and counts
   router.get('/tickets/event/:eventId/attendance', authenticate, async (req, res) => {
-    res.json({ data: await service.getEventAttendance(req.params.eventId) });
+    res.json({ data: await service.getEventAttendance(req.user, req.params.eventId) });
   });
 
   // GET /tickets/:id - Single ticket details

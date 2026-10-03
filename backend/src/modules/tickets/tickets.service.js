@@ -243,7 +243,13 @@ export function createTicketsService({ prisma, config, createPayment }) {
       };
     },
 
-    async getEventAttendance(eventId) {
+    async getEventAttendance(userOrEventId, maybeEventId) {
+      const user = maybeEventId ? userOrEventId : null;
+      const eventId = maybeEventId ?? userOrEventId;
+      if (user && !(await canWorkDoor(prisma, user, eventId))) {
+        throw new AppError('FORBIDDEN', 403, 'You do not have door access for this event');
+      }
+
       const event = await prisma.event.findUnique({
         where: { id: eventId },
         select: { id: true, title: true, capacity: true, seatsSold: true },

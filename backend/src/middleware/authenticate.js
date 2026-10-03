@@ -25,9 +25,10 @@ export function authenticate({ optional = false, config } = {}) {
  * Authorization middleware. Checks if authenticated user has any of the required permissions.
  */
 export function authorize(...permissions) {
+  const perms = permissions.flat();
   return (req, _res, next) => {
     if (!req.user) return next(new AppError('UNAUTHENTICATED', 401, 'A valid session is required'));
-    if (!permissions.some((p) => req.user.permissions?.includes(p))) {
+    if (!perms.some((p) => req.user.permissions?.includes(p))) {
       return next(new AppError('FORBIDDEN', 403, 'Permission is required'));
     }
     return next();
