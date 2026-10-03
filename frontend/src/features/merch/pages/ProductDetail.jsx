@@ -97,8 +97,13 @@ export default function ProductDetail() {
         }
         throw new Error(json.error?.message || "Could not reserve this item");
       }
-      toast.success(`Reserved "${product.name}"! Pickup pass ready.`);
-      navigate("/me/orders");
+      const paymentId = json.data?.payment?.paymentId;
+      if (paymentId) {
+        toast.success(`Reserved "${product.name}" for 15 minutes. Complete payment to confirm.`);
+        navigate(`/checkout/status/${paymentId}`);
+      } else {
+        navigate("/me/orders");
+      }
     } catch (error) {
       toast.error(error.message || "Could not reserve this item. Please try again.");
     } finally {
