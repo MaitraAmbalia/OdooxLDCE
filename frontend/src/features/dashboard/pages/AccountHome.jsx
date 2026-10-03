@@ -1,8 +1,11 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowUpRight, CalendarDays, HeartHandshake, ShoppingBag, Ticket } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function AccountHome() {
+  usePageTitle("My account");
   const { data: authData, isLoading: authLoading } = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: async () => {
@@ -27,60 +30,61 @@ export default function AccountHome() {
   const tickets = ticketsData?.data || [];
   const nextTicket = tickets[0];
 
-  if (authLoading) return <div className="p-12 text-center text-[var(--color-muted)]">Loading your account...</div>;
+  if (authLoading) return <div className="page-container max-w-5xl py-12" role="status" aria-label="Loading account"><Skeleton className="h-10 w-72" /><Skeleton className="mt-8 h-44 w-full rounded-2xl" /></div>;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+    <div className="page-container max-w-5xl py-12 sm:py-16">
       {/* Welcome Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 pb-6 border-b border-[var(--color-line)]">
+      <div className="mb-8 flex flex-col gap-4 border-b border-border pb-7 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">
-            Welcome, {user?.name || "Student"}
+          <p className="mb-2 text-sm font-medium text-primary">Your Skyline</p>
+          <h1 className="font-display text-4xl font-semibold tracking-tight">
+            Welcome back, {user?.name?.split(" ")[0] || "Student"}.
           </h1>
-          <p className="text-sm font-mono text-[var(--color-muted)] mt-1">
+          <p className="mt-2 text-sm text-muted-foreground">
             Student ID: {user?.studentId || "23BCE301"} • {user?.roles?.length ? user.roles.join(', ') : 'Student Member'}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <Link
             to="/me/membership"
-            className="px-4 py-2 rounded-lg bg-[var(--color-dusk)] text-white font-bold text-xs hover:bg-opacity-90 shadow-sm"
+            className="inline-flex min-h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            Digital Membership Card &rarr;
+            Membership card <ArrowUpRight className="size-4" />
           </Link>
         </div>
       </div>
 
       {/* Grid of Key Account Tiles */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+      <div className="mb-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
 
         {/* Membership Tile */}
-        <Link to="/me/membership" className="block bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-          <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-4">Membership</p>
+        <Link to="/me/membership" className="block rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
+          <p className="mb-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">Membership</p>
           {user?.membership?.status === 'ACTIVE' ? (
             <div>
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 bg-[var(--color-ok)] rounded-full"></span>
-                <span className="font-bold text-[var(--color-ink)] text-lg">Active Member</span>
+                <span className="size-2.5 rounded-full bg-[#47725e]"></span>
+                <span className="text-lg font-semibold">Active member</span>
               </div>
-              <p className="text-xs text-[var(--color-muted)] mt-2">
+              <p className="mt-2 text-xs text-muted-foreground">
                 {user.membership.expiresAt ? `Valid until ${new Date(user.membership.expiresAt).toLocaleDateString()}` : 'Full access unlocked'}
               </p>
             </div>
           ) : (
             <div>
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 bg-[var(--color-stop)] rounded-full"></span>
-                <span className="font-bold text-[var(--color-ink)] text-lg">Not Active</span>
+                <span className="size-2.5 rounded-full bg-muted-foreground"></span>
+                <span className="text-lg font-semibold">Not active</span>
               </div>
-              <p className="text-xs text-[var(--color-dusk)] mt-2 font-medium">Join now for 50% perks &rarr;</p>
+              <p className="mt-2 text-xs font-medium text-primary">Explore membership &rarr;</p>
             </div>
           )}
         </Link>
 
         {/* Tickets Tile */}
-        <Link to="/me/tickets" className="block bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-          <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-4">Event Passes</p>
+        <Link to="/me/tickets" className="block rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
+          <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"><Ticket className="size-3.5" /> Event passes</p>
           {nextTicket ? (
             <div>
               <p className="font-bold text-[var(--color-ink)] truncate" title={nextTicket.event?.title || "Event"}>
@@ -99,8 +103,8 @@ export default function AccountHome() {
         </Link>
 
         {/* Orders Tile */}
-        <Link to="/me/orders" className="block bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-          <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-4">Merch Orders</p>
+        <Link to="/me/orders" className="block rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
+          <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"><ShoppingBag className="size-3.5" /> Merch orders</p>
           <div className="flex items-end gap-2">
             <span className="text-3xl font-display font-bold text-[var(--color-ink)] leading-none">0</span>
             <span className="text-xs text-[var(--color-muted)] mb-1">active</span>
@@ -109,8 +113,8 @@ export default function AccountHome() {
         </Link>
 
         {/* Volunteer/Tasks Tile */}
-        <Link to="/volunteer" className="block bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-          <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-4">Volunteering</p>
+        <Link to="/volunteer" className="block rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
+          <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"><HeartHandshake className="size-3.5" /> Volunteering</p>
           <div className="flex items-end gap-2">
             <span className="text-3xl font-display font-bold text-[var(--color-ink)] leading-none">
               {user?.isVolunteer ? 'Active' : 'Open'}
@@ -121,29 +125,29 @@ export default function AccountHome() {
       </div>
 
       {/* Quick Action Navigation Links */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Link to="/events" className="p-4 bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl hover:shadow-sm transition-all flex items-center justify-between">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Link to="/events" className="flex items-center justify-between rounded-xl border border-border bg-card p-4 transition hover:border-primary/30">
           <div>
             <div className="font-bold text-sm text-[var(--color-ink)]">Upcoming Events</div>
             <div className="text-xs text-[var(--color-muted)]">Register with member discount</div>
           </div>
-          <span className="text-[var(--color-dusk)] font-bold">&rarr;</span>
+          <CalendarDays className="size-5 text-primary" />
         </Link>
 
-        <Link to="/selection" className="p-4 bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl hover:shadow-sm transition-all flex items-center justify-between">
+        <Link to="/selection" className="flex items-center justify-between rounded-xl border border-border bg-card p-4 transition hover:border-primary/30">
           <div>
             <div className="font-bold text-sm text-[var(--color-ink)]">Leadership Applications</div>
             <div className="text-xs text-[var(--color-muted)]">Apply for executive roles</div>
           </div>
-          <span className="text-[var(--color-dusk)] font-bold">&rarr;</span>
+          <ArrowUpRight className="size-5 text-primary" />
         </Link>
 
-        <Link to="/announcements" className="p-4 bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl hover:shadow-sm transition-all flex items-center justify-between">
+        <Link to="/announcements" className="flex items-center justify-between rounded-xl border border-border bg-card p-4 transition hover:border-primary/30">
           <div>
             <div className="font-bold text-sm text-[var(--color-ink)]">Campus News & Feeds</div>
             <div className="text-xs text-[var(--color-muted)]">Official organization notices</div>
           </div>
-          <span className="text-[var(--color-dusk)] font-bold">&rarr;</span>
+          <ArrowUpRight className="size-5 text-primary" />
         </Link>
       </div>
     </div>

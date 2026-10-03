@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -10,9 +9,12 @@ import { Badge } from "../../../components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { formatINR } from "../../../lib/utils";
+import { ContentState } from "../../../components/common/ContentState";
+import { usePageTitle } from "../../../hooks/usePageTitle";
 
 export default function MyOrders() {
-  const { data: ordersData, isLoading } = useQuery({
+  usePageTitle("My orders");
+  const { data: ordersData, isPending, isError, refetch } = useQuery({
     queryKey: ['orders', 'me'],
     queryFn: async () => {
       const res = await fetch("/api/v1/orders/me");
@@ -23,9 +25,9 @@ export default function MyOrders() {
 
   const orders = ordersData?.data || [];
 
-  if (isLoading) {
+  if (isPending) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-10 sm:px-6">
+      <div className="page-container max-w-4xl py-12" role="status" aria-label="Loading orders">
         <Skeleton className="h-8 w-40 mb-6" />
         <Skeleton className="h-48 rounded-3xl mb-4" />
         <Skeleton className="h-48 rounded-3xl" />
@@ -34,44 +36,30 @@ export default function MyOrders() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
+    <div className="page-container max-w-4xl py-12 sm:py-16">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-slate-900 tracking-tight">
-            Merchandise Orders
+          <p className="mb-2 text-sm font-medium text-primary">From cart to campus</p>
+          <h1 className="font-display text-4xl font-semibold tracking-tight">
+            My merchandise orders
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="mt-2 text-sm text-muted-foreground">
             Track fulfillment status and pickup instructions for your campus merch.
           </p>
         </div>
 
         <Link to="/shop">
-          <Button variant="outline" size="sm" className="bg-white border-slate-300 text-xs shadow-2xs">
-            <ShoppingBag className="w-3.5 h-3.5 mr-1 text-blue-600" /> Browse Catalog
+          <Button variant="outline" className="bg-card">
+            <ShoppingBag aria-hidden="true" /> Browse shop
           </Button>
         </Link>
       </div>
 
-      {orders.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-12 text-center shadow-xs">
-          <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
-            <ShoppingBag className="w-8 h-8" />
-          </div>
-          <h3 className="text-lg font-display font-bold text-slate-900">
-            No merchandise orders found
-          </h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-2 leading-relaxed">
-            You haven't ordered any club apparel yet. Skyline members get up to ₹200 off hoodies and tees.
-          </p>
-          <div className="mt-6">
-            <Link to="/shop">
-              <Button variant="gold" size="md">
-                Visit Merch Store &rarr;
-              </Button>
-            </Link>
-          </div>
-        </div>
+      {isError ? (
+        <ContentState error title="Your orders aren’t available right now." description="We couldn’t load your order history. Try again in a moment." action={refetch} />
+      ) : orders.length === 0 ? (
+        <ContentState title="No orders yet." description="When you order Skyline merchandise, pickup progress and details will appear here." actionLabel="Visit the shop" action={() => window.location.assign("/shop")} />
       ) : (
         <div className="space-y-6">
           {orders.map(order => {
@@ -80,26 +68,26 @@ export default function MyOrders() {
             const orderDate = new Date(order.createdAt || Date.now());
 
             return (
-              <Card key={order.id} className="rounded-3xl border-slate-200/90 shadow-xs overflow-hidden">
+              <Card key={order.id} className="overflow-hidden rounded-2xl border-border shadow-none">
                 {/* Order Top Bar */}
-                <div className="bg-slate-50 p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-secondary/40 p-5 text-xs">
                   <div>
-                    <div className="text-[10px] uppercase font-mono text-slate-400">Date Placed</div>
-                    <div className="font-semibold text-slate-800">
+                    <div className="font-mono text-[10px] uppercase text-muted-foreground">Date placed</div>
+                    <div className="font-semibold">
                       {orderDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-[10px] uppercase font-mono text-slate-400">Total Amount</div>
-                    <div className="font-display font-black text-slate-900 text-sm tabular-nums">
+                    <div className="font-mono text-[10px] uppercase text-muted-foreground">Total</div>
+                    <div className="font-display text-sm font-semibold tabular-nums">
                       {formatINR(order.totalPaise / 100)}
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-[10px] uppercase font-mono text-slate-400">Order ID</div>
-                    <div className="font-mono text-slate-600">
+                    <div className="font-mono text-[10px] uppercase text-muted-foreground">Order ID</div>
+                    <div className="font-mono text-muted-foreground">
                       {String(order.id).slice(0, 10).toUpperCase()}
                     </div>
                   </div>
@@ -114,20 +102,20 @@ export default function MyOrders() {
                 <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
                   {/* Items List */}
                   <div className="md:col-span-7 space-y-4">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      Purchased Items
+                    <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Items
                     </h4>
                     
                     <div className="space-y-3">
                       {(order.items || []).map((item, i) => (
-                        <div key={i} className="flex items-center justify-between pb-3 border-b border-slate-100 last:border-0 last:pb-0 text-xs">
+                        <div key={i} className="flex items-center justify-between border-b border-border pb-3 text-xs last:border-0 last:pb-0">
                           <div>
-                            <div className="font-bold text-slate-900">{item.name}</div>
-                            <div className="text-slate-500 text-[11px] mt-0.5">
+                            <div className="font-semibold">{item.name}</div>
+                            <div className="mt-0.5 text-[11px] text-muted-foreground">
                               Size: {item.variant} • Qty: {item.quantity}
                             </div>
                           </div>
-                          <div className="font-display font-bold text-slate-900 tabular-nums">
+                          <div className="font-display font-semibold tabular-nums">
                             {formatINR((item.pricePaise * item.quantity) / 100)}
                           </div>
                         </div>
@@ -136,26 +124,24 @@ export default function MyOrders() {
                   </div>
 
                   {/* Pickup Progress & Instructions */}
-                  <div className="md:col-span-5 md:border-l md:border-slate-100 md:pl-6 space-y-4">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      Fulfillment Milestone
+                  <div className="space-y-4 md:col-span-5 md:border-l md:border-border md:pl-6">
+                    <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Pickup status
                     </h4>
 
                     {isReady ? (
-                      <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 text-emerald-950 text-xs space-y-2">
-                        <div className="font-bold flex items-center gap-1.5 text-emerald-800">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                          Ready for Counter Collection
+                      <div className="space-y-2 rounded-xl border border-[#b9d1c3] bg-[#e4eee8] p-4 text-xs text-[#345d4a]">
+                        <div className="flex items-center gap-1.5 font-semibold">
+                          <CheckCircle2 className="size-4" /> Ready for pickup
                         </div>
                         <p className="text-[11px] text-emerald-900/80 leading-relaxed">
                           Show this Order ID at Student Center Desk B between 10:00 AM – 04:30 PM.
                         </p>
                       </div>
                     ) : (
-                      <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/80 text-blue-950 text-xs space-y-2">
-                        <div className="font-bold flex items-center gap-1.5 text-blue-800">
-                          <Package className="w-4 h-4 text-blue-600" />
-                          Batch In Production
+                      <div className="space-y-2 rounded-xl border border-border bg-secondary/50 p-4 text-xs text-secondary-foreground">
+                        <div className="flex items-center gap-1.5 font-semibold">
+                          <Package className="size-4 text-primary" /> In production
                         </div>
                         <p className="text-[11px] text-blue-900/80 leading-relaxed">
                           Your order is being manufactured and printed. You will receive an alert once sorted for pickup.

@@ -1,9 +1,14 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { CalendarDays, ReceiptIndianRupee } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ContentState } from "@/components/common/ContentState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function VolunteerHome() {
-  const { data: tasksData, isLoading: tasksLoading } = useQuery({
+  usePageTitle("Volunteer space");
+  const { data: tasksData, isPending: tasksLoading, isError: tasksError, refetch: refetchTasks } = useQuery({
     queryKey: ['tasks', 'me'],
     queryFn: async () => {
       // API endpoint: GET /tasks/me
@@ -13,7 +18,7 @@ export default function VolunteerHome() {
     }
   });
 
-  const { data: claimsData, isLoading: claimsLoading } = useQuery({
+  const { data: claimsData, isPending: claimsLoading, isError: claimsError, refetch: refetchClaims } = useQuery({
     queryKey: ['claims', 'me'],
     queryFn: async () => {
       // API endpoint: GET /claims/me
@@ -27,15 +32,14 @@ export default function VolunteerHome() {
   const claims = claimsData?.data || [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8 flex justify-between items-end">
+    <div className="page-container py-12 sm:py-16">
+      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">Volunteer Dashboard</h1>
-          <p className="text-sm text-[var(--color-muted)] mt-1">Manage your tasks, duties, and expense claims.</p>
+          <p className="mb-2 text-sm font-medium text-primary">Make things happen</p>
+          <h1 className="font-display text-4xl font-semibold tracking-tight">Volunteer space</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Keep up with your tasks, duties, and expense claims.</p>
         </div>
-        <Link to="/volunteer/claims/new" className="bg-[var(--color-dusk)] text-white px-4 py-2 rounded-[6px] text-sm font-medium hover:bg-opacity-90 transition-opacity">
-          Submit Expense Claim
-        </Link>
+        <Button asChild><Link to="/volunteer/claims/new"><ReceiptIndianRupee aria-hidden="true" /> Submit a claim</Link></Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -43,22 +47,23 @@ export default function VolunteerHome() {
         {/* Left Column: Tasks */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-display font-bold text-[var(--color-ink)]">My Active Tasks</h2>
-            <Link to="/volunteer/chats" className="text-sm text-[var(--color-dusk)] hover:underline">View all chats &rarr;</Link>
+            <h2 className="font-display text-2xl font-semibold">My active tasks</h2>
           </div>
 
-          <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] overflow-hidden">
+          <div className="overflow-hidden rounded-2xl border border-border bg-card">
             {tasksLoading ? (
-              <div className="p-8 text-center text-[var(--color-muted)]">Loading tasks...</div>
+              <div className="space-y-3 p-6" role="status" aria-label="Loading tasks"><Skeleton className="h-24" /><Skeleton className="h-24" /></div>
+            ) : tasksError ? (
+              <div className="p-5"><ContentState error title="Tasks aren’t available." description="Try loading your assignments again." action={refetchTasks} /></div>
             ) : tasks.length === 0 ? (
-              <div className="p-8 text-center text-[var(--color-muted)]">You don't have any active tasks right now.</div>
+              <div className="p-5"><ContentState title="No active tasks." description="New volunteer assignments will appear here." /></div>
             ) : (
               <ul className="divide-y divide-[var(--color-line)]">
                 {tasks.map(task => (
                   <li key={task.id}>
-                    <Link to={`/volunteer/tasks/${task.id}`} className="block hover:bg-[var(--color-paper)] transition-colors p-6">
+                    <Link to={`/volunteer/tasks/${task.id}`} className="block p-6 transition-colors hover:bg-secondary/30">
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-[var(--color-ink)] text-lg">{task.title}</h3>
+                        <h3 className="text-lg font-semibold">{task.title}</h3>
                         <span className={`px-2 py-1 text-xs font-bold uppercase rounded ${
                           task.status === 'DONE' ? 'bg-[var(--color-ok)] text-white' :
                           task.status === 'BLOCKED' ? 'bg-[var(--color-stop)] text-white' :
@@ -68,13 +73,13 @@ export default function VolunteerHome() {
                           {task.status.replace('_', ' ')}
                         </span>
                       </div>
-                      <p className="text-sm text-[var(--color-muted)] mb-4">{task.project?.name || "General Event Task"}</p>
+                      <p className="mb-4 text-sm text-muted-foreground">{task.project?.name || "General event task"}</p>
 
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-[var(--color-muted)] flex items-center gap-2">
-                          📅 Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date'}
+                        <span className="flex items-center gap-2 text-muted-foreground">
+                          <CalendarDays className="size-4" /> Due {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'anytime'}
                         </span>
-                        <span className="text-[var(--color-dusk)] font-medium">Open Task & Chat &rarr;</span>
+                        <span className="font-medium text-primary">Open task &rarr;</span>
                       </div>
                     </Link>
                   </li>
@@ -88,17 +93,19 @@ export default function VolunteerHome() {
         <div className="space-y-8">
 
           <section>
-            <h2 className="text-lg font-display font-bold text-[var(--color-ink)] mb-4">Upcoming Duties</h2>
-            <div className="bg-[var(--color-paper)] border border-[var(--color-line)] rounded-[10px] p-6 text-center">
-              <p className="text-sm text-[var(--color-muted)] mb-4">No door or cash desk duties assigned for the next 7 days.</p>
+            <h2 className="mb-4 font-display text-xl font-semibold">Upcoming duties</h2>
+            <div className="rounded-xl border border-border bg-secondary/30 p-6 text-center">
+              <p className="text-sm text-muted-foreground">No door or cash-desk duties in the next 7 days.</p>
             </div>
           </section>
 
           <section>
-            <h2 className="text-lg font-display font-bold text-[var(--color-ink)] mb-4">My Claims Status</h2>
-            <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] overflow-hidden">
+            <h2 className="mb-4 font-display text-xl font-semibold">My claims</h2>
+            <div className="overflow-hidden rounded-xl border border-border bg-card">
               {claimsLoading ? (
-                <div className="p-4 text-center text-[var(--color-muted)] text-sm">Loading claims...</div>
+                <div className="p-4"><Skeleton className="h-20" /></div>
+              ) : claimsError ? (
+                <div className="p-4 text-center text-sm text-destructive"><button onClick={() => refetchClaims()} className="font-medium hover:underline">Retry claims</button></div>
               ) : claims.length === 0 ? (
                 <div className="p-4 text-center text-[var(--color-muted)] text-sm">No recent claims.</div>
               ) : (

@@ -5,8 +5,6 @@ import cookieParser from 'cookie-parser';
 import { getConfig } from './config/env.js';
 import { getPrismaClient } from './db/prisma.js';
 import { createLogger, createRequestLogger } from './lib/logger.js';
-import { AppError } from './lib/AppError.js';
-import { requestId } from './middleware/requestId.js';
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authenticate, authorize } from './middleware/authenticate.js';
@@ -44,44 +42,23 @@ import { createApprovalsRouter } from './modules/approvals/approvals.routes.js';
 import { createDashboardsService } from './modules/dashboards/dashboards.service.js';
 import { createDashboardsRouter } from './modules/dashboards/dashboards.routes.js';
 
-function createCorsOptions(config) {
-  return {
-    credentials: true,
-    origin(origin, callback) {
-      if (!config.isProduction) return callback(null, true);
-      if (!origin || origin === config.corsOrigin) return callback(null, true);
-      return callback(new AppError('CORS_ORIGIN_DENIED', 403, 'Origin is not allowed'));
-    },
-  };
-}
-
-export function createApp(options = {}) {
-  const config = options.config ?? getConfig();
-  const prisma = options.prisma ?? getPrismaClient();
-  const logger = options.logger ?? createLogger(config);
+export function createApp({
+  config = getConfig(),
+  prisma = getPrismaClient(),
+  logger = createLogger(config),
+} = {}) {
+  const auth = authenticate({ config });
   const app = express();
 
-  app.disable('x-powered-by');
-  app.set('trust proxy', config.trustProxy);
-
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] },
-      },
-    })
-  );
-  app.use(cors(createCorsOptions(config)));
+  // Core Middleware
+  app.use(helmet());
+  app.use(cors({ origin: config.corsOrigin || true, credentials: true }));
   app.use(cookieParser());
-
-  // Webhook raw byte body parser
   app.use('/api/v1/payments/webhook', express.raw({ type: 'application/json', limit: '1mb' }));
   app.use(express.json({ limit: config.jsonBodyLimit }));
-
-  app.use(requestId);
   app.use(createRequestLogger(logger));
 
-  // Health route
+  // Base Health Check
   app.use('/api/v1', createHealthRouter({ prisma }));
 
   // Feature Routers
@@ -93,60 +70,28 @@ export function createApp(options = {}) {
   app.use('/api/v1', createNotificationsRouter({ service: createNotificationsService({ prisma }), authenticate: auth, prisma }));
   app.use('/api/v1', createEventsRouter({ service: createEventsService({ prisma }), authenticate: auth, authorize }));
   app.use('/api/v1', createTicketsRouter({ service: createTicketsService({ prisma }), authenticate: auth, authorize }));
-  app.use('/api/v1', createMerchRouter({ service: createMerchService({ prisma }), authenticate: auth }));
 
   const paymentsService = createPaymentsService({ prisma, config, logger });
   const filesService = createFilesService({ prisma, config });
 
-  const projectsService = createProjectsService({ prisma });
-  app.use('/api/v1', createProjectsRouter({ service: projectsService, authenticate: auth }));
-
-  // 3. Notifications (Scene 3)
-  const notificationsService = createNotificationsService({ prisma });
-  app.use('/api/v1', createNotificationsRouter({ service: notificationsService, authenticate: auth, prisma }));
-
-  // 4. Events & Tickets (Scene 2)
-  const eventsService = createEventsService({ prisma });
-  app.use('/api/v1', createEventsRouter({ service: eventsService, authenticate: auth, authorize }));
-
-  const ticketsService = createTicketsService({ prisma });
-  app.use('/api/v1', createTicketsRouter({ service: ticketsService, authenticate: auth, authorize }));
-
-  // 6. Payments & Memberships (Scene 1)
-  const paymentsService = options.paymentsService ?? createPaymentsService({ prisma, config, logger });
+  app.use('/api/v1', createMerchRouter({ service: createMerchService({ prisma, createPayment: paymentsService.createPayment }), authenticate: auth }));
   app.use('/api/v1/payments', createPaymentsRouter({ service: paymentsService, authenticate: auth, config }));
-
-  // 5. Merchandise Store (Scene 4)
-  const merchService = createMerchService({ prisma, createPayment: paymentsService.createPayment });
-  app.use('/api/v1', createMerchRouter({ service: merchService, authenticate: auth }));
-
-  const filesService = createFilesService({ prisma, config });
   app.use('/api/v1/files', createFilesRouter({ service: filesService, authenticate: auth }));
-
-  const membershipsService = createMembershipsService({ prisma, config });
   app.use(
     '/api/v1',
     createMembershipsRouter({
-      service: membershipsService,
+      service: createMembershipsService({ prisma, config }),
       createPayment: paymentsService.createPayment,
       authenticate: auth,
       requirePermission: authorize,
     })
   );
-
-  // 7. Finance & Treasurer Ledgers (Scene 6)
-  const financeService = createFinanceService({ prisma, files: filesService });
-  app.use('/api/v1', createFinanceRouter({ service: financeService, authenticate: auth, requirePermission: authorize }));
-
-  const approvalsService = createApprovalsService({ prisma });
-  app.use('/api/v1', createApprovalsRouter({ service: approvalsService, authenticate: auth, requirePermission: authorize }));
-
-  const dashboardsService = createDashboardsService({ prisma });
-  app.use('/api/v1', createDashboardsRouter({ service: dashboardsService, authenticate: auth }));
-
-  // 8. Governance, Elections & Meetings
+  app.use('/api/v1', createFinanceRouter({ service: createFinanceService({ prisma, files: filesService }), authenticate: auth, requirePermission: authorize }));
+  app.use('/api/v1', createApprovalsRouter({ service: createApprovalsService({ prisma }), authenticate: auth, requirePermission: authorize }));
+  app.use('/api/v1', createDashboardsRouter({ service: createDashboardsService({ prisma }), authenticate: auth }));
   app.use('/api/v1', createGovernanceRouter({ prisma, authenticate: auth }));
 
+  // Error Handling
   app.use(notFound);
   app.use(errorHandler({ isProduction: config.isProduction }));
 
