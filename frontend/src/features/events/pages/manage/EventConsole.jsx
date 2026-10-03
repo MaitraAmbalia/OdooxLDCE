@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, BarChart3, CalendarDays, Pencil, Plus, ScanLine } from "lucide-react";
+import { ArrowRight, BarChart3, CalendarDays, Pencil, Plus, ScanLine, CalendarPlus as CalendarPlusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,15 +8,8 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useSession } from "@/hooks/useSession";
 import { getJson } from "@/lib/api";
 import { formatINR } from "@/lib/utils";
+import { StatusBadge } from "@/components/common/StatusBadge";
 
-const STATUS_STYLE = {
-  PENDING_APPROVAL: "bg-amber-100 text-amber-800",
-  CHANGES_REQUESTED: "bg-orange-100 text-orange-800",
-  PUBLISHED: "bg-emerald-100 text-emerald-800",
-  REJECTED: "bg-red-100 text-red-800",
-  CLOSED: "bg-slate-100 text-slate-700",
-  CANCELLED: "bg-slate-100 text-slate-700",
-};
 const EDITABLE = ["DRAFT", "PENDING_APPROVAL", "CHANGES_REQUESTED"];
 
 export default function EventConsole() {
@@ -36,7 +29,7 @@ export default function EventConsole() {
       <div className="mt-8">
         {isPending ? <div className="space-y-3" role="status" aria-label="Loading events"><Skeleton className="h-28 rounded-2xl" /><Skeleton className="h-28 rounded-2xl" /></div>
           : isError ? <ContentState error title="Events aren’t available right now." description="We couldn’t load the event console." action={refetch} />
-          : events.length === 0 ? <ContentState title="No events yet." description="Proposals you submit appear here while they wait for mentor review." />
+          : events.length === 0 ? <ContentState icon={CalendarPlusIcon} to="/manage/events/new" actionLabel="Propose an event" title="No events yet." description="Proposals you submit appear here while they wait for mentor review." />
           : <ul className="space-y-3">{events.map((event) => {
             const sold = event.ticketTypes.reduce((n, t) => n + t.sold, 0);
             // Live events change capacity from their report page; pricing is locked once the Mentor approved it.
@@ -45,7 +38,7 @@ export default function EventConsole() {
               <li key={event.id} className="rounded-2xl border border-border bg-card p-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2"><span className={"rounded-full px-2.5 py-1 text-xs font-semibold " + (STATUS_STYLE[event.status] || "bg-secondary")}>{event.status.replaceAll("_", " ")}</span><span className="text-xs text-muted-foreground">by {event.proposedBy?.name}</span></div>
+                    <div className="flex flex-wrap items-center gap-2"><StatusBadge status={event.status} /><span className="text-xs text-muted-foreground">by {event.proposedBy?.name}</span></div>
                     <h2 className="mt-2 font-display text-xl font-semibold">{event.title}</h2>
                     <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground"><CalendarDays className="size-4" aria-hidden="true" />{new Date(event.startAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })} · {event.venue}</p>
                     <p className="mt-2 text-sm">{sold} / {event.capacity} sold · {event.checkedIn} checked in · Budget {event.approvedBudgetPaise != null ? formatINR(event.approvedBudgetPaise, true) + " approved" : formatINR(event.requestedBudgetPaise || 0, true) + " requested"}</p>

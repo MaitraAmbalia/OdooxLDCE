@@ -53,20 +53,20 @@ export function DialogContent({ children, className, ...props }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop blur */}
       <div 
-        className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity animate-in fade-in"
+        className="fixed inset-0 bg-foreground/60 backdrop-blur-sm transition-opacity animate-in fade-in"
         onClick={() => setOpen(false)}
       />
       {/* Dialog card */}
       <div 
         className={cn(
-          "relative z-50 w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200/80 transition-all sm:rounded-3xl animate-in zoom-in-95",
+          "relative z-50 w-full max-w-lg rounded-2xl bg-card p-6 shadow-2xl border border-border transition-all sm:rounded-3xl animate-in zoom-in-95",
           className
         )}
         {...props}
       >
         <button
           onClick={() => setOpen(false)}
-          className="absolute right-4 top-4 rounded-xl p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+          className="absolute right-4 top-4 rounded-xl p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
           aria-label="Close"
         >
           <X className="w-5 h-5" />
@@ -89,7 +89,7 @@ export function DialogHeader({ className, ...props }) {
 export function DialogTitle({ className, ...props }) {
   return (
     <h3
-      className={cn("text-xl font-display font-extrabold text-slate-900 tracking-tight", className)}
+      className={cn("text-xl font-display font-extrabold text-foreground tracking-tight", className)}
       {...props}
     />
   );
@@ -98,7 +98,7 @@ export function DialogTitle({ className, ...props }) {
 export function DialogDescription({ className, ...props }) {
   return (
     <p
-      className={cn("text-sm text-slate-500", className)}
+      className={cn("text-sm text-muted-foreground", className)}
       {...props}
     />
   );
@@ -107,7 +107,7 @@ export function DialogDescription({ className, ...props }) {
 export function DialogFooter({ className, ...props }) {
   return (
     <div
-      className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2 mt-6 pt-4 border-t border-slate-100", className)}
+      className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2 mt-6 pt-4 border-t border-border", className)}
       {...props}
     />
   );

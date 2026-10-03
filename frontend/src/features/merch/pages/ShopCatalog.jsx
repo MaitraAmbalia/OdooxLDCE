@@ -2,8 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ShoppingBag, Sparkles, Flame, Tag,
-} from "lucide-react";
+  ShoppingBag, Sparkles, Flame, Tag, ShoppingBag as ShoppingBagIcon } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 import { Skeleton } from "../../../components/ui/skeleton";
@@ -95,7 +94,7 @@ export default function ShopCatalog() {
         ) : isError ? (
           <ContentState error title="The shop is taking a little longer." description="We couldn’t load the catalog. Try again in a moment." action={refetch} />
         ) : products.length === 0 ? (
-          <ContentState title="The next drop is on its way." description="New products and pre-orders will appear here when they’re ready." />
+          <ContentState icon={ShoppingBagIcon} title="The next drop is on its way." description="New products and pre-orders will appear here when they’re ready." />
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {products.map(product => {

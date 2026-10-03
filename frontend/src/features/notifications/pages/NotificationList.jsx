@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Bell, CheckCheck, ExternalLink } from "lucide-react";
+import { Bell, CheckCheck, ExternalLink, BellRing as BellRingIcon } from "lucide-react";
 import { ContentState } from "@/components/common/ContentState";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -68,11 +68,11 @@ export default function NotificationList() {
       ) : isError ? (
         <ContentState error title="Notifications aren’t available right now." description="We couldn’t load your updates. Try again in a moment." action={refetch} />
       ) : notifications.length === 0 ? (
-        <ContentState title="You’re all caught up." description="New updates about your events, tasks, and claims will appear here." />
+        <ContentState icon={BellRingIcon} title="You’re all caught up." description="New updates about your events, tasks, and claims will appear here." />
       ) : (
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
         {
-          <ul className="divide-y divide-[var(--color-line)]">
+          <ul className="divide-y divide-border">
             {notifications.map(notif => (
               <li
                 key={notif.id}

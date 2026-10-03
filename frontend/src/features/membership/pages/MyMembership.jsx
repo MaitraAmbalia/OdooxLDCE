@@ -105,11 +105,11 @@ export default function MyMembership() {
           <div className="lg:col-span-6 space-y-6">
             
             {/* Membership Status & Benefits Overview */}
-            <Card className="rounded-2xl border-slate-200/90 shadow-xs">
-              <CardHeader className="pb-3 border-b border-slate-100">
+            <Card className="rounded-2xl border-border/90 shadow-xs">
+              <CardHeader className="pb-3 border-b border-border">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <Award className="w-4 h-4 text-blue-600" />
+                  <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                    <Award className="w-4 h-4 text-primary" />
                     Tier Privileges Active
                   </CardTitle>
                   <Badge variant="success">All Benefits Active</Badge>
@@ -121,8 +121,8 @@ export default function MyMembership() {
                     ✓
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-900">Exclusive Event Pricing</div>
-                    <div className="text-xs text-slate-500">Save up to 40% on tickets for the Skyline Annual Gala and workshops.</div>
+                    <div className="text-xs font-bold text-foreground">Exclusive Event Pricing</div>
+                    <div className="text-xs text-muted-foreground">Save up to 40% on tickets for the Skyline Annual Gala and workshops.</div>
                   </div>
                 </div>
 
@@ -131,8 +131,8 @@ export default function MyMembership() {
                     ✓
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-900">Merch Store Discounts</div>
-                    <div className="text-xs text-slate-500">Automatic ₹200 OFF on all official hoodies, tees, and varsity jackets.</div>
+                    <div className="text-xs font-bold text-foreground">Merch Store Discounts</div>
+                    <div className="text-xs text-muted-foreground">Automatic ₹200 OFF on all official hoodies, tees, and varsity jackets.</div>
                   </div>
                 </div>
 
@@ -141,8 +141,8 @@ export default function MyMembership() {
                     ✓
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-900">Leadership Candidacy</div>
-                    <div className="text-xs text-slate-500">Only verified active members can apply for Executive Board positions.</div>
+                    <div className="text-xs font-bold text-foreground">Leadership Candidacy</div>
+                    <div className="text-xs text-muted-foreground">Only verified active members can apply for Executive Board positions.</div>
                   </div>
                 </div>
 
@@ -151,8 +151,8 @@ export default function MyMembership() {
                     ✓
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-900">Contactless 1.2s Fast Pass</div>
-                    <div className="text-xs text-slate-500">Skip the manual check-in lines at the auditorium with instant QR verification.</div>
+                    <div className="text-xs font-bold text-foreground">Contactless 1.2s Fast Pass</div>
+                    <div className="text-xs text-muted-foreground">Skip the manual check-in lines at the auditorium with instant QR verification.</div>
                   </div>
                 </div>
               </CardContent>
@@ -161,33 +161,33 @@ export default function MyMembership() {
             {/* Quick Actions */}
             <div className="grid grid-cols-2 gap-3">
               <Link to="/events" className="block">
-                <div className="p-4 rounded-xl border border-slate-200 bg-white hover:border-blue-400 hover:shadow-xs transition-all group">
-                  <Calendar className="w-5 h-5 text-blue-600 mb-2 group-hover:scale-110 transition-transform" />
-                  <div className="text-xs font-bold text-slate-900">Browse Events</div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">Use your member discount</div>
+                <div className="p-4 rounded-xl border border-border bg-white hover:border-blue-400 hover:shadow-xs transition-all group">
+                  <Calendar className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                  <div className="text-xs font-bold text-foreground">Browse Events</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">Use your member discount</div>
                 </div>
               </Link>
               <Link to="/shop" className="block">
-                <div className="p-4 rounded-xl border border-slate-200 bg-white hover:border-amber-400 hover:shadow-xs transition-all group">
+                <div className="p-4 rounded-xl border border-border bg-white hover:border-amber-400 hover:shadow-xs transition-all group">
                   <Gift className="w-5 h-5 text-amber-600 mb-2 group-hover:scale-110 transition-transform" />
-                  <div className="text-xs font-bold text-slate-900">Merch Catalog</div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">Member rates available</div>
+                  <div className="text-xs font-bold text-foreground">Merch Catalog</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">Member rates available</div>
                 </div>
               </Link>
             </div>
 
             {/* Pass Ledger / History */}
-            <Card className="rounded-2xl border-slate-200/90 shadow-xs">
+            <Card className="rounded-2xl border-border/90 shadow-xs">
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-mono uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <CardTitle className="text-xs font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <History className="w-3.5 h-3.5" /> Membership Ledger
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-2">
-                <div className="flex items-center justify-between text-xs py-2 border-b border-slate-100">
+                <div className="flex items-center justify-between text-xs py-2 border-b border-border">
                   <div>
-                    <span className="font-semibold text-slate-800">Pass Activated</span>
-                    <p className="text-[11px] text-slate-400 font-mono">
+                    <span className="font-semibold text-foreground">Pass Activated</span>
+                    <p className="text-[11px] text-muted-foreground font-mono">
                       {new Date(membership.createdAt || Date.now()).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}
                     </p>
                   </div>
@@ -195,12 +195,12 @@ export default function MyMembership() {
                 </div>
                 <div className="flex items-center justify-between text-xs py-2">
                   <div>
-                    <span className="font-semibold text-slate-800">Validity Horizon</span>
-                    <p className="text-[11px] text-slate-400 font-mono">
+                    <span className="font-semibold text-foreground">Validity Horizon</span>
+                    <p className="text-[11px] text-muted-foreground font-mono">
                       Through {membership.validUntil ? new Date(membership.validUntil).toLocaleDateString('en-IN') : 'May 2027'}
                     </p>
                   </div>
-                  <span className="text-[11px] font-mono text-blue-600 font-bold">In Good Standing</span>
+                  <span className="text-[11px] font-mono text-primary font-bold">In Good Standing</span>
                 </div>
               </CardContent>
             </Card>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, PackageCheck, Search } from "lucide-react";
+import { CheckCircle2, PackageCheck, Search, PackageCheck as PackageCheckIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
@@ -73,7 +73,7 @@ export default function FulfilmentQueue() {
         ) : isError ? (
           <div className="p-5"><ContentState error title="The fulfilment queue isn’t available." description="We couldn’t load these orders." action={refetch} /></div>
         ) : visibleOrders.length === 0 ? (
-          <div className="p-5"><ContentState title={searchTerm ? "No orders match your search." : "This queue is clear."} description={searchTerm ? "Try an order number, student name, or student ID." : "Orders will appear here when they reach this stage."} /></div>
+          <div className="p-5"><ContentState icon={PackageCheckIcon} title={searchTerm ? "No orders match your search." : "This queue is clear."} description={searchTerm ? "Try an order number, student name, or student ID." : "Orders will appear here when they reach this stage."} /></div>
         ) : (
           <>
             <div className="divide-y divide-border md:hidden">

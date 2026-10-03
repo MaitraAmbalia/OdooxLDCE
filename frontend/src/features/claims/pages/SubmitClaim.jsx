@@ -101,8 +101,8 @@ export default function SubmitClaim() {
             />
           </label>
           {receipts.length > 0 && (
-            <div className="mt-4 text-sm text-[var(--color-ink)] text-left space-y-2">
-              {receipts.map((r, i) => <div key={i} className="flex justify-between items-center bg-[var(--color-paper)] px-3 py-1 rounded">
+            <div className="mt-4 text-sm text-foreground text-left space-y-2">
+              {receipts.map((r, i) => <div key={i} className="flex justify-between items-center bg-muted px-3 py-1 rounded">
                 <span className="truncate max-w-[200px]">{r.name}</span>
                 <button type="button" onClick={() => setReceipts(receipts.filter((_, idx) => idx !== i))} className="flex size-8 items-center justify-center rounded-md text-destructive hover:bg-destructive/5" aria-label={`Remove ${r.name}`}><X className="size-4" /></button>
               </div>)}

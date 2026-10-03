@@ -146,7 +146,7 @@ export default function TaskDetail() {
           <div className="rounded-2xl border border-border bg-card p-6">
             <div className="flex items-center justify-between gap-2 mb-3">
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                task.priority === 'HIGH' ? 'bg-red-50 text-[var(--color-stop)] border border-red-200' : 'bg-blue-50 text-[var(--color-dusk)] border border-blue-200'
+                task.priority === 'HIGH' ? 'bg-red-50 text-[var(--color-stop)] border border-red-200' : 'bg-secondary text-[var(--color-dusk)] border border-primary/30'
               }`}>
                 {task.priority || 'NORMAL'} Priority
               </span>
@@ -163,7 +163,7 @@ export default function TaskDetail() {
               {task.description}
             </p>
 
-            <div className="space-y-4 pt-4 border-t border-[var(--color-line)]">
+            <div className="space-y-4 pt-4 border-t border-border">
               <div>
                 <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Due date

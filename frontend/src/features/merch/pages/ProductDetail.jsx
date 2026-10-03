@@ -204,7 +204,7 @@ export default function ProductDetail() {
                 </span>
                 {discountAmount > 0 && (
                   <>
-                    <span className="text-lg text-slate-400 line-through tabular-nums">
+                    <span className="text-lg text-muted-foreground line-through tabular-nums">
                       {formatINR(regularPrice)}
                     </span>
                     <span className="text-xs font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-full">
@@ -230,18 +230,18 @@ export default function ProductDetail() {
             </div>
 
             {/* Description */}
-            <div className="text-xs sm:text-sm text-slate-600 leading-relaxed space-y-3">
+            <div className="text-xs sm:text-sm text-muted-foreground leading-relaxed space-y-3">
               <p>{product.description || "The definitive Skyline hoodie. Crafted from heavyweight 280 GSM brushed French Terry cotton with high-density silicone chest branding and reinforced double-needle stitching."}</p>
             </div>
 
             {/* Size Selector */}
             {variants.length > 0 && (
-              <div className="space-y-3 pt-2 border-t border-slate-100">
+              <div className="space-y-3 pt-2 border-t border-border">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                  <span className="text-xs font-bold uppercase tracking-wider text-foreground">
                     Select Size
                   </span>
-                  <span className="text-xs text-slate-400">Regular Unisex Fit</span>
+                  <span className="text-xs text-muted-foreground">Regular Unisex Fit</span>
                 </div>
 
                 <div className="grid grid-cols-5 gap-2.5">
@@ -260,10 +260,10 @@ export default function ProductDetail() {
                         onClick={() => setSelectedVariant(v.id)}
                         className={`py-3 rounded-2xl border-2 text-center text-xs font-bold transition-all cursor-pointer ${
                           isSoldOut
-                            ? "bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed line-through"
+                            ? "bg-muted border-border text-muted-foreground/70 cursor-not-allowed line-through"
                             : isSelected
                             ? "scale-[1.02] border-primary bg-primary text-white"
-                            : "border-slate-200 bg-white text-slate-900 hover:border-primary/30 hover:bg-slate-50"
+                            : "border-border bg-white text-foreground hover:border-primary/30 hover:bg-muted"
                         }`}
                       >
                         <div>{v.size || v.name || "Size"}</div>
@@ -285,7 +285,7 @@ export default function ProductDetail() {
                 <Package className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                 <div>
                   <div className="font-bold">Pre-Order Production Window</div>
-                  <div className="text-slate-600 mt-0.5 text-[11px]">
+                  <div className="text-muted-foreground mt-0.5 text-[11px]">
                     This piece is manufactured in a limited batch once pre-orders close. Pickup scheduled for the Student Center Desk in 2-3 weeks.
                   </div>
                 </div>
@@ -293,7 +293,7 @@ export default function ProductDetail() {
             )}
 
             {/* Action Button */}
-            <div className="pt-4 border-t border-slate-100 space-y-3">
+            <div className="pt-4 border-t border-border space-y-3">
               <Button
                 variant="default"
                 size="lg"
@@ -311,13 +311,13 @@ export default function ProductDetail() {
                 )}
               </Button>
 
-              <div className="grid grid-cols-2 gap-3 text-center text-xs text-slate-500 pt-2">
-                <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-slate-50">
+              <div className="grid grid-cols-2 gap-3 text-center text-xs text-muted-foreground pt-2">
+                <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-muted">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
                   <span>Free Size Exchange</span>
                 </div>
-                <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-slate-50">
-                  <Package className="w-4 h-4 text-blue-600" />
+                <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-muted">
+                  <Package className="w-4 h-4 text-primary" />
                   <span>Counter B Pickup</span>
                 </div>
               </div>

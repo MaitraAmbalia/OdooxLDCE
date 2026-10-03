@@ -224,7 +224,7 @@ export default function EventDetail() {
           <div className="lg:col-span-5 xl:col-span-4 mt-8 lg:mt-0">
             <div className="sticky top-36 space-y-6 rounded-2xl border border-border bg-card p-6 shadow-xl shadow-primary/5">
               
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center justify-between pb-4 border-b border-border">
                 <div>
                   <h2 className="font-display text-xl font-semibold tracking-tight">
                     Choose your pass
@@ -287,7 +287,7 @@ export default function EventDetail() {
                             </span>
                           )}
                           {ticket.audience === "NON_MEMBER" && (
-                            <span className="text-[10px] text-slate-600 font-bold bg-slate-100 px-1 rounded">
+                            <span className="text-[10px] text-muted-foreground font-bold bg-muted px-1 rounded">
                               Standard
                             </span>
                           )}
@@ -304,9 +304,9 @@ export default function EventDetail() {
                   <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                   <div className="text-xs">
                     <span className="font-bold">Are you a Skyline Member?</span>
-                    <p className="text-slate-600 mt-0.5 text-[11px]">
+                    <p className="text-muted-foreground mt-0.5 text-[11px]">
                       Members pay {formatINR(memberTier.pricePaise / 100)}{standardTier ? ` instead of ${formatINR(standardTier.pricePaise / 100)}` : ""}, applied automatically at checkout.{" "}
-                      <Link to="/join" className="text-blue-700 font-bold underline">
+                      <Link to="/join" className="text-primary font-bold underline">
                         Become a member &rarr;
                       </Link>
                     </p>
@@ -319,14 +319,14 @@ export default function EventDetail() {
 
               {/* Price Summary */}
               {selectedTicket && (
-                <div className="pt-2 border-t border-slate-100 space-y-2 text-xs">
-                  <div className="flex justify-between text-slate-600">
+                <div className="pt-2 border-t border-border space-y-2 text-xs">
+                  <div className="flex justify-between text-muted-foreground">
                     <span>1x {selectedTicket.name}</span>
                     <span className="font-mono">{formatINR(selectedTicket.pricePaise / 100)}</span>
                   </div>
-                  <div className="flex justify-between text-base font-extrabold text-slate-900 pt-2 border-t border-slate-100">
+                  <div className="flex justify-between text-base font-extrabold text-foreground pt-2 border-t border-border">
                     <span>Total Due</span>
-                    <span className="font-display font-black tabular-nums text-blue-700">
+                    <span className="font-display font-black tabular-nums text-primary">
                       {formatINR(selectedTicket.pricePaise / 100)}
                     </span>
                   </div>
@@ -348,7 +348,7 @@ export default function EventDetail() {
                 )}
               </Button>
 
-              <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 font-medium">
+              <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground font-medium">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Instant QR pass generated • Valid for single scan entry</span>
               </div>

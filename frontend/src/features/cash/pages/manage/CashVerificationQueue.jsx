@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Banknote, CheckCircle2, XCircle } from "lucide-react";
+import { Banknote, CheckCircle2, XCircle, Banknote as BanknoteIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { sendJson } from "@/lib/api";
 import { PURPOSE_LABEL } from "../CashDesk";
@@ -70,7 +70,7 @@ export default function CashVerificationQueue() {
       ) : isError ? (
         <div className="mt-8"><ContentState error title="The verification queue isn’t available." description="We couldn’t load pending cash receipts." action={refetch} /></div>
       ) : collections.length === 0 ? (
-        <div className="mt-8"><ContentState title="The cash queue is clear." description="New handovers will appear here when desk operators record a receipt." /></div>
+        <div className="mt-8"><ContentState icon={BanknoteIcon} title="The cash queue is clear." description="New handovers will appear here when desk operators record a receipt." /></div>
       ) : (
         <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card">
           <div className="divide-y divide-border md:hidden">

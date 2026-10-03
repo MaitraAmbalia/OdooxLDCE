@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ReceiptIndianRupee as ReceiptIndianRupeeIcon } from "lucide-react";
 import { ContentState } from "@/components/common/ContentState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { getJson } from "@/lib/api";
 import { formatINR } from "@/lib/utils";
+import { StatusBadge } from "@/components/common/StatusBadge";
 
 const TABS = [
   { id: "awaiting", label: "Awaiting me", query: "awaitingMe=true" },
@@ -15,7 +16,6 @@ const TABS = [
   { id: "all", label: "All", query: "" },
 ];
 const STEP_LABEL = { L1: "Review", L2: "President approval", PAY: "Pay out" };
-export const STATUS_LABEL = { SUBMITTED: "Submitted", APPROVED_L1: "Awaiting President", APPROVED: "Approved", REJECTED: "Rejected", PAID: "Paid", WITHDRAWN: "Withdrawn" };
 export const ROUTE_LABEL = { STANDARD: "Treasurer", HIGH_VALUE: "Treasurer → President", TREASURER_SELF: "Mentor (Treasurer's own claim)" };
 
 export default function ClaimQueue() {
@@ -40,7 +40,7 @@ export default function ClaimQueue() {
       <div className="mt-6">
         {isPending ? <Skeleton className="h-80 rounded-2xl" />
           : isError ? <ContentState error title="Claims aren’t available right now." description="We couldn’t load the review queue." action={refetch} />
-          : claims.length === 0 ? <ContentState title={tab.id === "awaiting" ? "The review queue is clear." : "No claims here."} description="Claims needing your decision or payout will appear here." />
+          : claims.length === 0 ? <ContentState icon={ReceiptIndianRupeeIcon} title={tab.id === "awaiting" ? "The review queue is clear." : "No claims here."} description="Claims needing your decision or payout will appear here." />
           : (
             <div className="overflow-x-auto rounded-2xl border border-border bg-card">
               <table className="min-w-full divide-y divide-border text-sm">
@@ -51,7 +51,7 @@ export default function ClaimQueue() {
                       <td className="whitespace-nowrap px-5 py-4 text-muted-foreground">{claim.ageDays === 0 ? "Today" : `${claim.ageDays}d ago`}</td>
                       <td className="whitespace-nowrap px-5 py-4 font-medium">{claim.submitter}</td>
                       <td className="px-5 py-4"><p className="max-w-[260px] truncate">{claim.description}</p><p className="text-xs text-muted-foreground">{claim.link} · {claim.receipts.length} receipt{claim.receipts.length === 1 ? "" : "s"}</p></td>
-                      <td className="whitespace-nowrap px-5 py-4"><span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold">{STATUS_LABEL[claim.status] ?? claim.status}</span>{claim.nextStep && <p className="mt-1 text-xs text-primary">{STEP_LABEL[claim.nextStep.level]}</p>}</td>
+                      <td className="whitespace-nowrap px-5 py-4"><StatusBadge status={claim.status} />{claim.nextStep && <p className="mt-1 text-xs text-primary">{STEP_LABEL[claim.nextStep.level]}</p>}</td>
                       <td className="whitespace-nowrap px-5 py-4 text-right font-mono tabular-nums">{formatINR(claim.amountPaise, true)}</td>
                       <td className="px-5 py-4 text-right"><Link to={`/manage/claims/${claim.id}`} className="inline-flex min-h-10 items-center gap-1 font-medium text-primary hover:underline">Open <ArrowRight className="size-4" aria-hidden="true" /></Link></td>
                     </tr>

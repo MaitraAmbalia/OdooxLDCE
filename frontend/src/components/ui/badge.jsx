@@ -9,25 +9,25 @@ export function Badge({
   ...props
 }) {
   const variants = {
-    default: "bg-slate-100 text-slate-800 border-slate-200",
-    secondary: "bg-slate-100 text-slate-700 border-slate-200",
-    primary: "bg-blue-50 text-blue-700 border-blue-200",
+    default: "bg-muted text-foreground border-border",
+    secondary: "bg-muted text-foreground border-border",
+    primary: "bg-secondary text-primary border-primary/30",
     success: "bg-emerald-50 text-emerald-700 border-emerald-200",
     warning: "bg-amber-50 text-amber-800 border-amber-200",
     destructive: "bg-red-50 text-red-700 border-red-200",
-    outline: "text-slate-600 border-slate-300 bg-white",
+    outline: "text-muted-foreground border-border bg-card",
     gold: "bg-gradient-to-r from-amber-100 to-amber-200 text-amber-950 border-amber-300 font-bold",
-    dark: "bg-slate-900 text-white border-slate-800",
+    dark: "bg-foreground text-white border-slate-800",
   };
 
   const dotColors = {
-    default: "bg-slate-400",
+    default: "bg-muted-foreground/40",
     secondary: "bg-slate-500",
-    primary: "bg-blue-600",
+    primary: "bg-primary",
     success: "bg-emerald-600",
     warning: "bg-amber-500",
     destructive: "bg-red-600",
-    outline: "bg-slate-400",
+    outline: "bg-muted-foreground/40",
     gold: "bg-amber-600",
     dark: "bg-emerald-400",
   };

@@ -71,7 +71,7 @@ export default function Ledger() {
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-[var(--color-line)]">
+          <table className="min-w-full divide-y divide-border">
             <thead className="bg-secondary/40">
               <tr>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">Date</th>

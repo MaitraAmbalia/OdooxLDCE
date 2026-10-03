@@ -159,19 +159,19 @@ export default function TicketPass() {
         {/* Perforated Stub Dividers (Punch Holes on both sides) */}
         <div className="relative h-6 bg-white flex items-center justify-between -my-3 z-20">
           {/* Left semi-circle cutout */}
-          <div className="w-6 h-6 rounded-full bg-slate-50/50 -ml-3 border-r border-slate-300/80 shadow-inner"></div>
+          <div className="w-6 h-6 rounded-full bg-muted/50 -ml-3 border-r border-border/80 shadow-inner"></div>
           
           {/* Dashed perforation line */}
-          <div className="flex-1 border-b-2 border-dashed border-slate-200 mx-2"></div>
+          <div className="flex-1 border-b-2 border-dashed border-border mx-2"></div>
           
           {/* Right semi-circle cutout */}
-          <div className="w-6 h-6 rounded-full bg-slate-50/50 -mr-3 border-l border-slate-300/80 shadow-inner"></div>
+          <div className="w-6 h-6 rounded-full bg-muted/50 -mr-3 border-l border-border/80 shadow-inner"></div>
         </div>
 
         {/* Bottom Section: QR Code & Security Stub */}
         <div className="p-6 pt-5 bg-white text-center">
           
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 shadow-inner inline-block mx-auto mb-4">
+          <div className="bg-muted p-4 rounded-2xl border border-border/80 shadow-inner inline-block mx-auto mb-4">
             {ticket.qr ? (
               <QRCodeSVG 
                 value={ticket.qr} 
@@ -180,56 +180,56 @@ export default function TicketPass() {
                 includeMargin={false}
               />
             ) : (
-              <div className="size-[180px] animate-pulse rounded-lg bg-slate-100 flex items-center justify-center text-xs text-slate-400 font-mono" role="status" aria-label="Loading pass QR">
+              <div className="size-[180px] animate-pulse rounded-lg bg-muted flex items-center justify-center text-xs text-muted-foreground font-mono" role="status" aria-label="Loading pass QR">
                 Generating pass QR…
               </div>
             )}
-            <div className="mt-2 text-[10px] font-mono text-slate-500 font-bold uppercase tracking-wider">
+            <div className="mt-2 text-[10px] font-mono text-muted-foreground font-bold uppercase tracking-wider">
               SCAN AT ENTRANCE
             </div>
           </div>
 
           {/* Barcode Metaphor Graphic */}
           <div className="w-48 mx-auto my-3 flex items-center justify-between opacity-60">
-            <div className="h-6 w-1 bg-slate-800"></div>
-            <div className="h-6 w-2 bg-slate-800"></div>
-            <div className="h-6 w-0.5 bg-slate-800"></div>
-            <div className="h-6 w-1.5 bg-slate-800"></div>
-            <div className="h-6 w-0.5 bg-slate-800"></div>
-            <div className="h-6 w-3 bg-slate-800"></div>
-            <div className="h-6 w-1 bg-slate-800"></div>
-            <div className="h-6 w-2 bg-slate-800"></div>
-            <div className="h-6 w-0.5 bg-slate-800"></div>
-            <div className="h-6 w-1 bg-slate-800"></div>
-            <div className="h-6 w-2.5 bg-slate-800"></div>
-            <div className="h-6 w-1 bg-slate-800"></div>
+            <div className="h-6 w-1 bg-foreground"></div>
+            <div className="h-6 w-2 bg-foreground"></div>
+            <div className="h-6 w-0.5 bg-foreground"></div>
+            <div className="h-6 w-1.5 bg-foreground"></div>
+            <div className="h-6 w-0.5 bg-foreground"></div>
+            <div className="h-6 w-3 bg-foreground"></div>
+            <div className="h-6 w-1 bg-foreground"></div>
+            <div className="h-6 w-2 bg-foreground"></div>
+            <div className="h-6 w-0.5 bg-foreground"></div>
+            <div className="h-6 w-1 bg-foreground"></div>
+            <div className="h-6 w-2.5 bg-foreground"></div>
+            <div className="h-6 w-1 bg-foreground"></div>
           </div>
 
           {/* Attendee Metadata */}
-          <div className="grid grid-cols-2 gap-3 text-left border-t border-slate-100 pt-4 mt-2">
+          <div className="grid grid-cols-2 gap-3 text-left border-t border-border pt-4 mt-2">
             <div>
-              <div className="text-[10px] font-mono uppercase text-slate-400">Pass Holder</div>
-              <div className="text-xs font-bold text-slate-900 truncate">
+              <div className="text-[10px] font-mono uppercase text-muted-foreground">Pass Holder</div>
+              <div className="text-xs font-bold text-foreground truncate">
                 {ticket.holderName || ticket.user?.name || "Student Attendee"}
               </div>
             </div>
 
             <div>
-              <div className="text-[10px] font-mono uppercase text-slate-400">Admission Tier</div>
-              <div className="text-xs font-bold text-blue-700">
+              <div className="text-[10px] font-mono uppercase text-muted-foreground">Admission Tier</div>
+              <div className="text-xs font-bold text-primary">
                 {ticket.ticketType?.name || "General Admission"}
               </div>
             </div>
 
             <div>
-              <div className="text-[10px] font-mono uppercase text-slate-400">Seat / Gate</div>
-              <div className="text-xs font-bold text-slate-800">
+              <div className="text-[10px] font-mono uppercase text-muted-foreground">Seat / Gate</div>
+              <div className="text-xs font-bold text-foreground">
                 Gate A (Main Porch)
               </div>
             </div>
 
             <div>
-              <div className="text-[10px] font-mono uppercase text-slate-400">Verification</div>
+              <div className="text-[10px] font-mono uppercase text-muted-foreground">Verification</div>
               <div className="text-xs font-bold text-emerald-600 flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5" /> Fast Pass Active
               </div>

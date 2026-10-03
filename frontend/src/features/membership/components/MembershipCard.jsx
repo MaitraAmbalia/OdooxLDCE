@@ -65,12 +65,12 @@ export default function MembershipCard({ membership }) {
                       Skyline LDCE
                       <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                     </h3>
-                    <p className="text-[11px] text-slate-400 font-mono tracking-wider uppercase">Official Student Pass</p>
+                    <p className="text-[11px] text-muted-foreground font-mono tracking-wider uppercase">Official Student Pass</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Wifi className="w-5 h-5 text-slate-400 rotate-90" title="Contactless NFC Enabled" />
+                  <Wifi className="w-5 h-5 text-muted-foreground rotate-90" title="Contactless NFC Enabled" />
                   <Badge 
                     variant={isActive ? "success" : isLapsed ? "destructive" : "warning"}
                     className="text-[10px] uppercase font-bold tracking-wider py-0.5 px-2"
@@ -82,7 +82,7 @@ export default function MembershipCard({ membership }) {
 
               {/* Student Identity Section */}
               <div className="my-6">
-                <div className="text-[10px] font-mono tracking-widest text-slate-400 uppercase">Registered Student</div>
+                <div className="text-[10px] font-mono tracking-widest text-muted-foreground uppercase">Registered Student</div>
                 <div className="text-2xl font-display font-extrabold text-white tracking-tight mt-0.5">
                   {membership.user?.name || "Student Member"}
                 </div>
@@ -94,13 +94,13 @@ export default function MembershipCard({ membership }) {
               </div>
 
               {/* QR Code Centerpiece */}
-              <div className="bg-white p-3.5 rounded-2xl shadow-xl w-fit mx-auto border-2 border-slate-100 flex flex-col items-center group-hover:shadow-blue-500/20 transition-all">
+              <div className="bg-white p-3.5 rounded-2xl shadow-xl w-fit mx-auto border-2 border-border flex flex-col items-center group-hover:shadow-blue-500/20 transition-all">
                 {qr ? (
                   <QRCodeSVG value={qr} size={148} level="H" includeMargin={false} />
                 ) : (
-                  <div className="size-[148px] animate-pulse rounded-lg bg-slate-100" role="status" aria-label="Loading pass QR" />
+                  <div className="size-[148px] animate-pulse rounded-lg bg-muted" role="status" aria-label="Loading pass QR" />
                 )}
-                <span className="text-[9px] font-mono text-slate-500 mt-1 font-semibold uppercase tracking-wider">
+                <span className="text-[9px] font-mono text-muted-foreground mt-1 font-semibold uppercase tracking-wider">
                   Tap card to view security details
                 </span>
               </div>
@@ -108,8 +108,8 @@ export default function MembershipCard({ membership }) {
               {/* Footer: Expiration & Verification */}
               <div className="flex items-end justify-between border-t border-slate-800/80 pt-4 mt-4">
                 <div>
-                  <div className="text-[10px] font-mono uppercase text-slate-400">Valid Until</div>
-                  <div className="text-xs font-semibold text-slate-200">
+                  <div className="text-[10px] font-mono uppercase text-muted-foreground">Valid Until</div>
+                  <div className="text-xs font-semibold text-muted-foreground/70">
                     {membership.validUntil 
                       ? new Date(membership.validUntil).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })
                       : "May 31, 2027"}
@@ -117,7 +117,7 @@ export default function MembershipCard({ membership }) {
                 </div>
 
                 <div className="text-right">
-                  <div className="text-[10px] font-mono uppercase text-slate-400">Security Gate</div>
+                  <div className="text-[10px] font-mono uppercase text-muted-foreground">Security Gate</div>
                   <div className="text-xs font-semibold text-emerald-400 flex items-center justify-end gap-1">
                     <ShieldCheck className="w-3.5 h-3.5" />
                     Verified Fast-Pass
@@ -134,13 +134,13 @@ export default function MembershipCard({ membership }) {
                     <ShieldCheck className="w-4 h-4 text-blue-400" />
                     Member Verification
                   </div>
-                  <span className="text-[10px] font-mono text-slate-400">Tap to flip back</span>
+                  <span className="text-[10px] font-mono text-muted-foreground">Tap to flip back</span>
                 </div>
 
                 <div className="mt-4 space-y-3 text-xs">
-                  <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-1">
-                    <div className="text-[10px] uppercase font-mono text-slate-400">Privileges Included</div>
-                    <ul className="text-slate-300 space-y-1 text-[11px]">
+                  <div className="bg-foreground/80 p-3 rounded-xl border border-slate-800 space-y-1">
+                    <div className="text-[10px] uppercase font-mono text-muted-foreground">Privileges Included</div>
+                    <ul className="text-muted-foreground/70 space-y-1 text-[11px]">
                       <li>✓ Priority entry at all campus auditorium events</li>
                       <li>✓ Member discounts on official club merchandise</li>
                       <li>✓ Voting & candidacy in annual executive elections</li>
@@ -151,7 +151,7 @@ export default function MembershipCard({ membership }) {
               </div>
 
               <div className="text-center pt-4 border-t border-slate-800">
-                <p className="text-[10px] text-slate-500 font-mono">
+                <p className="text-[10px] text-muted-foreground font-mono">
                   Issued by Skyline Student Association • LDCE Autonomous
                 </p>
               </div>
@@ -166,14 +166,14 @@ export default function MembershipCard({ membership }) {
           variant="default" 
           size="sm" 
           onClick={handleDownloadPass}
-          className="flex-1 text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+          className="flex-1 text-xs bg-primary hover:bg-primary text-white shadow-sm"
         >
           <Download className="w-3.5 h-3.5" />
           <span>Save to Wallet</span>
         </Button>
       </div>
 
-      <p className="text-xs text-slate-500 text-center mt-3 flex items-center gap-1 font-medium">
+      <p className="text-xs text-muted-foreground text-center mt-3 flex items-center gap-1 font-medium">
         <Sparkles className="w-3.5 h-3.5 text-amber-500" />
         Turn up screen brightness for instant door scanning at LDCE gates.
       </p>

@@ -10,10 +10,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { getJson, sendJson } from "@/lib/api";
 import { formatINR } from "@/lib/utils";
-import { ROUTE_LABEL, STATUS_LABEL } from "./ClaimQueue";
+import { ROUTE_LABEL } from "./ClaimQueue";
+import { StatusBadge } from "@/components/common/StatusBadge";
 
 const inr = (paise) => formatINR(paise ?? 0, true);
-const STATUS_STYLE = { PAID: "bg-emerald-600 text-white", REJECTED: "bg-red-600 text-white", APPROVED: "bg-emerald-100 text-emerald-800" };
 
 export default function ClaimDetail() {
   const { id } = useParams();
@@ -58,7 +58,7 @@ export default function ClaimDetail() {
           <Link to={isManagerView ? "/manage/claims" : "/volunteer"} className="mb-4 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary hover:underline"><ArrowLeft className="size-4" /> Back</Link>
           <h1 className="font-display text-4xl font-semibold tracking-tight">Claim #{claim.id.split("-")[0].toUpperCase()}</h1>
         </div>
-        <span className={"rounded px-3 py-1 text-xs font-bold uppercase tracking-wider " + (STATUS_STYLE[claim.status] || "bg-amber-100 text-amber-800")}>{STATUS_LABEL[claim.status] ?? claim.status}</span>
+        <StatusBadge status={claim.status} className="px-3 py-1 text-sm" />
       </div>
 
       <div className="grid grid-cols-1 gap-8 md:grid-cols-3">

@@ -80,7 +80,7 @@ export function SocialShareModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5">
       {/* Dimmed backdrop */}
       <div
-        className="fixed inset-0 bg-slate-950/65 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-foreground/65 backdrop-blur-sm transition-opacity"
         onClick={() => onOpenChange(false)}
       />
 
@@ -226,7 +226,7 @@ export function SocialShareModal({
               <div className="relative rounded-2xl border border-pink-500/20 bg-gradient-to-b from-pink-50/30 to-purple-50/20 dark:from-pink-950/20 dark:to-purple-950/10 p-4 font-sans text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap select-all shadow-inner">
                 <div className="flex items-center gap-2 pb-2.5 mb-2.5 border-b border-border/60">
                   <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[1.5px]">
-                    <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 flex items-center justify-center text-[10px] font-bold text-pink-600">
+                    <div className="w-full h-full rounded-full bg-white dark:bg-foreground flex items-center justify-center text-[10px] font-bold text-pink-600">
                       S
                     </div>
                   </div>

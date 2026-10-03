@@ -116,7 +116,7 @@ export default function ApplicationReview() {
                     app.status === 'APPOINTED' ? 'bg-[var(--color-ok)] text-white' :
                     app.status === 'REJECTED' ? 'bg-[var(--color-stop)] text-white' :
                     app.status === 'INTERVIEW' ? 'bg-[var(--color-info)] text-white' :
-                    'bg-[var(--color-line)] text-[var(--color-ink)]'
+                    'bg-border text-foreground'
                   }`}>
                     {app.status}
                   </span>

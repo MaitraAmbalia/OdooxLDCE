@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Banknote, History } from "lucide-react";
+import { ArrowLeft, Banknote, History, Banknote as BanknoteIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatusBadge } from "@/components/common/StatusBadge";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -110,10 +111,10 @@ export default function CashDesk() {
           ) : historyError ? (
             <ContentState error title="Collection history isn’t available." description="We couldn’t load recent receipts." action={refetch} />
           ) : collections.length === 0 ? (
-            <ContentState title="No cash has been recorded." description="Completed receipts will appear here after the first collection." />
+            <ContentState icon={BanknoteIcon} title="No cash has been recorded." description="Completed receipts will appear here after the first collection." />
           ) : (
             <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-              {collections.map((collection) => <div key={collection.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-medium">{PURPOSE_LABEL[collection.purpose] ?? collection.purpose}</p><span className={"rounded-full px-2.5 py-1 text-xs font-semibold " + (collection.status === "VERIFIED" ? "bg-emerald-100 text-emerald-800" : collection.status === "REJECTED" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800")}>{collection.status === "VERIFIED" ? "Verified" : collection.status === "REJECTED" ? "Rejected" : "Pending"}</span>{collection.rejectReason && <span className="text-xs text-red-700">{collection.rejectReason}</span>}</div><p className="mt-2 text-xs text-muted-foreground">{collection.operator} · {new Date(collection.recordedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</p></div><p className="font-mono text-lg font-semibold tabular-nums">{money.format(Number(collection.amountPaise || 0) / 100)}</p></div>)}
+              {collections.map((collection) => <div key={collection.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-medium">{PURPOSE_LABEL[collection.purpose] ?? collection.purpose}</p><StatusBadge status={collection.status} />{collection.rejectReason && <span className="text-xs text-red-700">{collection.rejectReason}</span>}</div><p className="mt-2 text-xs text-muted-foreground">{collection.operator} · {new Date(collection.recordedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</p></div><p className="font-mono text-lg font-semibold tabular-nums">{money.format(Number(collection.amountPaise || 0) / 100)}</p></div>)}
             </div>
           )}
         </section>

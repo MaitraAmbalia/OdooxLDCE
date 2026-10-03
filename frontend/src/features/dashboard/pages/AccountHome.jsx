@@ -118,7 +118,7 @@ export default function AccountHome() {
         <Link to="/shop" className="block rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
           <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"><ShoppingBag className="size-3.5" /> Shop</p>
           <div className="flex items-end gap-2">
-            <span className="text-3xl font-display font-bold text-slate-900 leading-none">{activeOrdersCount}</span>
+            <span className="text-3xl font-display font-bold text-foreground leading-none">{activeOrdersCount}</span>
             <span className="text-xs text-muted-foreground mb-1">active orders</span>
           </div>
           <p className="text-xs text-primary mt-2 font-medium">Browse merch &rarr;</p>
@@ -129,7 +129,7 @@ export default function AccountHome() {
           <Link to="/volunteer" className="block rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
             <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"><HeartHandshake className="size-3.5" /> Volunteering</p>
             <div className="flex items-end gap-2">
-              <span className="text-3xl font-display font-bold text-slate-900 leading-none">
+              <span className="text-3xl font-display font-bold text-foreground leading-none">
                 {user?.isVolunteer ? 'Active' : 'Open'}
               </span>
             </div>
@@ -142,7 +142,7 @@ export default function AccountHome() {
       <div className="grid gap-4 sm:grid-cols-3">
         <Link to="/events" className="flex items-center justify-between rounded-xl border border-border bg-card p-4 transition hover:border-primary/30">
           <div>
-            <div className="font-bold text-sm text-slate-900">Upcoming Events</div>
+            <div className="font-bold text-sm text-foreground">Upcoming Events</div>
             <div className="text-xs text-muted-foreground">Register with member discount</div>
           </div>
           <CalendarDays className="size-5 text-primary" />
@@ -150,7 +150,7 @@ export default function AccountHome() {
 
         <Link to="/selection" className="flex items-center justify-between rounded-xl border border-border bg-card p-4 transition hover:border-primary/30">
           <div>
-            <div className="font-bold text-sm text-slate-900">Leadership Applications</div>
+            <div className="font-bold text-sm text-foreground">Leadership Applications</div>
             <div className="text-xs text-muted-foreground">Apply for executive roles</div>
           </div>
           <ArrowUpRight className="size-5 text-primary" />
@@ -158,7 +158,7 @@ export default function AccountHome() {
 
         <Link to="/announcements" className="flex items-center justify-between rounded-xl border border-border bg-card p-4 transition hover:border-primary/30">
           <div>
-            <div className="font-bold text-sm text-slate-900">Campus News & Feeds</div>
+            <div className="font-bold text-sm text-foreground">Campus News & Feeds</div>
             <div className="text-xs text-muted-foreground">Official organization notices</div>
           </div>
           <ArrowUpRight className="size-5 text-primary" />

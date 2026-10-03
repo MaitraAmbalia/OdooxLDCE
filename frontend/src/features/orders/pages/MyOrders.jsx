@@ -2,8 +2,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { 
   ShoppingBag, Package, CheckCircle2, Clock, 
-  MapPin, ArrowRight, ExternalLink, QrCode 
-} from "lucide-react";
+  MapPin, ArrowRight, ExternalLink, QrCode, ShoppingBag as ShoppingBagIcon } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "../../../components/ui/card";
@@ -59,7 +58,7 @@ export default function MyOrders() {
       {isError ? (
         <ContentState error title="Your orders aren’t available right now." description="We couldn’t load your order history. Try again in a moment." action={refetch} />
       ) : orders.length === 0 ? (
-        <ContentState title="No orders yet." description="When you order Skyline merchandise, pickup progress and details will appear here." actionLabel="Visit the shop" action={() => window.location.assign("/shop")} />
+        <ContentState icon={ShoppingBagIcon} to="/shop" actionLabel="Visit the shop" title="No orders yet." description="When you order Skyline merchandise, pickup progress and details will appear here." />
       ) : (
         <div className="space-y-6">
           {orders.map(order => {
@@ -157,7 +156,7 @@ export default function MyOrders() {
                         <div className="flex items-center gap-1.5 font-semibold">
                           <Package className="size-4 text-primary" /> In production
                         </div>
-                        <p className="text-[11px] text-blue-900/80 leading-relaxed">
+                        <p className="text-[11px] text-primary/80 leading-relaxed">
                           Your order is being manufactured and printed. You will receive an alert once sorted for pickup.
                         </p>
                       </div>

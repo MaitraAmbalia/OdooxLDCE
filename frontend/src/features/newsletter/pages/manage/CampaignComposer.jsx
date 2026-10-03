@@ -150,18 +150,18 @@ export default function CampaignComposer() {
             </div>
 
             {previewMode ? (
-              <div className="mt-2 rounded-xl border border-border bg-[#f8fafc] p-6 text-slate-800">
-                <div className="mx-auto max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <div className="border-b border-slate-100 pb-3">
+              <div className="mt-2 rounded-xl border border-border bg-[#f8fafc] p-6 text-foreground">
+                <div className="mx-auto max-w-lg rounded-xl border border-border bg-white p-6 shadow-sm">
+                  <div className="border-b border-border pb-3">
                     <span className="text-xs font-semibold uppercase tracking-wider text-primary">
                       Skyline Student Club
                     </span>
-                    <h2 className="mt-1 text-lg font-bold text-slate-900">{subject || "Untitled Email"}</h2>
+                    <h2 className="mt-1 text-lg font-bold text-foreground">{subject || "Untitled Email"}</h2>
                   </div>
                   <div className="py-4 text-sm leading-relaxed whitespace-pre-line">
                     {bodyMd}
                   </div>
-                  <div className="border-t border-slate-100 pt-4 text-center text-xs text-slate-400">
+                  <div className="border-t border-border pt-4 text-center text-xs text-muted-foreground">
                     <p>© {new Date().getFullYear()} Skyline Student Association</p>
                     <p className="mt-1 text-primary">Unsubscribe link included automatically</p>
                   </div>

@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Clock, MapPin, ReceiptIndianRupee, ShoppingBag, Ticket } from "lucide-react";
+import { CalendarDays, Clock, MapPin, ReceiptIndianRupee, ShoppingBag, Ticket, ListTodo as ListTodoIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { getJson } from "@/lib/api";
+import { StatusBadge } from "@/components/common/StatusBadge";
 
 export default function VolunteerHome() {
   usePageTitle("Volunteer space");
@@ -103,22 +104,15 @@ export default function VolunteerHome() {
             ) : tasksError ? (
               <div className="p-5"><ContentState error title="Tasks aren't available." description="Try loading your assignments again." action={refetchTasks} /></div>
             ) : tasks.length === 0 ? (
-              <div className="p-5"><ContentState title="No active tasks." description="New volunteer assignments will appear here." /></div>
+              <div className="p-5"><ContentState icon={ListTodoIcon} title="No active tasks." description="New volunteer assignments will appear here." /></div>
             ) : (
-              <ul className="divide-y divide-[var(--color-line)]">
+              <ul className="divide-y divide-border">
                 {tasks.map(task => (
                   <li key={task.id}>
                     <Link to={`/volunteer/tasks/${task.id}`} className="block p-6 transition-colors hover:bg-secondary/30">
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="text-lg font-semibold">{task.title}</h3>
-                        <span className={`px-2 py-1 text-xs font-bold uppercase rounded ${
-                          task.status === 'DONE' ? 'bg-[var(--color-ok)] text-white' :
-                          task.status === 'BLOCKED' ? 'bg-[var(--color-stop)] text-white' :
-                          task.status === 'IN_PROGRESS' ? 'bg-[var(--color-info)] text-white' :
-                          'bg-[var(--color-neutral)] text-white'
-                        }`}>
-                          {task.status.replace('_', ' ')}
-                        </span>
+                        <StatusBadge status={task.status} />
                       </div>
                       <p className="mb-4 text-sm text-muted-foreground">{task.project?.name || "General event task"}</p>
 
@@ -203,20 +197,17 @@ export default function VolunteerHome() {
               ) : claims.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground text-sm">No recent claims.</div>
               ) : (
-                <ul className="divide-y divide-[var(--color-line)]">
+                <ul className="divide-y divide-border">
                   {claims.map(claim => (
-                    <li key={claim.id} className="p-4 hover:bg-[var(--color-paper)]">
+                    <li key={claim.id} className="p-4 hover:bg-muted">
                       <Link to={`/volunteer/claims/${claim.id}`} className="flex justify-between items-center">
                         <div>
-                          <p className="text-sm font-medium text-[var(--color-ink)]">{claim.description}</p>
+                          <p className="text-sm font-medium text-foreground">{claim.description}</p>
                           <p className="text-xs text-muted-foreground font-medium mt-1">{claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : ''}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-mono font-bold">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(claim.amountPaise / 100)}</p>
-                          <p className={`text-[10px] uppercase font-bold tracking-wider mt-1 ${
-                            claim.status === 'PAID' || claim.status === 'APPROVED' ? 'text-[var(--color-ok)]' :
-                            claim.status === 'REJECTED' ? 'text-[var(--color-stop)]' : 'text-[var(--color-wait)]'
-                          }`}>{claim.status.replace('_', ' ')}</p>
+                          <StatusBadge status={claim.status} className="mt-1" />
                         </div>
                       </Link>
                     </li>

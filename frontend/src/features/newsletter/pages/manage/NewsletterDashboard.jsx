@@ -257,8 +257,8 @@ export default function NewsletterDashboard() {
                             camp.status === "SENT"
                               ? "bg-emerald-600 hover:bg-emerald-600"
                               : camp.status === "SENDING"
-                              ? "bg-blue-600 text-white"
-                              : "bg-slate-100 text-slate-700"
+                              ? "bg-primary text-white"
+                              : "bg-muted text-foreground"
                           }
                         >
                           {camp.status}
@@ -342,7 +342,7 @@ export default function NewsletterDashboard() {
                               ? "border-emerald-300 bg-emerald-50 text-emerald-700"
                               : sub.status === "PENDING_CONFIRMATION"
                               ? "border-amber-300 bg-amber-50 text-amber-700"
-                              : "border-slate-300 bg-slate-50 text-slate-500"
+                              : "border-border bg-muted text-muted-foreground"
                           }
                         >
                           {sub.status.replace("_", " ")}

@@ -11,7 +11,7 @@ export function Progress({ value = 0, max = 100, className, indicatorClassName, 
       aria-valuemax={max}
       aria-valuenow={value}
       className={cn(
-        "relative h-2.5 w-full overflow-hidden rounded-full bg-slate-100 border border-slate-200/60 shadow-inner",
+        "relative h-2.5 w-full overflow-hidden rounded-full bg-muted border border-border/60 shadow-inner",
         className
       )}
       {...props}
