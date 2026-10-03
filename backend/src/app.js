@@ -5,7 +5,6 @@ import cookieParser from 'cookie-parser';
 import { getConfig } from './config/env.js';
 import { getPrismaClient } from './db/prisma.js';
 import { createLogger, createRequestLogger } from './lib/logger.js';
-import { requestId } from './middleware/requestId.js';
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authenticate, authorize } from './middleware/authenticate.js';
@@ -39,83 +38,53 @@ import { createFilesService } from './modules/files/files.service.js';
 import { createFilesRouter } from './modules/files/files.routes.js';
 import { createGovernanceRouter } from './modules/governance/governance.routes.js';
 
-export function createApp(options = {}) {
-  const config = options.config ?? getConfig();
-  const prisma = options.prisma ?? getPrismaClient();
-  const logger = options.logger ?? createLogger(config);
+export function createApp({
+  config = getConfig(),
+  prisma = getPrismaClient(),
+  logger = createLogger(config),
+} = {}) {
+  const auth = authenticate({ config });
   const app = express();
 
+  // Core Middleware
   app.use(helmet());
   app.use(cors({ origin: config.corsOrigin || true, credentials: true }));
   app.use(cookieParser());
   app.use(express.json({ limit: config.jsonBodyLimit }));
-  app.use(requestId);
   app.use(createRequestLogger(logger));
 
-  // Health route
+  // Base Health Check
   app.use('/api/v1', createHealthRouter({ prisma }));
 
-  // Shared middleware
-  const auth = options.authenticate ?? authenticate({ config });
+  // Feature Routers
+  app.use('/api/v1', createAuthRouter({ service: createAuthService({ prisma, config }), authenticate: auth, config }));
+  app.use('/api/v1', createUsersRouter({ service: createUsersService({ prisma }), authenticate: auth, authorize }));
+  app.use('/api/v1', createAccessRouter({ service: createAccessService({ prisma }), authenticate: auth, authorize }));
+  app.use('/api/v1', createVolunteersRouter({ service: createVolunteersService({ prisma }), authenticate: auth }));
+  app.use('/api/v1', createProjectsRouter({ service: createProjectsService({ prisma }), authenticate: auth }));
+  app.use('/api/v1', createNotificationsRouter({ service: createNotificationsService({ prisma }), authenticate: auth, prisma }));
+  app.use('/api/v1', createEventsRouter({ service: createEventsService({ prisma }), authenticate: auth, authorize }));
+  app.use('/api/v1', createTicketsRouter({ service: createTicketsService({ prisma }), authenticate: auth, authorize }));
+  app.use('/api/v1', createMerchRouter({ service: createMerchService({ prisma }), authenticate: auth }));
 
-  // Feature Modules
-  // 1. Auth & Users
-  const authService = createAuthService({ prisma, config });
-  app.use('/api/v1', createAuthRouter({ service: authService, authenticate: auth, config }));
-
-  const usersService = createUsersService({ prisma });
-  app.use('/api/v1', createUsersRouter({ service: usersService, authenticate: auth, authorize }));
-
-  const accessService = createAccessService({ prisma });
-  app.use('/api/v1', createAccessRouter({ service: accessService, authenticate: auth, authorize }));
-
-  // 2. Volunteers & Projects (Scene 5)
-  const volunteersService = createVolunteersService({ prisma });
-  app.use('/api/v1', createVolunteersRouter({ service: volunteersService, authenticate: auth }));
-
-  const projectsService = createProjectsService({ prisma });
-  app.use('/api/v1', createProjectsRouter({ service: projectsService, authenticate: auth }));
-
-  // 3. Notifications (Scene 3)
-  const notificationsService = createNotificationsService({ prisma });
-  app.use('/api/v1', createNotificationsRouter({ service: notificationsService, authenticate: auth, prisma }));
-
-  // 4. Events & Tickets (Scene 2)
-  const eventsService = createEventsService({ prisma });
-  app.use('/api/v1', createEventsRouter({ service: eventsService, authenticate: auth, authorize }));
-
-  const ticketsService = createTicketsService({ prisma });
-  app.use('/api/v1', createTicketsRouter({ service: ticketsService, authenticate: auth, authorize }));
-
-  // 5. Merchandise Store (Scene 4)
-  const merchService = createMerchService({ prisma });
-  app.use('/api/v1', createMerchRouter({ service: merchService, authenticate: auth }));
-
-  // 6. Payments & Memberships (Scene 1)
-  const paymentsService = options.paymentsService ?? createPaymentsService({ prisma, config, logger });
-  app.use('/api/v1/payments', createPaymentsRouter({ service: paymentsService, authenticate: auth, config }));
-
+  const paymentsService = createPaymentsService({ prisma, config, logger });
   const filesService = createFilesService({ prisma, config });
-  app.use('/api/v1/files', createFilesRouter({ service: filesService, authenticate: auth }));
 
-  const membershipsService = createMembershipsService({ prisma, config });
+  app.use('/api/v1/payments', createPaymentsRouter({ service: paymentsService, authenticate: auth, config }));
+  app.use('/api/v1/files', createFilesRouter({ service: filesService, authenticate: auth }));
   app.use(
     '/api/v1',
     createMembershipsRouter({
-      service: membershipsService,
+      service: createMembershipsService({ prisma, config }),
       createPayment: paymentsService.createPayment,
       authenticate: auth,
       requirePermission: authorize,
     })
   );
-
-  // 7. Finance & Treasurer Ledgers (Scene 6)
-  const financeService = createFinanceService({ prisma, files: filesService });
-  app.use('/api/v1', createFinanceRouter({ service: financeService, authenticate: auth, requirePermission: authorize }));
-
-  // 8. Governance, Elections & Meetings
+  app.use('/api/v1', createFinanceRouter({ service: createFinanceService({ prisma, files: filesService }), authenticate: auth, requirePermission: authorize }));
   app.use('/api/v1', createGovernanceRouter({ prisma, authenticate: auth }));
 
+  // Error Handling
   app.use(notFound);
   app.use(errorHandler({ isProduction: config.isProduction }));
 

@@ -17,14 +17,12 @@ export function createLogger(config) {
     },
   });
 }
+
 export function createRequestLogger(logger) {
   return pinoHttp({
     logger,
-    genReqId: (req) => req.id,
-    customProps: (req) => ({ requestId: req.id }),
     serializers: {
       req: (req) => ({
-        id: req.id,
         method: req.method,
         url: req.url,
         remoteAddress: req.remoteAddress,
