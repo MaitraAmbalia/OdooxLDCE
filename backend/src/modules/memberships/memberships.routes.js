@@ -10,6 +10,7 @@ const tierBody = z.object({ name: z.string().min(2).max(60), pricePaise: money, 
 const tierPatch = tierBody.partial().extend({ isActive: z.boolean().optional() });
 const checkoutBody = z.object({ tierId: z.uuid() });
 const verifyBody = z.object({ qr: z.string().max(200), eventId: z.uuid().optional() });
+const remindBody = z.object({ withinDays: z.number().int().min(1).max(90).optional() }).default({});
 const listQuery = z.object({
   status: z.enum(['PENDING', 'ACTIVE', 'LAPSED', 'CANCELLED']).optional(),
   tierId: z.uuid().optional(),
@@ -44,6 +45,8 @@ export function createMembershipsRouter({ service, createPayment, authenticate, 
 
   router.get('/memberships', authenticate, requirePermission('member.read.any'), validate({ query: listQuery }), async (req, res) =>
     res.json(await service.list(req.query)));
+  router.post('/memberships/remind-expiring', authenticate, requirePermission('membership.remind'), validate({ body: remindBody }), async (req, res) =>
+    res.json({ data: await service.remindExpiring(req.body) }));
   router.get('/memberships/stats', authenticate, requirePermission('member.stats.read'), async (_req, res) => res.json({ data: await service.stats() }));
 
   return router;
