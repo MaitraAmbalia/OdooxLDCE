@@ -32,6 +32,14 @@ import ShopCatalog from "./features/merch/pages/ShopCatalog";
 import ProductDetail from "./features/merch/pages/ProductDetail";
 import MyOrders from "./features/orders/pages/MyOrders";
 import FulfilmentQueue from "./features/orders/pages/manage/FulfilmentQueue";
+import AnnouncementFeed from "./features/announcements/pages/AnnouncementFeed";
+import AnnouncementDetail from "./features/announcements/pages/AnnouncementDetail";
+import AnnouncementComposer from "./features/announcements/pages/manage/AnnouncementComposer";
+import NotificationList from "./features/notifications/pages/NotificationList";
+import NewsletterDashboard from "./features/newsletter/pages/manage/NewsletterDashboard";
+import MeetingList from "./features/meetings/pages/manage/MeetingList";
+import MeetingBuilder from "./features/meetings/pages/manage/MeetingBuilder";
+import MeetingDetail from "./features/meetings/pages/manage/MeetingDetail";
 
 function App() {
   return (
@@ -67,7 +75,12 @@ function App() {
         <Route path="shop/:id" element={<ProductDetail />} />
         <Route path="me/orders" element={<MyOrders />} />
 
-        {/* Phase 3, 4, 5 & 6: Manage, Finance, Volunteers, Orders */}
+        {/* Phase 7: Announcements & Notifications */}
+        <Route path="announcements" element={<AnnouncementFeed />} />
+        <Route path="announcements/:id" element={<AnnouncementDetail />} />
+        <Route path="me/notifications" element={<NotificationList />} />
+
+        {/* Phase 3, 4, 5, 6, 7 & 8: Manage */}
         <Route path="manage/events/new" element={<EventProposalStepper />} />
         <Route path="manage/events/:id/review" element={<MentorReview />} />
         
@@ -87,6 +100,13 @@ function App() {
         <Route path="manage/projects/:id" element={<ProjectKanban />} />
 
         <Route path="manage/orders" element={<FulfilmentQueue />} />
+        
+        <Route path="manage/announcements/new" element={<AnnouncementComposer />} />
+        <Route path="manage/newsletter" element={<NewsletterDashboard />} />
+
+        <Route path="manage/meetings" element={<MeetingList />} />
+        <Route path="manage/meetings/new" element={<MeetingBuilder />} />
+        <Route path="manage/meetings/:id" element={<MeetingDetail />} />
       </Route>
     </Routes>
   );
