@@ -48,18 +48,22 @@ const navigation = [
   ["/selection", "Leadership"],
 ];
 
+// Third entry: any one of these permissions shows the link (none = everyone in /manage).
 const manageNavigation = [
   ["/manage", "Overview"],
   ["/calendar", "Calendar"],
-  ["/manage/events/new", "Propose event"],
-  ["/manage/meetings", "Meetings"],
-  ["/manage/claims", "Claims"],
-  ["/manage/finance/ledger", "Finance"],
-  ["/manage/budget", "Budgets"],
-  ["/manage/projects", "Projects"],
-  ["/manage/orders", "Orders"],
-  ["/manage/newsletter", "Newsletter"],
-  ["/manage/selection/new/edit", "Leadership"],
+  ["/manage/events", "Events", ["event.propose", "event.approve", "event.report.read"]],
+  ["/manage/meetings", "Meetings", ["meeting.manage"]],
+  ["/manage/claims", "Claims", ["claim.review", "claim.review.high", "claim.review.treasurer", "claim.pay"]],
+  ["/manage/cash", "Cash", ["cash.verify"]],
+  ["/manage/memberships", "Dues", ["member.read.any"]],
+  ["/manage/finance/ledger", "Ledger", ["ledger.read"]],
+  ["/manage/budget", "Budgets", ["ledger.read"]],
+  ["/manage/finance/reports", "Reports", ["finance.report.read"]],
+  ["/manage/projects", "Projects", ["project.manage", "volunteer.manage"]],
+  ["/manage/orders", "Orders", ["order.fulfil"]],
+  ["/manage/newsletter", "Newsletter", ["newsletter.send", "newsletter.stats.read"]],
+  ["/manage/selection/new/edit", "Leadership", ["selection.manage"]],
 ];
 
 const volunteerNavigation = [
@@ -96,7 +100,7 @@ export default function DiscoveryLayout() {
     ? {
         label: "Manage Skyline",
         icon: BriefcaseBusiness,
-        links: manageNavigation,
+        links: manageNavigation.filter(([, , perms]) => !perms || perms.some((p) => user?.permissions?.includes(p))),
       }
     : location.pathname.startsWith("/volunteer")
       ? {

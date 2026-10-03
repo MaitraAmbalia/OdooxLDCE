@@ -65,8 +65,7 @@ export default function Join() {
       }
     } catch (err) {
       console.error(err);
-      toast.success("Welcome aboard! Mock checkout completed.");
-      navigate("/me/membership");
+      toast.error("Couldn't reach the server. Please try again.");
     } finally {
       setLoadingCheckout(false);
     }

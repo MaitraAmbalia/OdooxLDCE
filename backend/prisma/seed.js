@@ -89,9 +89,9 @@ async function main() {
     { id: '10000000-0000-4000-8000-000000000011', email: 'volunteer3@nirmauni.ac.in', name: 'Rhea Sen', studentId: '23BCE203', isVolunteer: true },
     { id: '10000000-0000-4000-8000-000000000012', email: 'student1@nirmauni.ac.in', name: 'Pooja Trivedi', studentId: '23BCE301', isMember: true },
     { id: '10000000-0000-4000-8000-000000000013', email: 'student2@nirmauni.ac.in', name: 'Harsh Dave', studentId: '23BCE302', isMember: true, isSemesterMember: true },
-    { id: '10000000-0000-4000-8000-000000000014', email: 'student3@nirmauni.ac.in', name: 'Meera Nair', studentId: '23BCE303', isMember: true },
+    { id: '10000000-0000-4000-8000-000000000014', email: 'student3@nirmauni.ac.in', name: 'Meera Nair', studentId: '23BCE303', isMember: true, expiresInDays: 14 },
     { id: '10000000-0000-4000-8000-000000000015', email: 'student4@nirmauni.ac.in', name: 'Devansh Bhatt', studentId: '24BCE401' },
-    { id: '10000000-0000-4000-8000-000000000016', email: 'student5@nirmauni.ac.in', name: 'Tanvi Joshi', studentId: '24BCE402' },
+    { id: '10000000-0000-4000-8000-000000000016', email: 'student5@nirmauni.ac.in', name: 'Tanvi Joshi', studentId: '24BCE402', pendingMember: true },
     { id: '10000000-0000-4000-8000-000000000017', email: 'student6@nirmauni.ac.in', name: 'Aditya Shah', studentId: '23BCE310', isMember: true },
     { id: '10000000-0000-4000-8000-000000000018', email: 'faculty2@nirmauni.ac.in', name: 'Prof. Hasmukh Patel', studentId: 'FACULTY-002', role: 'MENTOR' },
   ];
@@ -156,11 +156,11 @@ async function main() {
             userId: user.id,
             purpose: 'MEMBERSHIP',
             refId: user.id,
-            amountPaise: BigInt(50000),
+            amountPaise: (def.isSemesterMember ? semesterTier : annualTier).pricePaise,
             status: 'PAID',
             provider: 'MOCK',
-            gatewayOrderId: `mock_order_${user.id}`,
-            gatewayPaymentId: `mock_payment_${user.id}`,
+            gatewayOrderId: `order_mock_${crypto.randomUUID()}`,
+            gatewayPaymentId: `pay_mock_${crypto.randomUUID().slice(0, 14)}`,
             paidAt: new Date(),
           },
         });
@@ -173,10 +173,16 @@ async function main() {
             source: 'ONLINE',
             paymentId: payment.id,
             startsAt: new Date(),
-            expiresAt: new Date(Date.now() + (def.isSemesterMember ? 180 : 365) * 24 * 3600000),
+            // expiresInDays: a membership due for renewal, so the Treasurer's reminder has someone to remind.
+            expiresAt: new Date(Date.now() + (def.expiresInDays ?? (def.isSemesterMember ? 180 : 365)) * 24 * 3600000),
           },
         });
       }
+    }
+
+    // Signed up but dues not paid yet (shows under pending dues).
+    if (def.pendingMember && !(await prisma.membership.findFirst({ where: { userId: user.id } }))) {
+      await prisma.membership.create({ data: { userId: user.id, tierId: annualTier.id, status: 'PENDING', source: 'ONLINE' } });
     }
   }
   console.log('✓ Seeded users, roles, memberships, and volunteers');
@@ -573,6 +579,9 @@ async function main() {
       create: t,
     });
   }
+  // Keep the sold counters in step with the seeded tickets (the door scanner and reports read them).
+  await prisma.$executeRaw`UPDATE ticket_types tt SET sold = (SELECT COUNT(*) FROM tickets t WHERE t.ticket_type_id = tt.id AND t.status IN ('ISSUED', 'CHECKED_IN'))`;
+  await prisma.$executeRaw`UPDATE events e SET seats_sold = (SELECT COUNT(*) FROM tickets t WHERE t.event_id = e.id AND t.status IN ('ISSUED', 'CHECKED_IN'))`;
   console.log('✓ Seeded events, reviews, and 9 realistic tickets across users and statuses');
 
   // ==========================================
@@ -932,31 +941,30 @@ async function main() {
   // ==========================================
   // 8. Finance: Budget Limits, Allocations, Multi-Month Ledger, Cash Collections, Claims
   // ==========================================
+  // Spending caps only (income categories have no limit). Period format is YYYY-ODD|EVEN (lib/period.js).
+  const BUDGET_PERIOD = '2026-ODD';
+  await prisma.budgetLimit.deleteMany({ where: { period: 'AY2025-26' } });
   const budgetLimits = [
-    { category: 'DUES', limitPaise: BigInt(50000000) }, // ₹5,00,000
-    { category: 'TICKETS', limitPaise: BigInt(30000000) }, // ₹3,00,000
-    { category: 'MERCH', limitPaise: BigInt(20000000) }, // ₹2,00,000
-    { category: 'FUNDRAISER', limitPaise: BigInt(15000000) }, // ₹1,50,000
-    { category: 'BUDGET_ALLOCATION', limitPaise: BigInt(50000000) }, // ₹5,00,000
-    { category: 'SPONSORSHIP', limitPaise: BigInt(40000000) }, // ₹4,00,000
     { category: 'REIMBURSEMENT', limitPaise: BigInt(10000000) }, // ₹1,00,000
     { category: 'PURCHASE', limitPaise: BigInt(25000000) }, // ₹2,50,000
+    { category: 'OTHER', limitPaise: BigInt(2500000) }, // ₹25,000
   ];
   for (const bl of budgetLimits) {
     await prisma.budgetLimit.upsert({
-      where: { period_category: { period: 'AY2025-26', category: bl.category } },
+      where: { period_category: { period: BUDGET_PERIOD, category: bl.category } },
       update: { limitPaise: bl.limitPaise },
       create: {
-        period: 'AY2025-26',
+        period: BUDGET_PERIOD,
         category: bl.category,
         limitPaise: bl.limitPaise,
       },
     });
   }
 
+  await prisma.budgetAllocation.deleteMany({}); // re-seed without piling up grants
   const allocation = await prisma.budgetAllocation.create({
     data: {
-      period: 'AY2025-26',
+      period: BUDGET_PERIOD,
       amountPaise: BigInt(30000000), // ₹3,00,000
       source: 'UNIVERSITY_GRANT',
       note: 'Annual University Grant for student club activities and operations',
@@ -974,7 +982,7 @@ async function main() {
         amountPaise: BigInt(30000000), // ₹3,00,000
         sourceType: 'ALLOCATION',
         sourceId: allocation.id,
-        description: 'University Grant AY2025-26 initial allocation',
+        description: 'University Grant 2026-ODD initial allocation',
         recordedById: createdUsers['mentor@nirmauni.ac.in'].id,
         occurredAt: new Date(Date.now() - 90 * 24 * 3600000),
       },
@@ -1073,6 +1081,21 @@ async function main() {
         occurredAt: new Date(Date.now() - 2 * 24 * 3600000),
       },
     ],
+  });
+  // Every paid payment has its ledger row, as the live payment path would post (keeps reconciliation clean on re-seed).
+  const LEDGER_CATEGORY = { MEMBERSHIP: 'DUES', TICKET: 'TICKETS', MERCH_ORDER: 'MERCH' };
+  const LEDGER_TEXT = { MEMBERSHIP: 'Membership dues (online)', TICKET: 'Ticket sale (online)', MERCH_ORDER: 'Merchandise order (online)' };
+  const paidPayments = await prisma.payment.findMany({
+    where: { status: { in: ['PAID', 'REFUNDED'] } },
+    include: { reservations: { select: { ticketType: { select: { eventId: true } } } } },
+  });
+  await prisma.ledgerEntry.createMany({
+    data: paidPayments.map((p) => ({
+      direction: 'IN', category: LEDGER_CATEGORY[p.purpose], amountPaise: p.amountPaise, sourceType: 'PAYMENT', sourceId: p.id,
+      eventId: p.reservations[0]?.ticketType.eventId ?? null,
+      description: LEDGER_TEXT[p.purpose], occurredAt: p.paidAt ?? p.createdAt,
+    })),
+    skipDuplicates: true,
   });
 
   // Seed Cash Collections across all verification states (PENDING_VERIFICATION, VERIFIED, REJECTED)
