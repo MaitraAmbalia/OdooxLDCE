@@ -2,34 +2,26 @@ import { Router } from 'express';
 import { validate } from '../../middleware/validate.js';
 import { registerSchema, loginSchema, emailSchema, resetSchema, verifySchema } from './auth.schemas.js';
 
-const isProduction = process.env.NODE_ENV === 'production';
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: 'lax',
+  path: '/api/v1',
+};
 
 function clearSessionCookies(res) {
-  const options = {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'lax',
-    path: '/api/v1',
-  };
-  res.clearCookie('access_token', options);
-  res.clearCookie('refresh_token', { ...options, path: '/api/v1/auth' });
+  res.clearCookie('access_token', COOKIE_OPTIONS);
+  res.clearCookie('refresh_token', { ...COOKIE_OPTIONS, path: '/api/v1/auth' });
 }
 
 function setSessionCookies(res, session) {
-  const options = {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'lax',
-    path: '/api/v1',
-  };
   res.cookie('access_token', session.accessToken, {
-    ...options,
-    maxAge: 900000,
+    ...COOKIE_OPTIONS,
+    maxAge: 15 * 60 * 1000, // 15 mins
   });
   res.cookie('refresh_token', session.refreshToken, {
-    ...options,
+    ...COOKIE_OPTIONS,
     path: '/api/v1/auth',
-    maxAge: 30 * 24 * 3600000,
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 }
 
