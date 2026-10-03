@@ -1,6 +1,5 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
-import PublicLayout from "./app/layouts/PublicLayout";
 import DiscoveryLayout from "./app/layouts/DiscoveryLayout";
 import Login from "./features/auth/pages/Login";
 import Register from "./features/auth/pages/Register";
@@ -48,6 +47,7 @@ import ApplicationReview from "./features/selection/pages/manage/ApplicationRevi
 import ManageHome from "./features/dashboard/pages/ManageHome";
 import AccountHome from "./features/dashboard/pages/AccountHome";
 import Home from "./pages/Home";
+import NotFound from "./pages/NotFound";
 
 function App() {
   return (
@@ -59,9 +59,6 @@ function App() {
       <Route element={<DiscoveryLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/events" element={<EventList />} />
-      </Route>
-
-      <Route path="/" element={<PublicLayout />}>
         {/* Public Routes */}
         <Route path="join" element={<Join />} />
 
@@ -129,6 +126,8 @@ function App() {
 
         <Route path="manage/selection/:id/edit" element={<CycleBuilder />} />
         <Route path="manage/selection/:id/applications" element={<ApplicationReview />} />
+
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   );

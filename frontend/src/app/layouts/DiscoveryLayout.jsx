@@ -9,7 +9,9 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpRight,
+  BriefcaseBusiness,
   ChevronDown,
+  HeartHandshake,
   LogOut,
   Menu,
   Mountain,
@@ -44,6 +46,23 @@ const navigation = [
   ["/selection", "Leadership"],
 ];
 
+const manageNavigation = [
+  ["/manage", "Overview"],
+  ["/manage/events/new", "Propose event"],
+  ["/manage/meetings", "Meetings"],
+  ["/manage/claims", "Claims"],
+  ["/manage/finance/ledger", "Finance"],
+  ["/manage/budget", "Budgets"],
+  ["/manage/projects", "Projects"],
+  ["/manage/orders", "Orders"],
+  ["/manage/newsletter", "Newsletter"],
+];
+
+const volunteerNavigation = [
+  ["/volunteer", "My work"],
+  ["/volunteer/claims/new", "Submit a claim"],
+];
+
 export function Brand() {
   return (
     <Link
@@ -69,6 +88,20 @@ export default function DiscoveryLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const section = location.pathname.startsWith("/manage")
+    ? {
+        label: "Manage Skyline",
+        icon: BriefcaseBusiness,
+        links: manageNavigation,
+      }
+    : location.pathname.startsWith("/volunteer")
+      ? {
+          label: "Volunteer space",
+          icon: HeartHandshake,
+          links: volunteerNavigation,
+        }
+      : null;
+  const SectionIcon = section?.icon;
   useEffect(() => {
     setOpen(false);
     window.scrollTo(0, 0);
@@ -274,6 +307,40 @@ export default function DiscoveryLayout() {
           </Sheet>
         </div>
       </header>
+      {section ? (
+        <nav
+          aria-label={`${section.label} navigation`}
+          className="border-b border-border bg-[#272747] text-white"
+        >
+          <div className="page-container flex h-12 items-center gap-2 overflow-x-auto">
+            <span className="mr-2 flex shrink-0 items-center gap-2 text-xs font-semibold text-[#c6c3f3]">
+              <SectionIcon className="size-4" aria-hidden="true" />
+              {section.label}
+            </span>
+            {section.links.map(([to, label]) => {
+              const active =
+                to === "/manage" || to === "/volunteer"
+                  ? location.pathname === to
+                  : location.pathname.startsWith(to);
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                    active
+                      ? "bg-white text-[#272747]"
+                      : "text-[#d2d2e2] hover:bg-white/10 hover:text-white",
+                  )}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      ) : null}
       <main id="main-content" tabIndex={-1} className="flex-1 outline-none">
         <Outlet />
       </main>
