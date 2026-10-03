@@ -223,7 +223,41 @@ async function main() {
     },
   });
 
-  // 6. Seed Official Announcements
+  // 6. Seed Ledger Allocation & Sample Claims (Commerce Phase 6)
+  const allocation = await prisma.budgetAllocation.create({
+    data: {
+      period: 'AY2025-26',
+      amountPaise: BigInt(25000000), // ₹2,50,000 opening balance
+      source: 'University Grant',
+      note: 'Initial semester club grant',
+      allocatedById: createdUsers['mentor@nirmauni.ac.in'].id,
+    },
+  });
+
+  await prisma.ledgerEntry.create({
+    data: {
+      direction: 'IN',
+      category: 'BUDGET_ALLOCATION',
+      amountPaise: BigInt(25000000),
+      sourceType: 'ALLOCATION',
+      sourceId: allocation.id,
+      description: 'Opening Budget Allocation',
+      recordedById: createdUsers['mentor@nirmauni.ac.in'].id,
+      occurredAt: new Date(),
+    }
+  });
+
+  await prisma.expenseClaim.create({
+    data: {
+      submittedById: createdUsers['president@nirmauni.ac.in'].id,
+      amountPaise: BigInt(250000), // ₹2,500
+      description: 'Bake Sale packaging supplies (boxes, napkins, wrappers)',
+      status: 'SUBMITTED',
+      spentAt: new Date(),
+    }
+  });
+
+  // 7. Seed Official Announcements
   await prisma.announcement.upsert({
     where: { id: '00000000-0000-0000-0000-000000000010' },
     update: {},
