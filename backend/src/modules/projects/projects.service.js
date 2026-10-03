@@ -11,6 +11,8 @@ export function createProjectsService({ prisma }) {
           type: input.type ?? 'OTHER',
           status: 'ACTIVE',
           eventId: input.eventId ?? null,
+          startDate: input.startDate ? new Date(input.startDate) : new Date(),
+          endDate: input.endDate ? new Date(input.endDate) : new Date(Date.now() + 60 * 24 * 3600000),
           ownerId,
         },
       });
@@ -81,7 +83,7 @@ export function createProjectsService({ prisma }) {
           priority: input.priority ?? 'MEDIUM',
           status: 'TODO',
           createdById: creatorId,
-          dueDate: input.dueDate ? new Date(input.dueDate) : null,
+          dueAt: input.dueAt || input.dueDate ? new Date(input.dueAt || input.dueDate) : new Date(Date.now() + 7 * 24 * 3600000),
         },
       });
     },

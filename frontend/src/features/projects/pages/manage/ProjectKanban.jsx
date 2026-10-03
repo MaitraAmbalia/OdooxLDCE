@@ -58,11 +58,25 @@ export default function ProjectKanban() {
   });
 
   if (isPending) {
-    return <div className="page-container py-12" role="status" aria-label="Loading project board"><Skeleton className="h-9 w-64" /><div className="mt-8 flex gap-5 overflow-hidden"><Skeleton className="h-[32rem] min-w-72 rounded-2xl" /><Skeleton className="h-[32rem] min-w-72 rounded-2xl" /><Skeleton className="h-[32rem] min-w-72 rounded-2xl" /></div></div>;
+    return (
+      <div className="mx-auto w-full max-w-[1680px] px-4 py-12 sm:px-6 lg:px-8" role="status" aria-label="Loading project board">
+        <Skeleton className="h-9 w-64" />
+        <div className="mt-8 grid min-w-[1040px] grid-cols-4 gap-5">
+          <Skeleton className="h-[32rem] rounded-2xl" />
+          <Skeleton className="h-[32rem] rounded-2xl" />
+          <Skeleton className="h-[32rem] rounded-2xl" />
+          <Skeleton className="h-[32rem] rounded-2xl" />
+        </div>
+      </div>
+    );
   }
 
   if (isError || !project) {
-    return <div className="page-container py-16"><ContentState error title="This project isn’t available." description="We couldn’t load the task board." action={refetch} /></div>;
+    return (
+      <div className="mx-auto w-full max-w-[1680px] px-4 py-16 sm:px-6 lg:px-8">
+        <ContentState error title="This project isn’t available." description="We couldn’t load the task board." action={refetch} />
+      </div>
+    );
   }
 
   const tasks = project.tasks || [];
@@ -76,7 +90,7 @@ export default function ProjectKanban() {
   };
 
   return (
-    <div className="page-container py-12 sm:py-16">
+    <div className="mx-auto w-full max-w-[1680px] px-4 py-12 sm:px-6 lg:px-8 sm:py-16">
       <Button asChild variant="ghost" className="mb-6 -ml-3"><Link to="/manage/projects"><ArrowLeft aria-hidden="true" /> Back to projects</Link></Button>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div><p className="mb-2 text-sm font-medium text-primary">{project.type ? project.type.replaceAll("_", " ") : "Project board"}</p><h1 className="font-display text-4xl font-semibold tracking-tight">{project.name}</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{project.description || "Move tasks through the workflow as work progresses."}</p></div>
@@ -85,12 +99,12 @@ export default function ProjectKanban() {
 
       {isClosed && <div className="mt-6 rounded-xl border border-border bg-secondary/40 p-4 text-sm text-muted-foreground" role="status">This project is closed. Its board is available as a read-only record.</div>}
 
-      <div className="mt-8 overflow-x-auto pb-4" aria-label="Project task board">
-        <div className="flex min-w-max gap-5">
+      <div className="mt-8 overflow-x-auto pb-6" aria-label="Project task board">
+        <div className="grid min-w-[1040px] grid-cols-4 gap-5">
           {COLUMNS.map((column) => {
             const columnTasks = tasks.filter((task) => task.status === column.id);
             return (
-              <section key={column.id} className={"flex min-h-[28rem] w-[82vw] max-w-80 flex-col rounded-2xl border border-border " + column.surface} onDragOver={(event) => { if (!isClosed) event.preventDefault(); }} onDrop={(event) => handleDrop(event, column.id)} aria-labelledby={"column-" + column.id}>
+              <section key={column.id} className={"flex min-h-[30rem] flex-col rounded-2xl border border-border " + column.surface} onDragOver={(event) => { if (!isClosed) event.preventDefault(); }} onDrop={(event) => handleDrop(event, column.id)} aria-labelledby={"column-" + column.id}>
                 <div className="flex items-center justify-between border-b border-border bg-card/80 px-4 py-3.5">
                   <div className="flex items-center gap-2"><span className={"size-2.5 rounded-full " + column.accent} /><h2 id={"column-" + column.id} className="font-semibold">{column.label}</h2></div>
                   <span className="rounded-full border border-border bg-card px-2 py-0.5 text-xs font-medium tabular-nums">{columnTasks.length}</span>

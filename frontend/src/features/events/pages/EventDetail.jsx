@@ -13,12 +13,14 @@ import { formatINR } from "../../../lib/utils";
 import { toast } from "sonner";
 import { ContentState } from "../../../components/common/ContentState";
 import { usePageTitle } from "../../../hooks/usePageTitle";
+import { SocialShareModal } from "../../../components/common/SocialShareModal";
 
 export default function EventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [isReserving, setIsReserving] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Fetch Event details
   const { data: eventData, isPending: eventLoading, isError: eventError, refetch: refetchEvent } = useQuery({
@@ -94,8 +96,7 @@ export default function EventDetail() {
   };
 
   const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    toast.success("Event link copied to clipboard!");
+    setIsShareModalOpen(true);
   };
 
   if (eventLoading || ticketsLoading) {
@@ -357,6 +358,26 @@ export default function EventDetail() {
           </div>
 
         </div>
+
+        {/* Social Share Modal */}
+        {event && (
+          <SocialShareModal
+            open={isShareModalOpen}
+            onOpenChange={setIsShareModalOpen}
+            shareData={{
+              type: "event",
+              title: event.title,
+              description: event.description,
+              date: event.startAt || event.startDate,
+              venue: event.location || event.venue || "LDCE Campus",
+              price: selectedTicket 
+                ? formatINR(selectedTicket.pricePaise / 100) 
+                : (tickets?.length ? `From ${formatINR(tickets[0].pricePaise / 100)}` : "Free Entry"),
+              organizer: event.organizer?.name || "Skyline LDCE",
+              url: typeof window !== "undefined" ? window.location.href : "",
+            }}
+          />
+        )}
 
     </div>
   );

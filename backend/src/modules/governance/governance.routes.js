@@ -1,159 +1,201 @@
 import { Router } from 'express';
+import { AppError } from '../../lib/AppError.js';
+
+function roleTitle(role) {
+  return role.toLowerCase().split('_').map((part) => part[0].toUpperCase() + part.slice(1)).join(' ');
+}
+
+function formatCycle(cycle) {
+  return {
+    ...cycle,
+    name: cycle.title,
+    opensAt: cycle.applicationsOpenAt,
+    deadlineAt: cycle.applicationsCloseAt,
+    posts: cycle.posts.map((post) => ({
+      ...post,
+      title: roleTitle(post.role),
+      capacity: post.seats,
+      tenure: new Date(cycle.termStart).getFullYear() + '–' + new Date(cycle.termEnd).getFullYear(),
+      requiresActiveMembership: post.minMembershipDays > 0,
+      questions: post.questions.map((question) => ({
+        ...question,
+        prompt: question.label,
+        isRequired: question.required,
+        type: question.type === 'TEXTAREA' ? 'LONG_TEXT' : question.type,
+      })),
+    })),
+  };
+}
 
 export function createGovernanceRouter({ prisma, authenticate }) {
   const router = Router();
 
-  // Selection Cycles
   router.get('/selection/cycles', async (_req, res) => {
-    try {
-      const cycles = await prisma.selectionCycle.findMany({
-        include: {
-          posts: {
-            include: { questions: true }
-          }
-        },
-        orderBy: { createdAt: 'desc' }
-      });
+    const cycles = await prisma.selectionCycle.findMany({
+      include: { posts: { include: { questions: { orderBy: { sortOrder: 'asc' } } } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    return res.json({ data: cycles.map(formatCycle) });
+  });
 
-      if (!cycles || cycles.length === 0) {
-        return res.json({
-          data: [
-            {
-              id: '00000000-0000-0000-0000-000000000001',
-              name: 'Executive Board Selection 2026–2027',
-              academicYear: '2026-2027',
-              status: 'PUBLISHED',
-              opensAt: new Date(Date.now() - 7 * 24 * 3600000).toISOString(),
-              deadlineAt: new Date(Date.now() + 21 * 24 * 3600000).toISOString(),
-              posts: [
-                {
-                  id: '00000000-0000-0000-0000-000000000020',
-                  title: 'Vice President of Student Affairs',
-                  description: 'Lead campus engagement, member welfare, and cross-departmental coordination.',
-                  tenure: '1 Year',
-                  minMembershipDays: 14,
-                  requiresActiveMembership: true,
-                  questions: [
-                    { id: '1', prompt: 'Why do you wish to serve as Vice President?', type: 'LONG_TEXT', isRequired: true },
-                    { id: '2', prompt: 'Describe past event leadership or volunteering experience.', type: 'LONG_TEXT', isRequired: true }
-                  ]
-                },
-                {
-                  id: '00000000-0000-0000-0000-000000000021',
-                  title: 'Associate Treasurer',
-                  description: 'Assist the Treasurer in daily ledger reconciliations, event cash verification, and claim audits.',
-                  tenure: '1 Year',
-                  minMembershipDays: 14,
-                  requiresActiveMembership: true,
-                  questions: [
-                    { id: '3', prompt: 'Detail your familiarity with spreadsheets, accounting, or budget tracking.', type: 'LONG_TEXT', isRequired: true }
-                  ]
-                }
-              ]
-            }
-          ]
-        });
-      }
+  router.post('/selection/cycles', authenticate, async (req, res) => {
+    const input = req.body;
+    const created = await prisma.selectionCycle.create({
+      data: {
+        title: input.name || input.title,
+        termStart: new Date(input.termStart),
+        termEnd: new Date(input.termEnd),
+        applicationsOpenAt: input.applicationsOpenAt ? new Date(input.applicationsOpenAt) : new Date(),
+        applicationsCloseAt: new Date(input.deadlineAt || input.applicationsCloseAt),
+        maxApplicationsPerMember: Number(input.maxApplicationsPerMember || 1),
+        status: input.status || 'DRAFT',
+        createdById: req.user.sub,
+      },
+      include: { posts: { include: { questions: true } } },
+    });
+    return res.status(201).json({ data: formatCycle(created) });
+  });
 
-      return res.json({ data: cycles });
-    } catch (e) {
-      return res.json({ data: [] });
-    }
+  router.patch('/selection/cycles/:id', authenticate, async (req, res) => {
+    const input = req.body;
+    const updated = await prisma.selectionCycle.update({
+      where: { id: req.params.id },
+      data: {
+        title: input.name || input.title,
+        termStart: input.termStart ? new Date(input.termStart) : undefined,
+        termEnd: input.termEnd ? new Date(input.termEnd) : undefined,
+        applicationsOpenAt: input.applicationsOpenAt ? new Date(input.applicationsOpenAt) : undefined,
+        applicationsCloseAt: input.deadlineAt || input.applicationsCloseAt ? new Date(input.deadlineAt || input.applicationsCloseAt) : undefined,
+        maxApplicationsPerMember: input.maxApplicationsPerMember ? Number(input.maxApplicationsPerMember) : undefined,
+        status: input.status,
+      },
+      include: { posts: { include: { questions: true } } },
+    });
+    return res.json({ data: formatCycle(updated) });
   });
 
   router.post('/selection/posts/:id/applications', authenticate, async (req, res) => {
-    // Check if user is an active member
-    const activeMembership = await prisma.membership.findFirst({
-      where: { userId: req.user.sub, status: 'ACTIVE' }
+    const now = new Date();
+    const post = await prisma.selectionPost.findUnique({
+      where: { id: req.params.id },
+      include: { cycle: true, questions: true },
     });
-
-    if (!activeMembership) {
-      return res.status(403).json({
-        error: { code: 'ACTIVE_MEMBERSHIP_REQUIRED', message: 'Only active members can apply for leadership posts. Please join or renew membership first.' }
-      });
+    if (!post) throw new AppError('NOT_FOUND', 404, 'Leadership position not found');
+    if (post.cycle.status !== 'OPEN' || now < post.cycle.applicationsOpenAt || now > post.cycle.applicationsCloseAt) {
+      throw new AppError('APPLICATIONS_CLOSED', 400, 'Applications are not open for this position');
     }
 
-    return res.status(201).json({
+    const activeMembership = await prisma.membership.findFirst({
+      where: { userId: req.user.sub, status: 'ACTIVE', expiresAt: { gte: now } },
+    });
+    if (!activeMembership) {
+      throw new AppError('ACTIVE_MEMBERSHIP_REQUIRED', 403, 'Only active members can apply for leadership posts');
+    }
+
+    const applicationCount = await prisma.application.count({
+      where: { applicantId: req.user.sub, post: { cycleId: post.cycleId } },
+    });
+    if (applicationCount >= post.cycle.maxApplicationsPerMember) {
+      throw new AppError('APPLICATION_LIMIT_REACHED', 409, 'You have reached the application limit for this cycle');
+    }
+
+    const answers = req.body.answers || {};
+    const missingRequired = post.questions.find((question) => question.required && (answers[question.id] === undefined || answers[question.id] === ''));
+    if (missingRequired) throw new AppError('ANSWER_REQUIRED', 400, 'Please answer every required question');
+
+    const application = await prisma.application.create({
       data: {
-        id: crypto.randomUUID(),
+        postId: post.id,
+        applicantId: req.user.sub,
         status: 'SUBMITTED',
-        submittedAt: new Date().toISOString(),
-        message: 'Your leadership application has been submitted to the Faculty Mentor for review!'
-      }
+        answers: {
+          create: post.questions
+            .filter((question) => answers[question.id] !== undefined)
+            .map((question) => ({ questionId: question.id, value: answers[question.id] })),
+        },
+      },
+      include: { answers: true },
+    });
+
+    return res.status(201).json({ data: { id: application.id, status: application.status, submittedAt: application.createdAt } });
+  });
+
+  router.get('/selection/cycles/:id/applications', authenticate, async (req, res) => {
+    const applications = await prisma.application.findMany({
+      where: { post: { cycleId: req.params.id } },
+      include: {
+        applicant: { select: { id: true, name: true, studentId: true, email: true } },
+        post: true,
+        answers: { include: { question: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return res.json({
+      data: applications.map((application) => ({
+        id: application.id,
+        status: application.status,
+        submittedAt: application.createdAt,
+        reviewerNote: application.reviewerNote,
+        user: application.applicant,
+        post: { ...application.post, title: roleTitle(application.post.role) },
+        answers: Object.fromEntries(application.answers.map((answer) => [answer.question.label, answer.value])),
+      })),
     });
   });
 
-  // Meetings
   router.get('/meetings', authenticate, async (_req, res) => {
-    try {
-      const meetings = await prisma.meeting.findMany({
-        orderBy: { date: 'asc' },
-        include: {
-          invites: true
-        }
-      });
+    const meetings = await prisma.meeting.findMany({
+      orderBy: { startAt: 'asc' },
+      include: {
+        agendaItems: { orderBy: { sortOrder: 'asc' }, include: { owner: { select: { id: true, name: true } } } },
+        invites: { include: { user: { select: { id: true, name: true, studentId: true } } } },
+      },
+    });
 
-      if (!meetings || meetings.length === 0) {
-        return res.json({
-          data: [
-            {
-              id: '00000000-0000-0000-0000-000000000030',
-              title: 'Tech Gala 2026 Logistics & Volunteer Briefing',
-              date: new Date(Date.now() + 5 * 24 * 3600000).toISOString(),
-              venue: 'Auditorium Conference Room B',
-              audience: 'BOTH',
-              status: 'SCHEDULED',
-              agenda: '1. Stage Setup & Audio Checks (20 min)\n2. Door Scanner App Assignment (15 min)\n3. Cash Desk & Merch Pickup Tables (15 min)',
-              invites: [
-                { id: '1', role: 'LEADER', rsvp: 'YES' },
-                { id: '2', role: 'VOLUNTEER', rsvp: 'PENDING' }
-              ]
-            },
-            {
-              id: '00000000-0000-0000-0000-000000000031',
-              title: 'Executive Board Bi-Weekly Sync',
-              date: new Date(Date.now() + 2 * 24 * 3600000).toISOString(),
-              venue: 'Student Plaza Meeting Room 102',
-              audience: 'LEADERS',
-              status: 'SCHEDULED',
-              agenda: '1. Budget utilization check (Treasurer)\n2. Merch hoodie orders progress (Marketing Head)\n3. Bake sale preparation (Volunteer Head)',
-              invites: []
-            }
-          ]
-        });
-      }
-
-      return res.json({ data: meetings });
-    } catch (e) {
-      return res.json({ data: [] });
-    }
+    return res.json({
+      data: meetings.map((meeting) => ({
+        ...meeting,
+        date: meeting.startAt,
+        venue: meeting.location || meeting.meetingLink,
+        agenda: meeting.agendaItems,
+      })),
+    });
   });
 
   router.post('/meetings', authenticate, async (req, res) => {
-    try {
-      const { title, date, venue, audience = 'BOTH', agenda } = req.body;
-      const created = await prisma.meeting.create({
-        data: {
-          title,
-          date: new Date(date || Date.now() + 3 * 24 * 3600000),
-          venue: venue || 'Campus Main Hall',
-          type: 'REGULAR',
-          status: 'SCHEDULED',
-          createdById: req.user.sub,
-        }
-      });
-      return res.status(201).json({ data: created });
-    } catch (e) {
-      return res.status(201).json({
-        data: {
-          id: crypto.randomUUID(),
-          title: req.body.title || 'Executive Meeting',
-          date: req.body.date || new Date().toISOString(),
-          venue: req.body.venue || 'Campus Hall',
-          status: 'SCHEDULED'
-        }
-      });
-    }
+    const { title, date, startAt, endAt, venue, location, meetingLink, audience = 'BOTH', agendaItems, agenda } = req.body;
+    const starts = new Date(startAt || date);
+    if (Number.isNaN(starts.getTime())) throw new AppError('INVALID_DATE', 400, 'A valid meeting date is required');
+    const ends = endAt ? new Date(endAt) : new Date(starts.getTime() + 60 * 60 * 1000);
+    const parsedAgenda = Array.isArray(agendaItems)
+      ? agendaItems
+      : typeof agenda === 'string'
+        ? agenda.split('\n').map((topic) => ({ topic: topic.trim(), durationMin: 15 })).filter((item) => item.topic)
+        : [];
+
+    const created = await prisma.meeting.create({
+      data: {
+        title,
+        startAt: starts,
+        endAt: ends,
+        location: location || venue || null,
+        meetingLink: meetingLink || null,
+        audience,
+        status: 'SCHEDULED',
+        createdById: req.user.sub,
+        agendaItems: parsedAgenda.length ? {
+          create: parsedAgenda.map((item, index) => ({
+            sortOrder: index + 1,
+            topic: item.topic,
+            ownerId: item.ownerId || null,
+            durationMin: Number(item.durationMin || item.minutes || 15),
+          })),
+        } : undefined,
+      },
+      include: { agendaItems: { orderBy: { sortOrder: 'asc' } }, invites: true },
+    });
+    return res.status(201).json({ data: { ...created, date: created.startAt, venue: created.location, agenda: created.agendaItems } });
   });
 
   return router;

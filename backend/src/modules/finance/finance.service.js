@@ -207,21 +207,49 @@ export function createFinanceService({ prisma, files }) {
   }
 
   async function budgetOverview() {
-    return [
-      { id: '1', category: 'Events & Logistics', allocatedPaise: 5000000, spentPaise: 1500000 },
-      { id: '2', category: 'Marketing & PR', allocatedPaise: 2000000, spentPaise: 1800000 },
-      { id: '3', category: 'Operations', allocatedPaise: 1000000, spentPaise: 200000 },
-    ];
+    const limits = await prisma.budgetLimit.findMany({
+      orderBy: { category: 'asc' },
+    });
+    const spentAggs = await prisma.ledgerEntry.groupBy({
+      by: ['category'],
+      where: { direction: 'OUT' },
+      _sum: { amountPaise: true },
+    });
+    const spentMap = new Map(spentAggs.map((r) => [r.category, Number(r._sum.amountPaise || 0)]));
+    return limits.map((l) => ({
+      id: l.id,
+      category: l.category,
+      allocatedPaise: Number(l.limitPaise),
+      spentPaise: spentMap.get(l.category) || 0,
+    }));
   }
 
   async function reportSummary(type = 'SUMMARY') {
-    const bal = await balance();
+    const baseWhere = {};
+    if (type === 'EVENT') baseWhere.eventId = { not: null };
+    if (type === 'PROJECT') baseWhere.projectId = { not: null };
+
+    const [incomeAgg, expenseAgg, rowCount] = await Promise.all([
+      prisma.ledgerEntry.aggregate({
+        where: { ...baseWhere, direction: 'IN' },
+        _sum: { amountPaise: true },
+      }),
+      prisma.ledgerEntry.aggregate({
+        where: { ...baseWhere, direction: 'OUT' },
+        _sum: { amountPaise: true },
+      }),
+      prisma.ledgerEntry.count({ where: baseWhere }),
+    ]);
+
+    const totalIncomePaise = Number(incomeAgg._sum.amountPaise || 0);
+    const totalExpensePaise = Number(expenseAgg._sum.amountPaise || 0);
+
     return {
       reportType: type,
-      totalIncomePaise: 45000000,
-      totalExpensePaise: 12500000,
-      balancePaise: bal.balancePaise,
-      rowCount: 128,
+      totalIncomePaise,
+      totalExpensePaise,
+      balancePaise: totalIncomePaise - totalExpensePaise,
+      rowCount,
     };
   }
 

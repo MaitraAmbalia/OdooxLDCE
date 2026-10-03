@@ -129,16 +129,7 @@ export function createMerchService({ prisma, createPayment }) {
 
       if (!variant) throw new AppError('NOT_FOUND', 404, 'Product variant not found');
 
-      // Atomic reserve via updateMany
-      const { count } = await prisma.variant.updateMany({
-        where: {
-          id: variantId,
-          stock: { gte: { $raw: `reserved + ${quantity}` } }, // Actually, updateMany doesn't support field reference in gte directly in prisma safely without queryRaw, so we'll do raw query.
-        },
-        data: { reserved: { increment: quantity } },
-      });
-
-      // Workaround for atomic reservation since prisma doesn't support stock >= reserved + quantity natively in updateMany
+      // Atomic reservation via raw SQL
       const rows = await prisma.$executeRaw`
         UPDATE variants
         SET reserved = reserved + ${quantity}
@@ -167,7 +158,6 @@ export function createMerchService({ prisma, createPayment }) {
                   variantId,
                   quantity,
                   unitPricePaise: pricePaise,
-                  totalPricePaise: totalPaise,
                 },
               ],
             },
@@ -203,6 +193,22 @@ export function createMerchService({ prisma, createPayment }) {
       return {
         ...order,
         totalPaise: Number(order.totalPaise),
+        items: order.items.map((item) => ({
+          ...item,
+          unitPricePaise: Number(item.unitPricePaise),
+          variant: item.variant
+            ? {
+                ...item.variant,
+                product: item.variant.product ? formatProduct(item.variant.product) : null,
+              }
+            : null,
+        })),
+        payment: order.payment
+          ? {
+              ...order.payment,
+              amountPaise: Number(order.payment.amountPaise),
+            }
+          : null,
       };
     },
 
@@ -232,6 +238,12 @@ export function createMerchService({ prisma, createPayment }) {
       const data = orders.map((o) => ({
         ...o,
         totalPaise: Number(o.totalPaise),
+        items: o.items.map((item) => ({
+          ...item,
+          unitPricePaise: Number(item.unitPricePaise),
+          name: item.variant?.product?.name || 'Merchandise',
+          variant: [item.variant?.size, item.variant?.color].filter(Boolean).join(' · ') || item.variant?.sku || 'Standard',
+        })),
       }));
 
       return { data, meta: createPageMeta(page, total) };
@@ -278,12 +290,16 @@ export function createMerchService({ prisma, createPayment }) {
       if (!expected || nextStatus !== expected) {
         throw new AppError('INVALID_STATUS_TRANSITION', 400, `Order cannot move from ${order.status} to ${nextStatus}`);
       }
-      return prisma.order.update({
+      const updated = await prisma.order.update({
         where: { id: orderId },
         data: nextStatus === 'COLLECTED'
           ? { status: nextStatus, collectedAt: new Date(), collectedById: userId }
           : { status: nextStatus },
       });
+      return {
+        ...updated,
+        totalPaise: Number(updated.totalPaise),
+      };
     },
   };
 }

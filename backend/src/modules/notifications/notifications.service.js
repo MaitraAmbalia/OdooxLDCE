@@ -11,7 +11,7 @@ export function createNotificationsService({ prisma }) {
           body,
           type,
           link,
-          isRead: false,
+          readAt: null,
         },
       });
     },
@@ -20,7 +20,7 @@ export function createNotificationsService({ prisma }) {
       const page = parsePagination(query, { defaultLimit: 20 });
       const where = { userId };
 
-      const [data, total] = await Promise.all([
+      const [notifications, total] = await Promise.all([
         prisma.notification.findMany({
           where,
           orderBy: { createdAt: 'desc' },
@@ -30,6 +30,11 @@ export function createNotificationsService({ prisma }) {
         prisma.notification.count({ where }),
       ]);
 
+      const data = notifications.map((n) => ({
+        ...n,
+        isRead: n.readAt !== null,
+      }));
+
       return { data, meta: createPageMeta(page, total) };
     },
 
@@ -38,14 +43,14 @@ export function createNotificationsService({ prisma }) {
       if (!item || item.userId !== userId) throw new AppError('NOT_FOUND', 404, 'Notification not found');
       return prisma.notification.update({
         where: { id: notificationId },
-        data: { isRead: true, readAt: new Date() },
+        data: { readAt: new Date() },
       });
     },
 
     async markAllRead(userId) {
       return prisma.notification.updateMany({
-        where: { userId, isRead: false },
-        data: { isRead: true, readAt: new Date() },
+        where: { userId, readAt: null },
+        data: { readAt: new Date() },
       });
     },
   };
