@@ -70,6 +70,7 @@ export function createEventsService({ prisma }) {
 
       const data = events.map((e) => ({
         ...e,
+        approvedBudgetPaise: e.approvedBudgetPaise != null ? Number(e.approvedBudgetPaise) : null,
         startDate: e.startAt,
         endDate: e.endAt,
         coverImageUrl: e.coverFileId ? `/api/v1/files/${e.coverFileId}` : null,
@@ -88,14 +89,21 @@ export function createEventsService({ prisma }) {
         include: {
           ticketTypes: true,
           proposedBy: { select: { id: true, name: true } },
+          budgetLines: true,
+          reviews: { include: { reviewer: { select: { id: true, name: true } } } },
         },
       });
       if (!event) throw new AppError('NOT_FOUND', 404, 'Event was not found');
       return {
         ...event,
+        approvedBudgetPaise: event.approvedBudgetPaise != null ? Number(event.approvedBudgetPaise) : null,
         startDate: event.startAt,
         endDate: event.endAt,
         coverImageUrl: event.coverFileId ? `/api/v1/files/${event.coverFileId}` : null,
+        budgetLines: event.budgetLines?.map((bl) => ({
+          ...bl,
+          amountPaise: Number(bl.amountPaise),
+        })),
         ticketTypes: event.ticketTypes.map((t) => ({
           ...t,
           pricePaise: Number(t.pricePaise),
@@ -117,6 +125,7 @@ export function createEventsService({ prisma }) {
       });
       return {
         ...updated,
+        approvedBudgetPaise: updated.approvedBudgetPaise != null ? Number(updated.approvedBudgetPaise) : null,
         startDate: updated.startAt,
         endDate: updated.endAt,
       };

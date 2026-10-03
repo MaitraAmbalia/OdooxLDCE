@@ -18,11 +18,13 @@ export function createAuthService({ prisma, config }) {
       tx.volunteer.findUnique({ where: { userId: user.id } }),
     ]);
 
+    const validTermRoles = new Set(['MENTOR', 'PRESIDENT', 'TREASURER', 'EVENT_HEAD', 'VOLUNTEER_HEAD', 'MARKETING_HEAD']);
     const roles = [
       ...new Set(
         assignments
           .filter(
             (a) =>
+              validTermRoles.has(a.role) &&
               new Date(a.termStart).getTime() <= instant &&
               new Date(a.termEnd).getTime() > instant &&
               (!a.endedAt || new Date(a.endedAt).getTime() > instant)

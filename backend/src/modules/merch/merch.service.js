@@ -232,6 +232,12 @@ export function createMerchService({ prisma, createPayment }) {
       const data = orders.map((o) => ({
         ...o,
         totalPaise: Number(o.totalPaise),
+        items: o.items.map((item) => ({
+          ...item,
+          unitPricePaise: Number(item.unitPricePaise),
+          name: item.variant?.product?.name || 'Merchandise',
+          variant: [item.variant?.size, item.variant?.color].filter(Boolean).join(' · ') || item.variant?.sku || 'Standard',
+        })),
       }));
 
       return { data, meta: createPageMeta(page, total) };
@@ -278,12 +284,16 @@ export function createMerchService({ prisma, createPayment }) {
       if (!expected || nextStatus !== expected) {
         throw new AppError('INVALID_STATUS_TRANSITION', 400, `Order cannot move from ${order.status} to ${nextStatus}`);
       }
-      return prisma.order.update({
+      const updated = await prisma.order.update({
         where: { id: orderId },
         data: nextStatus === 'COLLECTED'
           ? { status: nextStatus, collectedAt: new Date(), collectedById: userId }
           : { status: nextStatus },
       });
+      return {
+        ...updated,
+        totalPaise: Number(updated.totalPaise),
+      };
     },
   };
 }
