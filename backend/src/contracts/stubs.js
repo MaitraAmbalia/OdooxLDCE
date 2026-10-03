@@ -1,34 +1,25 @@
-/**
- * DEV STAND-INS for pieces owned by other modules. Delete/replace when the real ones land.
- */
-
-// Ledger category per payment purpose (arch §5.3).
-export const LEDGER_CATEGORY_BY_PURPOSE = {
-  MEMBERSHIP: 'DUES',
-  TICKET: 'TICKETS',
-  MERCH_ORDER: 'MERCH',
-};
+import { isIP } from 'node:net';
 
 /**
- * Stub for finance.postIncome (real one = finance module, Module 2).
- * skipDuplicates => INSERT ... ON CONFLICT DO NOTHING on (source_type, source_id), so a replayed
- * webhook can never create a second ledger row (and never aborts the surrounding transaction).
+ * DEV STAND-INS for pieces owned by Person B. Delete/replace when the real ones land.
  */
-export async function postIncome(entry, tx) {
-  await tx.ledgerEntry.createMany({
-    data: [
-      {
-        direction: 'IN',
-        category: entry.category,
-        amountPaise: BigInt(entry.amountPaise),
-        sourceType: entry.sourceType,
-        sourceId: entry.sourceId,
-        eventId: entry.eventId ?? null,
-        projectId: entry.projectId ?? null,
-        description: entry.description,
-        occurredAt: new Date(),
-      },
-    ],
-    skipDuplicates: true,
+
+/**
+ * Stub for B's audit.log({ actorId, action, entityType, entityId, before, after, req }, tx).
+ * Writes straight to audit_logs (append-only table) inside the caller's transaction.
+ * BigInt-free: callers pass already-serialised (Number) payloads.
+ */
+export async function auditLog({ actorId, action, entityType, entityId, before, after, req }, tx) {
+  await tx.auditLog.create({
+    data: {
+      actorId: actorId ?? null,
+      action,
+      entityType,
+      entityId: entityId ?? null,
+      before: before ?? undefined,
+      after: after ?? undefined,
+      ipAddress: req?.ip && isIP(req.ip) ? req.ip : null, // column is Postgres inet
+      requestId: req?.id ?? null,
+    },
   });
 }

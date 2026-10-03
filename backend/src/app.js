@@ -11,8 +11,11 @@ import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { createHealthRouter } from './health/health.routes.js';
 import { stubAuth } from './middleware/stubAuth.js';
+import { requirePermission as stubRequirePermission } from './middleware/stubAuthorize.js';
 import { createPaymentsService } from './modules/payments/payments.service.js';
 import { createPaymentsRouter } from './modules/payments/payments.routes.js';
+import { createFinanceService } from './modules/finance/finance.service.js';
+import { createFinanceRouter } from './modules/finance/finance.routes.js';
 
 function createCorsOptions(config) {
   return {
@@ -53,9 +56,13 @@ export function createApp(options = {}) {
   app.use('/api/v1', createHealthRouter({ prisma }));
 
   // `authenticate` is Person B's middleware; until it lands the dev-only stubAuth stands in.
-  const authenticate = options.authenticate ?? stubAuth(config);
-  const payments = options.paymentsService ?? createPaymentsService({ prisma, config, logger });
+  const authenticate = stubAuth(config);
+  const payments = createPaymentsService({ prisma, config, logger });
   app.use('/api/v1/payments', createPaymentsRouter({ service: payments, authenticate, config }));
+
+  // Finance: ledger + budgets. `requirePermission` is B's `authorize` (dev stub for now).
+  const finance = createFinanceService({ prisma });
+  app.use('/api/v1', createFinanceRouter({ service: finance, authenticate, requirePermission: stubRequirePermission }));
 
   app.use(notFound);
   app.use(errorHandler({ isProduction: config.isProduction }));
