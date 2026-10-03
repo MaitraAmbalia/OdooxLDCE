@@ -164,7 +164,7 @@ export default function DiscoveryLayout() {
         <Button variant="outline" className="h-10 max-w-48">
           <UserRound aria-hidden="true" />
           <span className="truncate">
-            {user.name?.split(" ")[0] || "Account"}
+            {user.name || "Account"}
           </span>
           <ChevronDown aria-hidden="true" />
         </Button>
