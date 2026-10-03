@@ -57,9 +57,6 @@ export function createApp(options = {}) {
   const logger = options.logger ?? createLogger(config);
   const app = express();
 
-  app.disable('x-powered-by');
-  app.set('trust proxy', config.trustProxy);
-
   app.use(
     helmet({
       contentSecurityPolicy: {

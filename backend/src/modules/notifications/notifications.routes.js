@@ -3,7 +3,7 @@ import { Router } from 'express';
 export function createNotificationsRouter({ service, authenticate, prisma }) {
   const router = Router();
 
-  // Notifications
+  // 1. In-App Notifications
   router.get('/notifications', authenticate, async (req, res) => {
     res.json({ data: await service.listUserNotifications(req.user.sub) });
   });
@@ -16,40 +16,17 @@ export function createNotificationsRouter({ service, authenticate, prisma }) {
     res.json({ data: await service.markAllRead(req.user.sub) });
   });
 
-  // Announcements
+  // 2. Announcements Feed (Fully Database Driven)
   router.get('/announcements', async (_req, res) => {
     try {
       const announcements = await prisma.announcement.findMany({
-        orderBy: { createdAt: 'desc' },
-        include: { corrections: true, author: { select: { id: true, name: true } } },
+        where: { status: 'PUBLISHED' },
+        orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
+        include: {
+          corrections: true,
+          author: { select: { id: true, name: true } },
+        },
       });
-
-      if (!announcements || announcements.length === 0) {
-        return res.json({
-          data: [
-            {
-              id: '00000000-0000-0000-0000-000000000010',
-              title: 'Welcome to the New Skyline Organization Platform!',
-              body: 'We are thrilled to launch the new centralized platform for LDCE & Nirma students. Access digital membership cards, discounted event tickets, official hoodies, and transparent student governance all in one place.',
-              bodyMd: 'We are thrilled to launch the new centralized platform for LDCE & Nirma students. Access digital membership cards, discounted event tickets, official hoodies, and transparent student governance all in one place.',
-              audience: 'PUBLIC',
-              publishedAt: new Date().toISOString(),
-              corrections: [],
-              author: { name: 'Aarav Patel (President)' }
-            },
-            {
-              id: '00000000-0000-0000-0000-000000000011',
-              title: 'Spring Gala 2026 Ticket Sales Now Live',
-              body: 'Early bird tickets for the flagship Spring Gala 2026 are now open for verified members at 50% discount. Make sure to claim your tickets early before quotas fill up.',
-              bodyMd: 'Early bird tickets for the flagship Spring Gala 2026 are now open for verified members at 50% discount. Make sure to claim your tickets early before quotas fill up.',
-              audience: 'MEMBERS',
-              publishedAt: new Date().toISOString(),
-              corrections: [],
-              author: { name: 'Rohan Mehta (Event Head)' }
-            }
-          ]
-        });
-      }
 
       return res.json({
         data: announcements.map((a) => ({
@@ -58,7 +35,7 @@ export function createNotificationsRouter({ service, authenticate, prisma }) {
         })),
       });
     } catch (e) {
-      return res.json({ data: [] });
+      return res.status(500).json({ error: { message: 'Failed to fetch announcements' } });
     }
   });
 
@@ -66,31 +43,34 @@ export function createNotificationsRouter({ service, authenticate, prisma }) {
     try {
       const a = await prisma.announcement.findUnique({
         where: { id: req.params.id },
-        include: { corrections: true, author: { select: { id: true, name: true } } },
+        include: {
+          corrections: true,
+          author: { select: { id: true, name: true } },
+        },
       });
+
       if (!a) {
-        return res.json({
-          data: {
-            id: req.params.id,
-            title: 'Welcome to the New Skyline Organization Platform!',
-            body: 'We are thrilled to launch the new centralized platform for LDCE & Nirma students. Access digital membership cards, discounted event tickets, official hoodies, and transparent student governance all in one place.',
-            bodyMd: 'We are thrilled to launch the new centralized platform for LDCE & Nirma students. Access digital membership cards, discounted event tickets, official hoodies, and transparent student governance all in one place.',
-            audience: 'PUBLIC',
-            publishedAt: new Date().toISOString(),
-            corrections: [],
-            author: { name: 'Aarav Patel (President)' }
-          }
-        });
+        return res.status(404).json({ error: { message: 'Announcement not found' } });
       }
-      return res.json({ data: { ...a, body: a.bodyMd } });
+
+      return res.json({
+        data: {
+          ...a,
+          body: a.bodyMd,
+        },
+      });
     } catch (e) {
-      return res.status(404).json({ error: { message: 'Announcement not found' } });
+      return res.status(500).json({ error: { message: 'Failed to retrieve announcement' } });
     }
   });
 
   router.post('/announcements', authenticate, async (req, res) => {
     try {
       const { title, body, audience = 'PUBLIC' } = req.body;
+      if (!title || !body) {
+        return res.status(400).json({ error: { message: 'Title and body are required' } });
+      }
+
       const created = await prisma.announcement.create({
         data: {
           title,
@@ -100,76 +80,94 @@ export function createNotificationsRouter({ service, authenticate, prisma }) {
           status: 'PUBLISHED',
           publishedAt: new Date(),
         },
+        include: {
+          author: { select: { id: true, name: true } },
+        },
       });
-      return res.status(201).json({ data: created });
+
+      return res.status(201).json({
+        data: {
+          ...created,
+          body: created.bodyMd,
+        },
+      });
     } catch (e) {
-      return res.status(201).json({ data: { success: true } });
+      return res.status(500).json({ error: { message: 'Failed to create announcement' } });
     }
   });
 
-  // Dashboard Aggregates
+  // 3. Dynamic Executive Dashboard Aggregate Counts
   router.get('/dashboard/counts', async (_req, res) => {
     try {
-      const [claimsCount, tasksCount] = await Promise.all([
-        prisma.expenseClaim.count({ where: { status: 'SUBMITTED' } }).catch(() => 1),
-        prisma.task.count({ where: { status: { in: ['TODO', 'IN_PROGRESS'] } } }).catch(() => 3),
+      const [claimsCount, tasksCount, proposalsCount, ordersCount] = await Promise.all([
+        prisma.expenseClaim.count({ where: { status: 'SUBMITTED' } }).catch(() => 0),
+        prisma.task.count({ where: { status: { in: ['TODO', 'IN_PROGRESS'] } } }).catch(() => 0),
+        prisma.event.count({ where: { status: 'PENDING_APPROVAL' } }).catch(() => 0),
+        prisma.order.count({ where: { status: 'PAID' } }).catch(() => 0),
       ]);
 
       return res.json({
         data: {
-          claimsPending: claimsCount || 1,
-          ordersToPack: 0,
-          proposalsToReview: 1,
-          activeTasks: tasksCount || 3,
+          claimsPending: claimsCount,
+          ordersToPack: ordersCount,
+          proposalsToReview: proposalsCount,
+          activeTasks: tasksCount,
         },
       });
     } catch (e) {
-      return res.json({
-        data: {
-          claimsPending: 1,
-          ordersToPack: 0,
-          proposalsToReview: 1,
-          activeTasks: 3,
-        },
-      });
+      return res.status(500).json({ error: { message: 'Failed to calculate dashboard counts' } });
     }
   });
 
+  // 4. Dynamic Student Personal Dashboard Hub (/me)
   router.get('/dashboard/me', authenticate, async (req, res) => {
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: req.user.sub },
-        include: {
-          memberships: {
-            where: { status: 'ACTIVE' },
-            orderBy: { createdAt: 'desc' },
-            take: 1,
+      const userId = req.user.sub;
+
+      const [user, nextTicket, openOrdersCount, activeTasksCount] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: userId },
+          include: {
+            memberships: {
+              where: { status: 'ACTIVE' },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
           },
-        },
-      });
+        }),
+        prisma.ticket.findFirst({
+          where: { userId, status: 'ISSUED' },
+          include: { event: true },
+          orderBy: { createdAt: 'desc' },
+        }),
+        prisma.order.count({
+          where: { userId, status: { in: ['PENDING', 'PAID'] } },
+        }),
+        prisma.taskAssignee.count({
+          where: {
+            userId,
+            removedAt: null,
+            task: { status: { in: ['TODO', 'IN_PROGRESS'] } },
+          },
+        }),
+      ]);
 
       return res.json({
         data: {
           user: {
+            id: user?.id || userId,
             name: user?.name || req.user.name,
-            studentId: user?.studentId || '23BCE301',
+            studentId: user?.studentId || null,
+            email: user?.email || req.user.email,
           },
           membership: user?.memberships?.[0] || null,
-          nextTicket: null,
-          openOrdersCount: 0,
-          activeTasksCount: 0,
+          nextTicket: nextTicket || null,
+          openOrdersCount: openOrdersCount || 0,
+          activeTasksCount: activeTasksCount || 0,
         },
       });
     } catch (e) {
-      return res.json({
-        data: {
-          user: { name: req.user.name, studentId: '23BCE301' },
-          membership: null,
-          nextTicket: null,
-          openOrdersCount: 0,
-          activeTasksCount: 0,
-        },
-      });
+      return res.status(500).json({ error: { message: 'Failed to load personal dashboard data' } });
     }
   });
 
