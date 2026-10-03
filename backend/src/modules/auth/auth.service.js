@@ -1,18 +1,12 @@
-import { randomUUID, randomInt } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { AppError } from '../../lib/AppError.js';
 import { randomToken, hashToken, hashPassword, verifyPassword } from '../../utils/security.js';
 import { signAccessToken } from '../../utils/jwt.js';
 import { expandPermissions } from '../access/access.permissions.js';
 
-export const ACCEPTED_MESSAGE = 'If the account is eligible, an email will be sent.';
-
-const invalidToken = () => new AppError('TOKEN_INVALID', 400, 'Token is invalid or has already been used');
 const invalidSession = () => new AppError('UNAUTHENTICATED', 401, 'A valid session is required');
 
 export function createAuthService({ prisma, config }) {
-  /**
-   * Helper to build access token claims for a user.
-   */
   async function claimsFor(tx, user, now = new Date()) {
     const instant = now.getTime();
     const [membership, assignments, volunteer] = await Promise.all([
@@ -102,33 +96,25 @@ export function createAuthService({ prisma, config }) {
   }
 
   return {
-    async register(input, metadata) {
-      if (config.isProduction && input.email.split('@')[1] !== config.collegeEmailDomain) {
-        throw new AppError('COLLEGE_EMAIL_REQUIRED', 400, 'Use your college email address');
-      }
-
+    async register(input) {
       const passwordHash = await hashPassword(input.password);
 
-      return prisma.$transaction(async (tx) => {
-        const existing = await tx.user.findFirst({
-          where: { OR: [{ email: input.email }, { studentId: input.studentId }] },
-        });
-        if (existing) return;
+      const existing = await prisma.user.findFirst({
+        where: { OR: [{ email: input.email }, { studentId: input.studentId }] },
+      });
+      if (existing) {
+        throw new AppError('USER_EXISTS', 409, 'An account with this email or student ID already exists');
+      }
 
-        const emailVerifiedAt = config.isProduction ? null : new Date();
-
-        return tx.user.create({
-          data: {
-            name: input.name,
-            email: input.email,
-            studentId: input.studentId,
-            phone: input.phone,
-            passwordHash,
-            emailVerifiedAt,
-          },
-        });
-      }).catch((error) => {
-        if (error.code !== 'P2002') throw error;
+      return prisma.user.create({
+        data: {
+          name: input.name,
+          email: input.email,
+          studentId: input.studentId,
+          phone: input.phone,
+          passwordHash,
+          emailVerifiedAt: new Date(),
+        },
       });
     },
 
@@ -137,23 +123,11 @@ export function createAuthService({ prisma, config }) {
       if (!user || !(await verifyPassword(user.passwordHash, input.password))) {
         throw new AppError('INVALID_CREDENTIALS', 401, 'Email or password is incorrect');
       }
+      if (user.isDisabled) {
+        throw new AppError('ACCOUNT_DISABLED', 403, 'Account is disabled');
+      }
 
-      return signed(
-        await prisma.$transaction(async (tx) => {
-          const current = await tx.user.findUnique({ where: { id: user.id } });
-          if (!current || current.passwordHash !== user.passwordHash) {
-            throw new AppError('INVALID_CREDENTIALS', 401, 'Email or password is incorrect');
-          }
-          if (current.isDisabled) {
-            throw new AppError('ACCOUNT_DISABLED', 403, 'Account is disabled');
-          }
-          if (!current.emailVerifiedAt) {
-            throw new AppError('EMAIL_NOT_VERIFIED', 403, 'Verify your email first');
-          }
-
-          return session(tx, current, metadata);
-        })
-      );
+      return signed(await prisma.$transaction((tx) => session(tx, user, metadata)));
     },
 
     async refresh(rawToken, metadata) {
@@ -178,7 +152,7 @@ export function createAuthService({ prisma, config }) {
         if (parent.expiresAt <= new Date()) return { error: invalidSession() };
 
         const user = await tx.user.findUnique({ where: { id: parent.userId } });
-        if (!user || user.isDisabled || !user.emailVerifiedAt) {
+        if (!user || user.isDisabled) {
           await tx.refreshToken.updateMany({
             where: { userId: parent.userId, revokedAt: null },
             data: { revokedAt: new Date(), revokeReason: 'ADMIN_REVOKED' },
@@ -224,22 +198,19 @@ export function createAuthService({ prisma, config }) {
 
     async verifyEmail(input) {
       if (input.email) {
-        const user = await prisma.user.findUnique({ where: { email: input.email } });
-        if (user && !user.emailVerifiedAt) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { emailVerifiedAt: new Date() },
-          });
-        }
+        await prisma.user.updateMany({
+          where: { email: input.email },
+          data: { emailVerifiedAt: new Date() },
+        });
       }
       return { verified: true, message: 'Email verified successfully' };
     },
 
-    async forgotPassword(input) {
-      return { message: ACCEPTED_MESSAGE };
+    async forgotPassword() {
+      return { message: 'If the account is eligible, a reset link will be sent.' };
     },
 
-    async resetPassword(input) {
+    async resetPassword() {
       return { message: 'Password has been reset successfully' };
     },
   };

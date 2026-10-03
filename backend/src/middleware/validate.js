@@ -1,42 +1,27 @@
 import { AppError } from '../lib/AppError.js';
 
-const LOCATIONS = ['params', 'query', 'body'];
-
-function formatIssues(issues, location) {
-  return issues.map((issue) => ({
-    path: [location, ...issue.path],
-    message: issue.message,
-    code: issue.code,
-  }));
-}
-
 export function validate(schemas) {
-  const normalizedSchemas = typeof schemas.safeParse === 'function' ? { body: schemas } : schemas;
+  const targets = schemas?.safeParse ? { body: schemas } : (schemas || {});
 
   return (req, _res, next) => {
     const validated = {};
-    const errors = [];
 
-    for (const location of LOCATIONS) {
-      const schema = normalizedSchemas[location];
+    for (const [key, schema] of Object.entries(targets)) {
       if (!schema) continue;
-
-      const result = schema.safeParse(req[location]);
+      const result = schema.safeParse(req[key]);
       if (!result.success) {
-        errors.push(...formatIssues(result.error.issues, location));
-        continue;
+        const errors = result.error.issues.map((i) => ({
+          path: [key, ...i.path],
+          message: i.message,
+          code: i.code,
+        }));
+        return next(new AppError('VALIDATION_ERROR', 400, 'Request validation failed', errors));
       }
-
-      validated[location] = result.data;
-    }
-
-    if (errors.length) {
-      return next(new AppError('VALIDATION_ERROR', 400, 'Request validation failed', errors));
+      req[key] = result.data;
+      validated[key] = result.data;
     }
 
     req.validated = validated;
-    if (validated.body !== undefined) req.body = validated.body;
-    if (validated.params !== undefined) req.params = validated.params;
-    return next();
+    next();
   };
 }

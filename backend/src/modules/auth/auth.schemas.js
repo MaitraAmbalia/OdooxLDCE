@@ -1,7 +1,6 @@
 import { z } from 'zod';
-import { termRoleSchema } from '../../utils/jwt.js';
 
-export const email = z.string().trim().toLowerCase().pipe(z.string().email().max(254));
+export const email = z.string().trim().toLowerCase().email().max(254);
 const password = z.string().min(8).max(128);
 const phone = z.string().regex(/^\+?[1-9]\d{7,14}$/).optional();
 const token = z.string().min(20).max(128);
@@ -11,7 +10,7 @@ export const registerSchema = z.object({
   email,
   password,
   studentId: z.string().trim().min(1).max(40),
-  phone: phone.optional(),
+  phone,
   newsletterOptIn: z.boolean().default(false),
 });
 

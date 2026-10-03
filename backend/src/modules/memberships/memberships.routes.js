@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { AppError } from '../../lib/AppError.js';
 import { validate } from '../../middleware/validate.js';
-import { requireJson } from '../../middleware/requireJson.js';
 
 const idParams = z.object({ id: z.uuid() });
 const money = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
@@ -24,15 +23,15 @@ export function createMembershipsRouter({ service, createPayment, authenticate, 
   const router = Router();
 
   router.get('/membership-tiers', async (_req, res) => res.json({ data: await service.listTiers() }));
-  router.post('/membership-tiers', authenticate, requirePermission('membership.tier.manage'), requireJson, validate({ body: tierBody }), async (req, res) =>
+  router.post('/membership-tiers', authenticate, requirePermission('membership.tier.manage'), validate({ body: tierBody }), async (req, res) =>
     res.status(201).json({ data: await service.createTier(req.user, req.body, req) }));
-  router.patch('/membership-tiers/:id', authenticate, requirePermission('membership.tier.manage'), requireJson, validate({ params: idParams, body: tierPatch }), async (req, res) =>
+  router.patch('/membership-tiers/:id', authenticate, requirePermission('membership.tier.manage'), validate({ params: idParams, body: tierPatch }), async (req, res) =>
     res.json({ data: await service.updateTier(req.user, req.params.id, req.body, req) }));
 
   router.get('/memberships/me', authenticate, async (req, res) => res.json({ data: await service.me(req.user.id) }));
   router.get('/memberships/me/card', authenticate, async (req, res) => res.json({ data: await service.card(req.user.id) }));
   router.post('/memberships/me/card/rotate', authenticate, async (req, res) => res.json({ data: await service.rotate(req.user.id) }));
-  router.post('/memberships/checkout', authenticate, requireJson, validate({ body: checkoutBody }), async (req, res) =>
+  router.post('/memberships/checkout', authenticate, validate({ body: checkoutBody }), async (req, res) =>
     res.status(201).json({ data: await service.checkout(req.user, req.body, req.get('Idempotency-Key'), createPayment) }));
 
   // membership.verify, or ticket.checkin (scoped door-staff access arrives with the events module).
@@ -40,11 +39,11 @@ export function createMembershipsRouter({ service, createPayment, authenticate, 
     ['membership.verify', 'ticket.checkin'].some((k) => req.user.permissions?.includes(k))
       ? next()
       : next(new AppError('FORBIDDEN', 403, 'You do not have permission to do this'));
-  router.post('/memberships/verify', authenticate, canVerify, requireJson, validate({ body: verifyBody }), async (req, res) =>
+  router.post('/memberships/verify', authenticate, canVerify, validate({ body: verifyBody }), async (req, res) =>
     res.json({ data: await service.verify(req.body) }));
 
   router.get('/memberships', authenticate, requirePermission('member.read.any'), validate({ query: listQuery }), async (req, res) =>
-    res.json(await service.list(req.validated.query)));
+    res.json(await service.list(req.query)));
   router.get('/memberships/stats', authenticate, requirePermission('member.stats.read'), async (_req, res) => res.json({ data: await service.stats() }));
 
   return router;

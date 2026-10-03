@@ -29,19 +29,19 @@ export function createAuthRouter({ service, authenticate }) {
   const router = Router();
 
   router.post('/auth/register', validate(registerSchema), async (req, res) => {
-    const user = await service.register(req.validated.body, { ip: req.ip });
+    const user = await service.register(req.body);
     return res.status(201).json({ data: { message: 'Registration successful', user } });
   });
 
   router.post('/auth/login', validate(loginSchema), async (req, res) => {
-    const session = await service.login(req.validated.body, { ip: req.ip });
+    const session = await service.login(req.body);
     setSessionCookies(res, session);
     return res.json({ data: session.data });
   });
 
   router.post('/auth/refresh', async (req, res) => {
     try {
-      const session = await service.refresh(req.cookies.refresh_token, { ip: req.ip });
+      const session = await service.refresh(req.cookies.refresh_token);
       setSessionCookies(res, session);
       return res.json({ data: session.data });
     } catch (error) {
@@ -61,15 +61,15 @@ export function createAuthRouter({ service, authenticate }) {
   });
 
   router.post('/auth/verify-email', validate(verifySchema), async (req, res) => {
-    return res.json({ data: await service.verifyEmail(req.validated.body) });
+    return res.json({ data: await service.verifyEmail(req.body) });
   });
 
   router.post('/auth/forgot-password', validate(emailSchema), async (req, res) => {
-    return res.json({ data: await service.forgotPassword(req.validated.body) });
+    return res.json({ data: await service.forgotPassword(req.body) });
   });
 
   router.post('/auth/reset-password', validate(resetSchema), async (req, res) => {
-    return res.json({ data: await service.resetPassword(req.validated.body) });
+    return res.json({ data: await service.resetPassword(req.body) });
   });
 
   return router;

@@ -3,7 +3,6 @@ import multer from 'multer';
 import { pipeline } from 'node:stream/promises';
 import { z } from 'zod';
 import { AppError } from '../../lib/AppError.js';
-import { rateLimit } from '../../middleware/rateLimit.js';
 import { validate } from '../../middleware/validate.js';
 import { MAX_UPLOAD_BYTES, PURPOSES } from './files.service.js';
 
@@ -28,7 +27,6 @@ export function createFilesRouter({ service, authenticate }) {
   router.post(
     '/',
     authenticate,
-    rateLimit({ windowMs: 60 * 60 * 1000, limit: 30, keyGenerator: (req) => req.user.id }), // 30 uploads/hour/user
     parseUpload,
     validate({ body: uploadBody }),
     async (req, res) => res.status(201).json({ data: await service.upload(req.user, req.file, req.body.purpose) }),

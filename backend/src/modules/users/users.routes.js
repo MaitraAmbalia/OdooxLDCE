@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { validate } from '../../middleware/validate.js';
-import { requireJson } from '../../middleware/requireJson.js';
 import { profileSchema, changePasswordSchema, idParams } from '../auth/auth.schemas.js';
 
 const directoryQuery = z.object({
@@ -24,24 +23,24 @@ export function createUsersRouter({ service, authenticate, authorize }) {
   });
 
   // PATCH /users/me - Update profile
-  router.patch('/users/me', authenticate, requireJson, validate({ body: profileSchema }), async (req, res) => {
-    res.json({ data: await service.update(req.user.sub, req.validated.body) });
+  router.patch('/users/me', authenticate, validate({ body: profileSchema }), async (req, res) => {
+    res.json({ data: await service.update(req.user.sub, req.body) });
   });
 
   // PATCH /users/me/password - Change password
-  router.patch('/users/me/password', authenticate, requireJson, validate({ body: changePasswordSchema }), async (req, res) => {
-    await service.changePassword(req.user.sub, req.validated.body);
+  router.patch('/users/me/password', authenticate, validate({ body: changePasswordSchema }), async (req, res) => {
+    await service.changePassword(req.user.sub, req.body);
     res.json({ data: { passwordChanged: true } });
   });
 
   // GET /users - Directory search (Members/Leadership)
   router.get('/users', authenticate, authorize('member.read.any'), validate({ query: directoryQuery }), async (req, res) => {
-    res.json(await service.directory(req.validated.query));
+    res.json(await service.directory(req.query));
   });
 
   // PATCH /users/:id/status - Disable/Enable user account (Admin)
-  router.patch('/users/:id/status', authenticate, authorize('role.assign'), requireJson, validate({ params: idParams, body: disableBody }), async (req, res) => {
-    res.json({ data: await service.disable(req.user.sub, req.params.id, req.validated.body) });
+  router.patch('/users/:id/status', authenticate, authorize('role.assign'), validate({ params: idParams, body: disableBody }), async (req, res) => {
+    res.json({ data: await service.disable(req.user.sub, req.params.id, req.body) });
   });
 
   return router;
