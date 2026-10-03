@@ -35,7 +35,7 @@
   
   /* Additional custom colors used by legacy/mockup components */
   --color-ink: var(--foreground);
-  --color-muted: var(--muted-foreground);
+  --color-muted: var(--muted);
   --color-dusk: var(--primary);
   --color-surface: var(--background);
   --color-line: var(--border);
@@ -58,6 +58,7 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
@@ -161,7 +162,7 @@
   --color-dusk: var(--primary);
   --color-dusk-hover: #38368e;
   --color-lamp: #f5e4db;
-  --color-muted: var(--muted-foreground);
+  --color-muted: var(--muted);
   --color-line: var(--border);
 
   --color-ok: #10b981;
