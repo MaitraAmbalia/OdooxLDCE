@@ -236,5 +236,54 @@ export function createMerchService({ prisma, createPayment }) {
 
       return { data, meta: createPageMeta(page, total) };
     },
+
+    async listOrders(query = {}) {
+      const page = parsePagination(query, { defaultLimit: 50 });
+      const allowedStatuses = ['PAID', 'READY', 'COLLECTED'];
+      const where = allowedStatuses.includes(query.status) ? { status: query.status } : { status: { in: allowedStatuses } };
+      const [orders, total] = await Promise.all([
+        prisma.order.findMany({
+          where,
+          orderBy: { createdAt: 'asc' },
+          skip: page.skip,
+          take: page.take,
+          include: {
+            user: { select: { id: true, name: true, studentId: true } },
+            items: { include: { variant: { include: { product: true } } } },
+          },
+        }),
+        prisma.order.count({ where }),
+      ]);
+
+      return {
+        data: orders.map((order) => ({
+          ...order,
+          totalPaise: Number(order.totalPaise),
+          items: order.items.map((item) => ({
+            id: item.id,
+            quantity: item.quantity,
+            unitPricePaise: Number(item.unitPricePaise),
+            name: item.variant?.product?.name || 'Merchandise',
+            variant: [item.variant?.size, item.variant?.color].filter(Boolean).join(' · ') || item.variant?.sku || 'Standard',
+          })),
+        })),
+        meta: createPageMeta(page, total),
+      };
+    },
+
+    async updateOrderStatus(userId, orderId, nextStatus) {
+      const order = await prisma.order.findUnique({ where: { id: orderId } });
+      if (!order) throw new AppError('NOT_FOUND', 404, 'Order not found');
+      const expected = order.status === 'PAID' ? 'READY' : order.status === 'READY' ? 'COLLECTED' : null;
+      if (!expected || nextStatus !== expected) {
+        throw new AppError('INVALID_STATUS_TRANSITION', 400, `Order cannot move from ${order.status} to ${nextStatus}`);
+      }
+      return prisma.order.update({
+        where: { id: orderId },
+        data: nextStatus === 'COLLECTED'
+          ? { status: nextStatus, collectedAt: new Date(), collectedById: userId }
+          : { status: nextStatus },
+      });
+    },
   };
 }

@@ -23,5 +23,14 @@ export function createMerchRouter({ service, authenticate }) {
     res.json(await service.getUserOrders(req.user.sub, req.query));
   });
 
+  // Staff fulfilment queue
+  router.get('/orders', authenticate, async (req, res) => {
+    res.json(await service.listOrders(req.query));
+  });
+
+  router.patch('/orders/:id/status', authenticate, async (req, res) => {
+    res.json({ data: await service.updateOrderStatus(req.user.sub, req.params.id, req.body.status) });
+  });
+
   return router;
 }

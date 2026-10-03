@@ -1,8 +1,11 @@
-import React from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ContentState } from "@/components/common/ContentState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function Budget() {
-  const { data: budgetData, isLoading } = useQuery({
+  usePageTitle("Budgets");
+  const { data: budgetData, isPending, isError, refetch } = useQuery({
     queryKey: ['finance', 'budget'],
     queryFn: async () => {
       // API endpoint: GET /finance/budget
@@ -14,38 +17,34 @@ export default function Budget() {
 
   const budgets = budgetData?.data || [];
 
-  // Mock data
-  const mockBudgets = budgets.length > 0 ? budgets : [
-    { id: '1', category: 'Events & Logistics', allocatedPaise: 5000000, spentPaise: 1500000 },
-    { id: '2', category: 'Marketing & PR', allocatedPaise: 2000000, spentPaise: 1800000 },
-    { id: '3', category: 'Operations', allocatedPaise: 1000000, spentPaise: 200000 }
-  ];
-
-  const totalAllocated = mockBudgets.reduce((acc, curr) => acc + curr.allocatedPaise, 0);
-  const totalSpent = mockBudgets.reduce((acc, curr) => acc + curr.spentPaise, 0);
-  const totalUtilisation = (totalSpent / totalAllocated) * 100;
+  const totalAllocated = budgets.reduce((acc, curr) => acc + curr.allocatedPaise, 0);
+  const totalSpent = budgets.reduce((acc, curr) => acc + curr.spentPaise, 0);
+  const totalUtilisation = totalAllocated ? (totalSpent / totalAllocated) * 100 : 0;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+    <div className="page-container py-12 sm:py-16">
       <div className="mb-8">
-        <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">Budget Allocations</h1>
-        <p className="text-sm text-[var(--color-muted)] mt-1">Track spending against allocated limits for the current fiscal year.</p>
+        <p className="mb-2 text-sm font-medium text-primary">Finance</p>
+        <h1 className="font-display text-4xl font-semibold tracking-tight">Budget allocations</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Track current spending against allocated limits.</p>
       </div>
 
+      {isError ? <ContentState error title="Budgets aren’t available right now." description="We couldn’t load the current allocations." action={refetch} /> : isPending ? <div className="grid gap-5 md:grid-cols-3" role="status" aria-label="Loading budgets"><Skeleton className="h-32 rounded-2xl" /><Skeleton className="h-32 rounded-2xl" /><Skeleton className="h-32 rounded-2xl" /></div> : budgets.length === 0 ? <ContentState title="No budgets configured." description="Allocations will appear here when finance limits are established." /> : <>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-[var(--color-surface)] border border-[var(--color-line)] p-6 rounded-[10px] shadow-sm">
+        <div className="rounded-2xl border border-border bg-card p-6">
           <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-2">Total Budget</p>
           <p className="text-3xl font-display font-bold font-mono tabular-nums text-[var(--color-ink)]">
             {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(totalAllocated / 100)}
           </p>
         </div>
-        <div className="bg-[var(--color-surface)] border border-[var(--color-line)] p-6 rounded-[10px] shadow-sm">
+        <div className="rounded-2xl border border-border bg-card p-6">
           <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-2">Total Spent</p>
           <p className="text-3xl font-display font-bold font-mono tabular-nums text-[var(--color-stop)]">
             {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(totalSpent / 100)}
           </p>
         </div>
-        <div className="bg-[var(--color-surface)] border border-[var(--color-line)] p-6 rounded-[10px] shadow-sm">
+        <div className="rounded-2xl border border-border bg-card p-6">
           <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-2">Overall Utilisation</p>
           <div className="flex items-end gap-3">
             <p className="text-3xl font-display font-bold font-mono tabular-nums text-[var(--color-ink)]">
@@ -65,12 +64,10 @@ export default function Budget() {
         <h2 className="text-lg font-display font-bold text-[var(--color-ink)]">Category Limits</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {isLoading ? (
-            <div className="col-span-full p-8 text-center text-[var(--color-muted)]">Loading budget...</div>
-          ) : mockBudgets.map(b => {
+          {budgets.map(b => {
             const util = (b.spentPaise / b.allocatedPaise) * 100;
             return (
-              <div key={b.id} className="bg-[var(--color-surface)] border border-[var(--color-line)] p-6 rounded-[10px] shadow-sm hover:shadow-md transition-shadow">
+              <div key={b.id} className="rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="font-semibold text-[var(--color-ink)]">{b.category}</h3>
                   <span className="text-sm font-medium bg-[var(--color-paper)] border border-[var(--color-line)] px-2 py-1 rounded">
@@ -90,14 +87,12 @@ export default function Budget() {
                   ></div>
                 </div>
                 
-                <div className="mt-4 pt-4 border-t border-[var(--color-line)] text-right">
-                  <button className="text-sm text-[var(--color-dusk)] font-medium hover:underline">Adjust Allocation &rarr;</button>
-                </div>
               </div>
             );
           })}
         </div>
       </div>
+      </>}
     </div>
   );
 }

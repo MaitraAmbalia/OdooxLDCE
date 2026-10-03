@@ -1,51 +1,59 @@
-import React, { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState } from "react";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, ReceiptIndianRupee } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { ContentState } from "@/components/common/ContentState";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function ClaimDetail() {
   const { id } = useParams();
+  const location = useLocation();
+  const isManagerView = location.pathname.startsWith("/manage/");
   const queryClient = useQueryClient();
   const [rejectReason, setRejectReason] = useState("");
 
-  const { data: claimData, isLoading } = useQuery({
+  const { data: claimsData, isPending, isError, refetch } = useQuery({
     queryKey: ['claims', id],
     queryFn: async () => {
-      // API endpoint: GET /claims/:id
-      const res = await fetch(`/api/v1/claims/${id}`);
+      const res = await fetch(isManagerView ? "/api/v1/claims" : "/api/v1/claims/me", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch claim");
       return res.json();
     }
   });
+  const claim = claimsData?.data?.find((item) => item.id === id);
+  usePageTitle(claim ? `Claim ${claim.id.slice(0, 8)}` : "Claim details");
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ status, comment }) => {
-      // API endpoint: PATCH /claims/:id/status
-      console.log(`Updating claim ${id} to ${status}`, { comment });
-      return { success: true };
+      const decision = status === "APPROVED" ? "APPROVE" : "REJECT";
+      const response = await fetch(`/api/v1/claims/${id}/review`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision, reason: comment }) });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message || "Could not review claim");
+      return json.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['claims', id] });
       setRejectReason("");
-    }
+      toast.success("Claim review saved.");
+    },
+    onError: (error) => toast.error(error.message || "Could not review claim."),
   });
 
-  if (isLoading) return <div className="p-8 text-center text-[var(--color-muted)]">Loading claim details...</div>;
-  if (!claimData?.data) return <div className="p-8 text-center text-[var(--color-stop)]">Claim not found.</div>;
-
-  const claim = claimData.data;
-
-  // Derive permissions (in a real app, read from Auth context)
-  const canApprove = true; // e.g. user is Treasurer
-  const canMarkPaid = claim.status === "APPROVED"; 
+  if (isPending) return <div className="page-container max-w-4xl py-12" role="status" aria-label="Loading claim"><Skeleton className="h-10 w-56" /><Skeleton className="mt-8 h-80 rounded-2xl" /></div>;
+  if (isError || !claim) return <div className="page-container py-16"><ContentState error title="We couldn’t load this claim." description="It may not exist or may not be available to your account." action={refetch} /></div>;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+    <div className="page-container max-w-4xl py-12 sm:py-16">
       <div className="mb-6 flex justify-between items-end">
         <div>
-          <Link to=".." className="text-sm font-medium text-[var(--color-dusk)] hover:underline inline-block mb-4">
-            &larr; Back
+          <Link to={isManagerView ? "/manage/claims" : "/volunteer"} className="mb-4 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary hover:underline">
+            <ArrowLeft className="size-4" /> Back
           </Link>
-          <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">Claim #{claim.id.split('-')[0].toUpperCase()}</h1>
+          <h1 className="font-display text-4xl font-semibold tracking-tight">Claim #{claim.id.split('-')[0].toUpperCase()}</h1>
         </div>
         <span className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-wider ${
           claim.status === 'PAID' ? 'bg-[var(--color-ok)] text-white' : 
@@ -59,8 +67,8 @@ export default function ClaimDetail() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Left Column: Details & Receipts */}
         <div className="md:col-span-2 space-y-8">
-          <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] p-6 shadow-sm">
-            <h2 className="text-lg font-display font-bold text-[var(--color-ink)] mb-4">Expense Details</h2>
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <h2 className="mb-4 font-display text-xl font-semibold">Expense details</h2>
             
             <div className="grid grid-cols-2 gap-y-4 gap-x-8 text-sm">
               <div>
@@ -76,12 +84,12 @@ export default function ClaimDetail() {
               <div>
                 <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Date Spent</p>
                 <p className="text-[var(--color-ink)]">
-                  {new Date(claim.dateSpent).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  {claim.dateSpent ? new Date(claim.dateSpent).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : "Not available"}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Category</p>
-                <p className="text-[var(--color-ink)]">{claim.category}</p>
+                <p className="text-[var(--color-ink)]">{claim.category || "General expense"}</p>
               </div>
               <div className="col-span-2">
                 <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Description</p>
@@ -90,8 +98,8 @@ export default function ClaimDetail() {
             </div>
           </div>
 
-          <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] p-6 shadow-sm">
-            <h2 className="text-lg font-display font-bold text-[var(--color-ink)] mb-4">Receipts</h2>
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <h2 className="mb-4 font-display text-xl font-semibold">Receipts</h2>
             {claim.receiptUrls && claim.receiptUrls.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {claim.receiptUrls.map((url, i) => (
@@ -101,7 +109,7 @@ export default function ClaimDetail() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-[var(--color-muted)]">No receipts attached.</p>
+              <p className="flex items-center gap-2 text-sm text-muted-foreground"><ReceiptIndianRupee className="size-4" /> No persisted receipts are attached.</p>
             )}
           </div>
         </div>
@@ -140,48 +148,35 @@ export default function ClaimDetail() {
           </div>
 
           {/* Action Panel for Managers */}
-          {claim.status === "SUBMITTED" && canApprove && (
-            <div className="bg-[var(--color-paper)] border border-[var(--color-dusk)] rounded-[10px] p-6">
-              <h3 className="font-semibold text-[var(--color-ink)] mb-4">Review Decision</h3>
+          {claim.status === "SUBMITTED" && isManagerView && (
+            <div className="rounded-2xl border border-primary/30 bg-secondary/40 p-6">
+              <h3 className="mb-4 font-display text-lg font-semibold">Review decision</h3>
               <div className="space-y-3">
-                <button 
+                <Button
                   onClick={() => updateStatusMutation.mutate({ status: 'APPROVED' })}
                   disabled={updateStatusMutation.isPending}
-                  className="w-full py-2 bg-[var(--color-ok)] text-white font-medium rounded-[6px]"
+                  className="w-full bg-[#345d4a] hover:bg-[#294b3b]"
                 >
-                  Approve Claim
-                </button>
-                <input 
+                  Approve claim
+                </Button>
+                <Input
                   type="text" 
                   placeholder="Reason for rejection"
                   value={rejectReason}
                   onChange={e => setRejectReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] text-sm"
                 />
-                <button 
+                <Button
+                  variant="outline"
                   onClick={() => updateStatusMutation.mutate({ status: 'REJECTED', comment: rejectReason })}
                   disabled={!rejectReason || updateStatusMutation.isPending}
-                  className="w-full py-2 bg-white text-[var(--color-stop)] border border-[var(--color-stop)] font-medium rounded-[6px]"
+                  className="w-full border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive"
                 >
-                  Reject Claim
-                </button>
+                  Reject claim
+                </Button>
               </div>
             </div>
           )}
 
-          {canMarkPaid && (
-            <div className="bg-[var(--color-paper)] border border-[var(--color-dusk)] rounded-[10px] p-6">
-              <h3 className="font-semibold text-[var(--color-ink)] mb-4">Fulfillment</h3>
-              <p className="text-sm text-[var(--color-muted)] mb-4">Once you have transferred the funds to the submitter's bank account, mark this claim as paid to update the general ledger.</p>
-              <button 
-                onClick={() => updateStatusMutation.mutate({ status: 'PAID' })}
-                disabled={updateStatusMutation.isPending}
-                className="w-full py-2 bg-[var(--color-dusk)] text-white font-medium rounded-[6px]"
-              >
-                Mark as Paid
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>

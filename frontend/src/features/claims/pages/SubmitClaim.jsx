@@ -1,9 +1,15 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { ArrowLeft, Info, ReceiptIndianRupee, X } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function SubmitClaim() {
+  usePageTitle("Submit expense claim");
   const navigate = useNavigate();
   const [receipts, setReceipts] = useState([]);
   
@@ -18,7 +24,6 @@ export default function SubmitClaim() {
   // Predict route based on amount (e.g. over 2000 INR = 200000 paise goes to President)
   const isHighValue = Number(amount) > 2000;
 
-  // Mock upload logic
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       const newFiles = Array.from(e.target.files).slice(0, 5 - receipts.length);
@@ -28,38 +33,47 @@ export default function SubmitClaim() {
 
   const submitClaim = useMutation({
     mutationFn: async (data) => {
-      // 1. Upload files first (POST /files)
-      // 2. Submit claim (POST /claims)
-      console.log("Submitting claim...", { ...data, receiptsCount: receipts.length });
-      return { id: "mock-claim-id" };
+      const response = await fetch("/api/v1/claims", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amountPaise: Math.round(Number(data.amount) * 100),
+          dateSpent: data.dateSpent,
+          description: data.description,
+          category: data.category,
+        }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message || "Could not submit claim");
+      return json.data;
     },
     onSuccess: () => {
-      navigate("/volunteer"); // or claim detail
-    }
+      toast.success("Expense claim submitted.");
+      navigate("/volunteer");
+    },
+    onError: (error) => toast.error(error.message || "Could not submit claim."),
   });
 
   const onSubmit = (data) => {
-    if (receipts.length === 0) {
-      alert("Please upload at least one receipt image.");
-      return;
-    }
     submitClaim.mutate(data);
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-8">
-      <Link to="/volunteer" className="text-sm font-medium text-[var(--color-dusk)] hover:underline mb-6 inline-block">
-        &larr; Back to Volunteering
+    <div className="page-container max-w-xl py-12 sm:py-16">
+      <Link to="/volunteer" className="mb-5 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary hover:underline">
+        <ArrowLeft className="size-4" /> Volunteer space
       </Link>
-      
-      <h1 className="text-2xl font-display font-extrabold text-[var(--color-ink)] mb-6">Submit Expense Claim</h1>
+
+      <p className="mb-2 text-sm font-medium text-primary">Reimbursement</p>
+      <h1 className="mb-8 font-display text-4xl font-semibold tracking-tight">Submit an expense claim</h1>
       
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         
         {/* Receipt Capture */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] p-4 text-center">
+        <div className="rounded-2xl border border-border bg-card p-5 text-center">
           <label className="block cursor-pointer">
-            <span className="text-[var(--color-dusk)] font-medium block mb-2">📸 Add Receipt (up to 5)</span>
+            <span className="mb-2 flex items-center justify-center gap-2 font-medium text-primary"><ReceiptIndianRupee className="size-5" /> Select receipts (up to 5)</span>
             <input 
               type="file" 
               accept="image/*,application/pdf" 
@@ -74,38 +88,40 @@ export default function SubmitClaim() {
             <div className="mt-4 text-sm text-[var(--color-ink)] text-left space-y-2">
               {receipts.map((r, i) => <div key={i} className="flex justify-between items-center bg-[var(--color-paper)] px-3 py-1 rounded">
                 <span className="truncate max-w-[200px]">{r.name}</span>
-                <button type="button" onClick={() => setReceipts(receipts.filter((_, idx) => idx !== i))} className="text-[var(--color-stop)] font-bold">&times;</button>
+                <button type="button" onClick={() => setReceipts(receipts.filter((_, idx) => idx !== i))} className="flex size-8 items-center justify-center rounded-md text-destructive hover:bg-destructive/5" aria-label={`Remove ${r.name}`}><X className="size-4" /></button>
               </div>)}
             </div>
           )}
+          <p className="mt-3 flex items-start justify-center gap-1.5 text-xs leading-5 text-muted-foreground"><Info className="mt-0.5 size-3.5 shrink-0" />Receipt upload persistence is not connected yet; keep the originals for review.</p>
         </div>
 
         {/* Amount & Date */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Amount (₹)</label>
-            <input 
+            <label htmlFor="claim-amount" className="mb-1.5 block text-sm font-medium">Amount (₹)</label>
+            <Input
+              id="claim-amount"
               type="number" 
               step="0.01" 
-              {...register("amount", { required: true, min: 1 })} 
-              className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] tabular-nums font-mono text-lg" 
+              {...register("amount", { required: true, min: 1 })}
+              className="font-mono text-lg tabular-nums"
               placeholder="0.00"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Date Spent</label>
-            <input 
+            <label htmlFor="claim-date" className="mb-1.5 block text-sm font-medium">Date spent</label>
+            <Input
+              id="claim-date"
               type="date" 
               {...register("dateSpent", { required: true })} 
-              className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px]" 
             />
           </div>
         </div>
 
         {/* Link / Category */}
         <div>
-          <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Category</label>
-          <select {...register("category")} className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px]">
+          <label htmlFor="claim-category" className="mb-1.5 block text-sm font-medium">Category</label>
+          <select id="claim-category" {...register("category")} className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <option value="Logistics">Logistics</option>
             <option value="Food & Bev">Food & Bev</option>
             <option value="Travel">Travel</option>
@@ -114,41 +130,33 @@ export default function SubmitClaim() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Description</label>
-          <input 
+          <label htmlFor="claim-description" className="mb-1.5 block text-sm font-medium">Description</label>
+          <Input
+            id="claim-description"
             type="text" 
             placeholder="e.g. Paint for stage props"
             {...register("description", { required: true })} 
-            className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px]" 
           />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Link to Event/Task</label>
-          <select {...register("linkId")} className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px]">
-            <option value="">-- None --</option>
-            <option value="task1">Task: Build Stage (Gala)</option>
-            <option value="event1">Event: Tech Gala 2026</option>
-          </select>
         </div>
 
         {/* Route Preview */}
         {amount > 0 && (
-          <div className="bg-[var(--color-paper)] border border-[var(--color-line)] rounded-[6px] p-3 text-sm">
-            <span className="font-semibold text-[var(--color-ink)]">Approval Route: </span>
-            <span className="text-[var(--color-muted)]">
+          <div className="rounded-xl border border-border bg-secondary/40 p-3 text-sm">
+            <span className="font-semibold">Approval route: </span>
+            <span className="text-muted-foreground">
               Treasurer {isHighValue && "→ President"}
             </span>
           </div>
         )}
 
-        <button
+        <Button
           type="submit"
           disabled={isSubmitting || submitClaim.isPending}
-          className="w-full flex justify-center py-3 px-4 border border-transparent rounded-[6px] shadow-sm text-sm font-medium text-white bg-[var(--color-dusk)] hover:bg-opacity-90 disabled:opacity-50"
+          className="w-full"
+          size="lg"
         >
-          {submitClaim.isPending ? "Submitting..." : "Submit Claim"}
-        </button>
+          {submitClaim.isPending ? "Submitting…" : "Submit claim"}
+        </Button>
       </form>
     </div>
   );

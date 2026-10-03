@@ -1,80 +1,92 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { CalendarDays, MapPin, Plus, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ContentState } from "@/components/common/ContentState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
+
+function getRsvpSummary(meeting) {
+  if (meeting.rsvpCounts) {
+    return { attending: meeting.rsvpCounts.yes || 0, total: meeting.rsvpCounts.total || 0 };
+  }
+
+  const invites = meeting.invites || [];
+  return {
+    attending: invites.filter((invite) => (invite.rsvp || invite.status) === "YES").length,
+    total: invites.length,
+  };
+}
 
 export default function MeetingList() {
-  const { data: meetingsData, isLoading } = useQuery({
-    queryKey: ['meetings'],
+  usePageTitle("Meetings");
+  const { data: meetingsData, isPending, isError, refetch } = useQuery({
+    queryKey: ["meetings"],
     queryFn: async () => {
-      // API endpoint: GET /meetings
-      const res = await fetch("/api/v1/meetings");
-      if (!res.ok) throw new Error("Failed to fetch meetings");
-      return res.json();
-    }
+      const response = await fetch("/api/v1/meetings", { credentials: "include" });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message || "Failed to fetch meetings");
+      return json;
+    },
   });
 
   const meetings = meetingsData?.data || [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8 flex justify-between items-end">
+    <div className="page-container py-12 sm:py-16">
+      <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">Meetings</h1>
-          <p className="text-sm text-[var(--color-muted)] mt-1">Schedule and manage association meetings and agendas.</p>
+          <p className="mb-2 text-sm font-medium text-primary">Association operations</p>
+          <h1 className="font-display text-4xl font-semibold tracking-tight">Meetings</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Schedule working sessions, share an agenda, and track invite responses.</p>
         </div>
-        <Link to="/manage/meetings/new" className="bg-[var(--color-dusk)] text-white px-4 py-2 rounded-[6px] text-sm font-medium hover:bg-opacity-90 transition-opacity">
-          + Schedule Meeting
-        </Link>
+        <Button asChild size="lg" className="w-full sm:w-auto"><Link to="/manage/meetings/new"><Plus aria-hidden="true" /> Schedule meeting</Link></Button>
       </div>
 
-      <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] overflow-hidden shadow-sm">
-        <table className="min-w-full divide-y divide-[var(--color-line)]">
-          <thead className="bg-[var(--color-paper)]">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Date & Time</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Title & Location</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Audience</th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">RSVPs</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--color-line)] bg-white">
-            {isLoading ? (
-              <tr><td colSpan="4" className="p-8 text-center text-[var(--color-muted)]">Loading meetings...</td></tr>
-            ) : meetings.length === 0 ? (
-              <tr><td colSpan="4" className="p-12 text-center text-[var(--color-muted)]">No meetings scheduled.</td></tr>
-            ) : meetings.map(meeting => (
-              <tr key={meeting.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <p className="text-sm font-bold text-[var(--color-ink)]">
-                    {new Date(meeting.scheduledAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </p>
-                  <p className="text-xs text-[var(--color-muted)] mt-1">
-                    {new Date(meeting.scheduledAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </td>
-                <td className="px-6 py-4">
-                  <Link to={`/manage/meetings/${meeting.id}`} className="text-sm font-bold text-[var(--color-dusk)] hover:underline">
-                    {meeting.title}
-                  </Link>
-                  <p className="text-xs text-[var(--color-muted)] mt-1">{meeting.location}</p>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-paper)] text-[var(--color-ink)] border border-[var(--color-line)]">
-                    {meeting.audienceType}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <div className="flex justify-end gap-2 text-sm font-mono">
-                    <span className="text-[var(--color-ok)]" title="Attending">{meeting.rsvpCounts?.yes || 0}</span>
-                    <span className="text-[var(--color-muted)]">/</span>
-                    <span className="text-[var(--color-ink)]" title="Invited">{meeting.rsvpCounts?.total || 0}</span>
+      {isPending ? (
+        <div className="space-y-4" role="status" aria-label="Loading meetings"><Skeleton className="h-20 rounded-2xl" /><Skeleton className="h-20 rounded-2xl" /><Skeleton className="h-20 rounded-2xl" /></div>
+      ) : isError ? (
+        <ContentState error title="Meetings aren’t available right now." description="We couldn’t load the schedule. Try again in a moment." action={refetch} />
+      ) : meetings.length === 0 ? (
+        <ContentState title="No meetings are scheduled." description="Create a meeting to start coordinating an agenda and invite responses." actionLabel="Schedule meeting" action={() => window.location.assign("/manage/meetings/new")} />
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+          <div className="divide-y divide-border md:hidden">
+            {meetings.map((meeting) => {
+              const scheduledAt = meeting.date || meeting.scheduledAt;
+              const rsvps = getRsvpSummary(meeting);
+              return (
+                <Link key={meeting.id} to={`/manage/meetings/${meeting.id}`} className="block p-5 transition-colors hover:bg-secondary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                  <div className="flex items-start justify-between gap-4">
+                    <div><h2 className="font-display text-lg font-semibold">{meeting.title}</h2><p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><CalendarDays className="size-4" aria-hidden="true" />{scheduledAt ? new Date(scheduledAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "Date to be confirmed"}</p><p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><MapPin className="size-4" aria-hidden="true" />{meeting.venue || meeting.location || "Venue to be confirmed"}</p></div>
+                    <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium">{meeting.audience || meeting.audienceType || "BOTH"}</span>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  <p className="mt-4 flex items-center gap-2 text-xs font-medium text-muted-foreground"><Users className="size-4" aria-hidden="true" />{rsvps.attending} attending · {rsvps.total} invited</p>
+                </Link>
+              );
+            })}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-secondary/40"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Date and time</th><th scope="col" className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Meeting</th><th scope="col" className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Audience</th><th scope="col" className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider">Responses</th></tr></thead>
+              <tbody className="divide-y divide-border">
+                {meetings.map((meeting) => {
+                  const scheduledAt = meeting.date || meeting.scheduledAt;
+                  const rsvps = getRsvpSummary(meeting);
+                  return (
+                    <tr key={meeting.id} className="transition-colors hover:bg-secondary/30">
+                      <td className="whitespace-nowrap px-6 py-4 text-sm"><p className="font-medium">{scheduledAt ? new Date(scheduledAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "To be confirmed"}</p>{scheduledAt && <p className="mt-1 text-xs text-muted-foreground">{new Date(scheduledAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</p>}</td>
+                      <td className="px-6 py-4"><Link to={`/manage/meetings/${meeting.id}`} className="font-medium text-primary underline-offset-4 hover:underline">{meeting.title}</Link><p className="mt-1 text-xs text-muted-foreground">{meeting.venue || meeting.location || "Venue to be confirmed"}</p></td>
+                      <td className="whitespace-nowrap px-6 py-4"><span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium">{meeting.audience || meeting.audienceType || "BOTH"}</span></td>
+                      <td className="whitespace-nowrap px-6 py-4 text-right text-sm tabular-nums"><span className="font-semibold text-primary">{rsvps.attending}</span><span className="text-muted-foreground"> / {rsvps.total}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

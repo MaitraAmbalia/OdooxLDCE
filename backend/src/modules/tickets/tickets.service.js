@@ -105,7 +105,7 @@ export function createTicketsService({ prisma }) {
       return { data, meta: createPageMeta(page, total) };
     },
 
-    async checkIn(doorVolunteerId, ticketId) {
+    async checkIn(doorVolunteerId, ticketId, expectedEventId) {
       const ticket = await prisma.ticket.findUnique({
         where: { id: ticketId },
         include: {
@@ -115,10 +115,16 @@ export function createTicketsService({ prisma }) {
       });
 
       if (!ticket) throw new AppError('NOT_FOUND', 404, 'Ticket was not found');
+      if (expectedEventId && ticket.eventId !== expectedEventId) {
+        throw new AppError('WRONG_EVENT', 400, 'This ticket belongs to a different event');
+      }
       if (ticket.status === 'CHECKED_IN') {
         throw new AppError('ALREADY_CHECKED_IN', 409, 'Ticket was already checked in', {
           checkedInAt: ticket.checkedInAt,
         });
+      }
+      if (ticket.status !== 'ISSUED') {
+        throw new AppError('INVALID_TICKET_STATUS', 400, `Ticket cannot be checked in from ${ticket.status}`);
       }
 
       const updated = await prisma.ticket.update({

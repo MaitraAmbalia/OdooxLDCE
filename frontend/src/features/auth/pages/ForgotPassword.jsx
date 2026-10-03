@@ -1,89 +1,63 @@
-import React from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { ArrowLeft, CheckCircle2, Mail } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function ForgotPassword() {
-  const { register, handleSubmit, formState: { errors, isSubmitting, isSubmitSuccessful } } = useForm();
+  usePageTitle("Reset password");
+  const [submittedEmail, setSubmittedEmail] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
 
   const onSubmit = async (data) => {
-    // API endpoint: POST /auth/forgot-password ({ email })
-    console.log("Forgot password data", data);
+    setErrorMessage("");
+    try {
+      const response = await fetch("/api/v1/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: data.email.trim() }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message || "Could not send reset instructions");
+      setSubmittedEmail(data.email.trim());
+    } catch (error) {
+      setErrorMessage(error.message || "Could not send reset instructions.");
+    }
   };
 
   return (
-    <div className="flex-1 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-display font-extrabold text-[var(--color-ink)]">
-          Reset password
-        </h2>
-        <p className="mt-2 text-center text-sm text-[var(--color-muted)]">
-          Enter your email and we'll send you a link to reset your password.
-        </p>
-      </div>
+    <section className="page-container flex min-h-[72vh] flex-col justify-center py-12 sm:py-16">
+      <div className="mx-auto w-full max-w-md">
+        <Button asChild variant="ghost" className="mb-5 -ml-3"><Link to="/login"><ArrowLeft aria-hidden="true" /> Back to login</Link></Button>
+        <div className="text-center">
+          <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground"><Mail className="size-5" aria-hidden="true" /></span>
+          <h1 className="mt-5 font-display text-4xl font-semibold tracking-tight">Reset your password</h1>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">Enter the email associated with your Skyline account.</p>
+        </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-[var(--color-surface)] py-8 px-4 shadow sm:rounded-[10px] sm:px-10 border border-[var(--color-line)]">
-          
-          {isSubmitSuccessful ? (
-            <div className="rounded-md bg-[var(--color-paper)] p-4 border border-[var(--color-line)]">
-              <div className="flex">
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-[var(--color-ink)]">
-                    Check your email
-                  </h3>
-                  <div className="mt-2 text-sm text-[var(--color-muted)]">
-                    <p>If an account exists for that email, we have sent instructions to reset your password.</p>
-                  </div>
-                  <div className="mt-4">
-                    <Link to="/login" className="text-sm font-medium text-[var(--color-dusk)] hover:underline">
-                      &larr; Back to login
-                    </Link>
-                  </div>
-                </div>
-              </div>
+        <div className="mt-8 rounded-2xl border border-border bg-card p-6 sm:p-8">
+          {submittedEmail ? (
+            <div className="text-center" role="status">
+              <CheckCircle2 className="mx-auto size-10 text-emerald-600" aria-hidden="true" />
+              <h2 className="mt-4 font-display text-xl font-semibold">Check your inbox</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">If an account exists for <span className="font-medium text-foreground">{submittedEmail}</span>, reset instructions have been sent.</p>
+              <Button asChild className="mt-6 w-full"><Link to="/login">Return to login</Link></Button>
             </div>
           ) : (
-            <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-[var(--color-ink)]">
-                  Email address
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="email"
-                    type="email"
-                    {...register("email", { 
-                      required: "Email is required",
-                      pattern: {
-                        value: /\S+@\S+\.\S+/,
-                        message: "Please enter a valid email address"
-                      }
-                    })}
-                    className="appearance-none block w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[var(--color-dusk)] focus:border-[var(--color-dusk)] sm:text-sm"
-                  />
-                  {errors.email && <p className="mt-1 text-sm text-[var(--color-stop)]">{errors.email.message}</p>}
-                </div>
-              </div>
-
-              <div>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-[6px] shadow-sm text-sm font-medium text-white bg-[var(--color-dusk)] hover:bg-opacity-90 focus:outline-none disabled:opacity-50"
-                >
-                  Send reset link
-                </button>
-              </div>
-              
-              <div className="text-center">
-                <Link to="/login" className="text-sm font-medium text-[var(--color-dusk)] hover:underline">
-                  Cancel
-                </Link>
-              </div>
+            <form onSubmit={handleSubmit(onSubmit)} noValidate>
+              {errorMessage && <div className="mb-5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">{errorMessage}</div>}
+              <label htmlFor="recovery-email" className="mb-2 block text-sm font-medium">Email address</label>
+              <Input id="recovery-email" type="email" autoComplete="email" aria-invalid={!!errors.email} placeholder="you@nirmauni.ac.in" {...register("email", { required: "Email is required", pattern: { value: /\S+@\S+\.\S+/, message: "Enter a valid email address" } })} />
+              {errors.email && <p className="mt-2 text-sm text-destructive" role="alert">{errors.email.message}</p>}
+              <Button type="submit" size="lg" className="mt-6 w-full" disabled={isSubmitting}>{isSubmitting ? "Sending…" : "Send reset link"}</Button>
             </form>
           )}
         </div>
       </div>
-    </div>
+    </section>
   );
 }

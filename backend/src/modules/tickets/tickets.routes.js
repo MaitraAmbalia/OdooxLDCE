@@ -20,7 +20,7 @@ export function createTicketsRouter({ service, authenticate, authorize }) {
 
   // POST /tickets/:id/checkin - Fast Door Check-in (Volunteer / Staff)
   router.post('/tickets/:id/checkin', authenticate, async (req, res) => {
-    res.json({ data: await service.checkIn(req.user.sub, req.params.id) });
+    res.json({ data: await service.checkIn(req.user.sub, req.params.id, req.body.eventId) });
   });
 
   return router;

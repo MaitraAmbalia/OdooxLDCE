@@ -1,10 +1,16 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Download, FileSpreadsheet } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ContentState } from "@/components/common/ContentState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function Reports() {
+  usePageTitle("Financial reports");
   const [reportType, setReportType] = useState("SUMMARY"); // SUMMARY, EVENT, PROJECT
 
-  const { data, isLoading } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ['finance', 'reports', reportType],
     queryFn: async () => {
       // API endpoint: GET /finance/reports?type=...
@@ -13,26 +19,32 @@ export default function Reports() {
       return res.json();
     }
   });
+  const report = data?.data;
+  const money = (paise) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format((paise || 0) / 100);
+  function downloadCsv() {
+    if (!report) return;
+    const csv = `Metric,Value\r\nReport type,${report.reportType}\r\nRows,${report.rowCount}\r\nTotal income,${(report.totalIncomePaise / 100).toFixed(2)}\r\nTotal expense,${(report.totalExpensePaise / 100).toFixed(2)}\r\nBalance,${(report.balancePaise / 100).toFixed(2)}\r\n`;
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); const link = document.createElement("a"); link.href = url; link.download = `skyline-finance-${reportType.toLowerCase()}.csv`; link.click(); URL.revokeObjectURL(url);
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8 flex justify-between items-end">
+    <div className="page-container py-12 sm:py-16">
+      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">Financial Reports</h1>
-          <p className="text-sm text-[var(--color-muted)] mt-1">Generate and export financial summaries.</p>
+          <p className="mb-2 text-sm font-medium text-primary">Finance</p>
+          <h1 className="font-display text-4xl font-semibold tracking-tight">Financial reports</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Review and export current financial summaries.</p>
         </div>
-        <button className="bg-[var(--color-dusk)] text-white px-6 py-2 rounded-[6px] font-medium hover:bg-opacity-90 transition-colors shadow-sm">
-          Download CSV
-        </button>
+        <Button onClick={downloadCsv} disabled={!report}><Download /> Download CSV</Button>
       </div>
 
-      <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] overflow-hidden shadow-sm">
-        <div className="p-4 bg-[var(--color-paper)] border-b border-[var(--color-line)] flex gap-2">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="flex flex-wrap gap-2 border-b border-border bg-secondary/40 p-4">
           {['SUMMARY', 'EVENT', 'PROJECT'].map(t => (
             <button
               key={t}
               onClick={() => setReportType(t)}
-              className={`px-4 py-2 rounded-[6px] text-sm font-medium transition-colors ${reportType === t ? 'bg-[var(--color-ink)] text-white' : 'bg-white border border-[var(--color-line)] text-[var(--color-ink)] hover:bg-gray-50'}`}
+              className={`min-h-10 rounded-md px-4 text-sm font-medium transition-colors ${reportType === t ? 'bg-primary text-primary-foreground' : 'border border-border bg-card hover:bg-secondary'}`}
             >
               {t === 'SUMMARY' ? 'Overall Summary' : t === 'EVENT' ? 'Per-Event' : 'Per-Project'}
             </button>
@@ -40,27 +52,28 @@ export default function Reports() {
         </div>
 
         <div className="p-8">
-          {isLoading ? (
-            <div className="text-center text-[var(--color-muted)] py-12">Generating report...</div>
-          ) : (
-            <div className="text-center border-2 border-dashed border-[var(--color-line)] rounded-[10px] py-20 px-4 bg-gray-50">
-              <h3 className="text-xl font-display font-bold text-[var(--color-ink)] mb-2">Report Ready for Export</h3>
-              <p className="text-sm text-[var(--color-muted)] mb-6 max-w-md mx-auto">
-                The {reportType.toLowerCase()} report contains aggregated financial data for the current fiscal year.
+          {isPending ? (
+            <div role="status" aria-label="Generating report"><Skeleton className="h-64 rounded-2xl" /></div>
+          ) : isError ? <ContentState error title="The report isn’t available." description="We couldn’t generate this financial summary." action={refetch} /> : (
+            <div className="rounded-2xl border border-dashed border-border bg-secondary/20 px-4 py-14 text-center">
+              <FileSpreadsheet className="mx-auto mb-4 size-9 text-primary" />
+              <h2 className="mb-2 font-display text-2xl font-semibold">{reportType === "SUMMARY" ? "Overall summary" : reportType === "EVENT" ? "Event summary" : "Project summary"}</h2>
+              <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
+                Current aggregated financial data returned by the finance service.
               </p>
               
               <div className="flex justify-center gap-6 text-left max-w-lg mx-auto bg-white p-6 rounded-[10px] border border-[var(--color-line)] shadow-sm">
                 <div>
                   <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Rows</p>
-                  <p className="font-mono font-bold text-lg">1,248</p>
+                  <p className="font-mono text-lg font-semibold">{report?.rowCount || 0}</p>
                 </div>
                 <div>
                   <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Total Income</p>
-                  <p className="font-mono font-bold text-lg text-[var(--color-ok)]">₹4,50,000</p>
+                  <p className="font-mono text-lg font-semibold text-[#345d4a]">{money(report?.totalIncomePaise)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Total Expense</p>
-                  <p className="font-mono font-bold text-lg text-[var(--color-ink)]">₹3,20,500</p>
+                  <p className="font-mono text-lg font-semibold">{money(report?.totalExpensePaise)}</p>
                 </div>
               </div>
             </div>

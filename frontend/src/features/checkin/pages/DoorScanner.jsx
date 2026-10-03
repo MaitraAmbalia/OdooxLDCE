@@ -1,108 +1,112 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, CheckCircle2, CircleAlert, Keyboard, QrCode, RotateCcw, XCircle } from "lucide-react";
 import { Html5QrcodeScanner } from "html5-qrcode";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function DoorScanner() {
   const { eventId } = useParams();
-  const [scanResult, setScanResult] = useState(null); // { status: 'OK' | 'WARN' | 'ERR', name: '...', message: '...' }
+  const [scanResult, setScanResult] = useState(null);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualId, setManualId] = useState("");
+  const [cameraError, setCameraError] = useState("");
   const scannerRef = useRef(null);
+  const processingRef = useRef(false);
+  const resetTimerRef = useRef(null);
 
-  useEffect(() => {
-    // Initialize QR Scanner
-    const scanner = new Html5QrcodeScanner(
-      "reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      /* verbose= */ false
-    );
+  const { data: eventData } = useQuery({
+    queryKey: ["events", eventId],
+    queryFn: async () => {
+      const response = await fetch("/api/v1/events/" + eventId);
+      if (!response.ok) return null;
+      return response.json();
+    },
+    retry: false,
+  });
+  const event = eventData?.data;
+  usePageTitle(event?.title ? event.title + " check-in" : "Door check-in");
 
-    scanner.render(onScanSuccess, onScanFailure);
-    scannerRef.current = scanner;
-
-    return () => {
-      scanner.clear().catch(error => {
-        console.error("Failed to clear html5QrcodeScanner. ", error);
-      });
-    };
+  const clearResult = useCallback(() => {
+    setScanResult(null);
+    processingRef.current = false;
+    try { scannerRef.current?.resume(); } catch {}
   }, []);
 
-  const onScanSuccess = (decodedText, decodedResult) => {
-    // API endpoint: POST /events/:id/check-in ({ ticketId: decodedText })
-    console.log(`Scan success: ${decodedText}`);
-    
-    // Simulate API call processing
-    // Vibrate device
-    if (navigator.vibrate) navigator.vibrate(100);
+  const processTicket = useCallback(async (rawTicketId) => {
+    const ticketId = rawTicketId.trim();
+    if (!ticketId || processingRef.current) return;
+    processingRef.current = true;
+    try { scannerRef.current?.pause(true); } catch {}
 
-    // Mock response based on text length to show different states
-    if (decodedText.length > 20) {
-      setScanResult({ status: 'ERR', name: 'Unknown', message: 'Invalid ticket format' });
-    } else if (decodedText.startsWith('MOCK')) {
-      setScanResult({ status: 'WARN', name: 'Aarav Shah', message: 'Already checked in (10m ago)' });
-    } else {
-      setScanResult({ status: 'OK', name: 'Aarav Shah', message: 'Member · 1 of 2 tickets' });
+    try {
+      const response = await fetch("/api/v1/tickets/" + encodeURIComponent(ticketId) + "/checkin", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId }),
+      });
+      const json = await response.json();
+      if (!response.ok) {
+        const code = json.error?.code;
+        const isAlreadyUsed = response.status === 409 || code === "ALREADY_CHECKED_IN";
+        setScanResult({ status: isAlreadyUsed ? "WARN" : "ERR", title: isAlreadyUsed ? "Already checked in" : "Entry denied", name: "", message: json.error?.message || "This ticket could not be checked in." });
+      } else {
+        setScanResult({ status: "OK", title: "Checked in", name: json.data?.attendeeName || "Attendee", message: [json.data?.studentId, json.data?.eventTitle].filter(Boolean).join(" · ") });
+        if (navigator.vibrate) navigator.vibrate(100);
+      }
+    } catch {
+      setScanResult({ status: "ERR", title: "Connection problem", name: "", message: "The check-in service could not be reached. Try again." });
     }
 
-    // Clear overlay after 2 seconds
-    setTimeout(() => {
-      setScanResult(null);
-    }, 2000);
+    clearTimeout(resetTimerRef.current);
+    resetTimerRef.current = setTimeout(clearResult, 3500);
+  }, [clearResult, eventId]);
+
+  useEffect(() => {
+    const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 240, height: 240 }, rememberLastUsedCamera: true }, false);
+    scanner.render((decodedText) => processTicket(decodedText), () => {});
+    scannerRef.current = scanner;
+    return () => {
+      clearTimeout(resetTimerRef.current);
+      scanner.clear().catch(() => {});
+      scannerRef.current = null;
+    };
+  }, [processTicket]);
+
+  const submitManual = (eventObject) => {
+    eventObject.preventDefault();
+    if (!manualId.trim()) return;
+    setManualOpen(false);
+    processTicket(manualId);
+    setManualId("");
   };
 
-  const onScanFailure = (error) => {
-    // handle scan failure, usually better to ignore and keep scanning
-  };
+  const resultStyle = scanResult?.status === "OK" ? "bg-emerald-600" : scanResult?.status === "WARN" ? "bg-amber-500" : "bg-red-600";
+  const ResultIcon = scanResult?.status === "OK" ? CheckCircle2 : scanResult?.status === "WARN" ? CircleAlert : XCircle;
 
   return (
-    <div className="fixed inset-0 bg-black text-white flex flex-col">
-      {/* Top Bar */}
-      <div className="p-4 flex items-center justify-between z-10 bg-gradient-to-b from-black/80 to-transparent">
-        <Link to="/events" className="text-white hover:text-gray-300 px-2 py-1 rounded bg-black/50 backdrop-blur-sm">
-          &larr; Exit
-        </Link>
-        <div className="bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full font-mono text-sm tracking-widest border border-white/20 shadow-lg">
-          412 / 500
-        </div>
-        <button className="text-white hover:text-gray-300 px-2 py-1 rounded bg-black/50 backdrop-blur-sm">
-          🔦 Torch
-        </button>
-      </div>
+    <main className="fixed inset-0 flex flex-col bg-slate-950 text-white">
+      <header className="relative z-20 flex items-center justify-between gap-3 border-b border-white/10 bg-slate-950/95 px-4 py-3 backdrop-blur">
+        <Button asChild variant="ghost" className="text-white hover:bg-white/10 hover:text-white"><Link to={eventId ? "/events/" + eventId : "/events"}><ArrowLeft aria-hidden="true" /> Exit</Link></Button>
+        <div className="min-w-0 text-center"><p className="truncate text-sm font-semibold">{event?.title || "Event check-in"}</p><p className="text-xs text-slate-400">{event ? (event.seatsSold || 0) + " tickets issued · " + event.capacity + " capacity" : "Scan an entrance pass"}</p></div>
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/10"><QrCode className="size-5" aria-hidden="true" /></span>
+      </header>
 
-      {/* Scanner Viewport */}
-      <div className="flex-1 relative">
-        <div id="reader" className="w-full h-full object-cover"></div>
-        
-        {/* Full Screen Overlay for Result */}
-        {scanResult && (
-          <div 
-            aria-live="assertive"
-            className={`absolute inset-0 z-50 flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-200 ${
-              scanResult.status === 'OK' ? 'bg-[var(--color-ok)]' :
-              scanResult.status === 'WARN' ? 'bg-[var(--color-wait)]' :
-              'bg-[var(--color-stop)]'
-            }`}
-          >
-            <div className="text-7xl mb-6">
-              {scanResult.status === 'OK' ? '✓' : scanResult.status === 'WARN' ? '!' : '✗'}
-            </div>
-            <h2 className="text-4xl font-display font-bold mb-2">{scanResult.status === 'OK' ? 'Checked in' : scanResult.status === 'WARN' ? 'Already checked in' : 'Invalid'}</h2>
-            <p className="text-2xl font-medium mb-1">{scanResult.name}</p>
-            <p className="text-lg opacity-90">{scanResult.message}</p>
-            
-            {scanResult.status === 'OK' && scanResult.message.includes('1 of') && (
-              <button className="mt-8 px-6 py-3 bg-white text-black rounded-[6px] font-medium shadow-xl">
-                Check in remaining
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+      <section className="relative min-h-0 flex-1 overflow-hidden bg-black" aria-label="Ticket scanner">
+        <div id="reader" className="h-full w-full" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-6 z-10 mx-auto w-fit rounded-full bg-black/70 px-4 py-2 text-xs text-slate-200 backdrop-blur">Hold the ticket QR code inside the frame</div>
 
-      {/* Bottom Bar */}
-      <div className="p-6 bg-black z-10 flex justify-center border-t border-white/10">
-        <button className="px-8 py-3 bg-white/10 hover:bg-white/20 rounded-[6px] font-medium transition-colors">
-          Manual Search
-        </button>
-      </div>
-    </div>
+        {cameraError && <div className="absolute inset-x-4 top-4 z-20 rounded-xl border border-red-400/30 bg-red-950/90 p-4 text-sm" role="alert">{cameraError}</div>}
+
+        {scanResult && <div className={"absolute inset-0 z-50 flex flex-col items-center justify-center p-6 text-center " + resultStyle} aria-live="assertive"><ResultIcon className="size-20" aria-hidden="true" /><h2 className="mt-6 font-display text-4xl font-semibold">{scanResult.title}</h2>{scanResult.name && <p className="mt-3 text-2xl font-medium">{scanResult.name}</p>}<p className="mt-2 max-w-md text-base text-white/90">{scanResult.message}</p><Button type="button" variant="outline" size="lg" className="mt-8 border-white/50 bg-white text-slate-950 hover:bg-white/90" onClick={() => { clearTimeout(resetTimerRef.current); clearResult(); }}><RotateCcw aria-hidden="true" /> Scan next ticket</Button></div>}
+      </section>
+
+      <footer className="relative z-20 border-t border-white/10 bg-slate-950 p-4">
+        {!manualOpen ? <Button type="button" variant="outline" className="mx-auto flex w-full max-w-sm border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white" onClick={() => setManualOpen(true)}><Keyboard aria-hidden="true" /> Enter ticket ID manually</Button> : <form onSubmit={submitManual} className="mx-auto flex max-w-xl flex-col gap-2 sm:flex-row"><Input value={manualId} onChange={(eventObject) => setManualId(eventObject.target.value)} placeholder="Ticket UUID" aria-label="Ticket ID" autoFocus className="border-white/20 bg-white text-slate-950" /><Button type="submit" disabled={!manualId.trim()}>Check in</Button><Button type="button" variant="ghost" className="text-white hover:bg-white/10 hover:text-white" onClick={() => setManualOpen(false)}>Cancel</Button></form>}
+      </footer>
+    </main>
   );
 }

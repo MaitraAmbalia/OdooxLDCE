@@ -1,179 +1,123 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
-import { useMutation } from "@tanstack/react-query";
+import { useFieldArray, useForm } from "react-hook-form";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { usePageTitle } from "@/hooks/usePageTitle";
+
+const STEPS = ["Basics", "Schedule", "Tickets", "Review"];
 
 export default function EventProposalStepper() {
+  usePageTitle("Create event");
   const [currentStep, setCurrentStep] = useState(1);
   const navigate = useNavigate();
-  
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+  const queryClient = useQueryClient();
+  const { register, handleSubmit, watch, control, formState: { errors } } = useForm({
     defaultValues: {
-      tickets: [],
-      budgetLines: []
-    }
-  });
-
-  // Watch for capacity meter
-  const capacity = watch("capacity", 0);
-  const tickets = watch("tickets", []);
-  const allocatedQuotas = tickets.reduce((sum, t) => sum + (Number(t.quota) || 0), 0);
-
-  // Mock Mutation for autosave / submit
-  const submitProposal = useMutation({
-    mutationFn: async (data) => {
-      // API endpoint: POST /events (and PATCH /events/:id for drafts)
-      console.log("Submitting proposal...", data);
-      // Mock success
-      return { id: "mock-event-id" };
+      category: "Social",
+      visibility: "PUBLIC",
+      capacity: 100,
+      ticketTypes: [{ name: "General admission", audience: "ALL", price: 0, quota: 100, maxPerUser: 5 }],
     },
-    onSuccess: () => {
-      navigate("/manage/events");
-    }
+  });
+  const { fields, append, remove } = useFieldArray({ control, name: "ticketTypes" });
+  const values = watch();
+  const allocatedQuota = (values.ticketTypes || []).reduce((total, ticket) => total + Number(ticket.quota || 0), 0);
+
+  const submitEvent = useMutation({
+    mutationFn: async (data) => {
+      const payload = {
+        title: data.title.trim(),
+        description: data.description.trim(),
+        category: data.category,
+        venue: data.venue.trim(),
+        startAt: data.startAt,
+        endAt: data.endAt,
+        capacity: Number(data.capacity),
+        visibility: data.visibility,
+        ticketTypes: (data.ticketTypes || []).map((ticket) => ({
+          name: ticket.name.trim(),
+          audience: ticket.audience,
+          pricePaise: Math.round(Number(ticket.price || 0) * 100),
+          quota: Number(ticket.quota),
+          maxPerUser: Number(ticket.maxPerUser || 1),
+        })),
+      };
+      const response = await fetch("/api/v1/events", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message || "Could not create event");
+      return json.data;
+    },
+    onSuccess: (event) => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast.success("Event created.");
+      navigate(event?.id ? "/events/" + event.id : "/events");
+    },
+    onError: (error) => toast.error(error.message || "Could not create event."),
   });
 
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 5));
-  const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
-
+  const advance = () => setCurrentStep((step) => Math.min(step + 1, STEPS.length));
   const onSubmit = (data) => {
-    if (currentStep < 5) {
-      // In a real app, autosave here
-      nextStep();
-    } else {
-      submitProposal.mutate(data);
+    if (currentStep < STEPS.length) {
+      advance();
+      return;
     }
+    if (new Date(data.endAt) <= new Date(data.startAt)) {
+      toast.error("End time must be after the start time.");
+      setCurrentStep(2);
+      return;
+    }
+    if (allocatedQuota > Number(data.capacity)) {
+      toast.error("Ticket quotas cannot exceed event capacity.");
+      setCurrentStep(3);
+      return;
+    }
+    submitEvent.mutate(data);
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <Link to="/manage/events" className="text-sm font-medium text-[var(--color-dusk)] hover:underline">
-          &larr; Back to Pipeline
-        </Link>
-        <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)] mt-4">New Event Proposal</h1>
-        <div className="flex gap-2 mt-6">
-          {[1, 2, 3, 4, 5].map(step => (
-            <div key={step} className={`flex-1 h-2 rounded-full ${currentStep >= step ? 'bg-[var(--color-dusk)]' : 'bg-[var(--color-line)]'}`} />
-          ))}
-        </div>
-        <p className="text-sm text-[var(--color-muted)] mt-2">
-          Step {currentStep} of 5: {
-            currentStep === 1 ? 'Basics' : 
-            currentStep === 2 ? 'When & Where' : 
-            currentStep === 3 ? 'Tickets' : 
-            currentStep === 4 ? 'Budget & Logistics' : 'Review & Submit'
-          }
-        </p>
+    <div className="page-container max-w-4xl py-12 sm:py-16">
+      <Button asChild variant="ghost" className="mb-6 -ml-3"><Link to="/manage"><ArrowLeft aria-hidden="true" /> Back to manage</Link></Button>
+      <div><p className="mb-2 text-sm font-medium text-primary">Event operations</p><h1 className="font-display text-4xl font-semibold tracking-tight">Create an event</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Add the public details, schedule, and ticket allocation before publishing.</p></div>
+
+      <div className="mt-8" aria-label={"Step " + currentStep + " of " + STEPS.length + ": " + STEPS[currentStep - 1]}>
+        <div className="flex gap-2">{STEPS.map((step, index) => <div key={step} className={"h-1.5 flex-1 rounded-full " + (index < currentStep ? "bg-primary" : "bg-secondary")} />)}</div>
+        <p className="mt-3 text-sm font-medium">Step {currentStep} of {STEPS.length}: {STEPS[currentStep - 1]}</p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] p-6 sm:p-8">
-        {currentStep === 1 && (
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Event Title</label>
-              <input type="text" {...register("title", { required: true })} className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px]" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Category</label>
-              <select {...register("category")} className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px]">
-                <option value="Social">Social</option>
-                <option value="Academic">Academic</option>
-                <option value="Workshop">Workshop</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Description</label>
-              <textarea rows={5} {...register("description", { required: true })} className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px]" />
-            </div>
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-6 rounded-2xl border border-border bg-card p-5 sm:p-8" noValidate>
+        {currentStep === 1 && <div className="space-y-5">
+          <div><label htmlFor="event-title" className="mb-2 block text-sm font-medium">Event title</label><Input id="event-title" aria-invalid={!!errors.title} {...register("title", { required: "Event title is required" })} />{errors.title && <p className="mt-2 text-sm text-destructive">{errors.title.message}</p>}</div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div><label htmlFor="event-category" className="mb-2 block text-sm font-medium">Category</label><select id="event-category" {...register("category")} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"><option>Social</option><option>Academic</option><option>Workshop</option><option>Sports</option><option>Cultural</option></select></div>
+            <div><label htmlFor="event-visibility" className="mb-2 block text-sm font-medium">Visibility</label><select id="event-visibility" {...register("visibility")} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"><option value="PUBLIC">Public</option><option value="MEMBERS_ONLY">Members only</option></select></div>
           </div>
-        )}
+          <div><label htmlFor="event-description" className="mb-2 block text-sm font-medium">Description</label><textarea id="event-description" rows={6} aria-invalid={!!errors.description} {...register("description", { required: "Description is required" })} className="w-full resize-y rounded-xl border border-input bg-background px-4 py-3 text-sm leading-6 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50" />{errors.description && <p className="mt-2 text-sm text-destructive">{errors.description.message}</p>}</div>
+        </div>}
 
-        {currentStep === 2 && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Start Date & Time</label>
-                <input type="datetime-local" {...register("startDate", { required: true })} className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px]" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">End Date & Time</label>
-                <input type="datetime-local" {...register("endDate")} className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px]" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Venue</label>
-              <input type="text" {...register("venue", { required: true })} className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px]" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Total Capacity</label>
-              <input type="number" {...register("capacity", { required: true, valueAsNumber: true })} className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px]" />
-            </div>
-          </div>
-        )}
+        {currentStep === 2 && <div className="space-y-5">
+          <div className="grid gap-5 sm:grid-cols-2"><div><label htmlFor="event-start" className="mb-2 block text-sm font-medium">Starts</label><Input id="event-start" type="datetime-local" aria-invalid={!!errors.startAt} {...register("startAt", { required: "Start time is required" })} />{errors.startAt && <p className="mt-2 text-sm text-destructive">{errors.startAt.message}</p>}</div><div><label htmlFor="event-end" className="mb-2 block text-sm font-medium">Ends</label><Input id="event-end" type="datetime-local" aria-invalid={!!errors.endAt} {...register("endAt", { required: "End time is required" })} />{errors.endAt && <p className="mt-2 text-sm text-destructive">{errors.endAt.message}</p>}</div></div>
+          <div><label htmlFor="event-venue" className="mb-2 block text-sm font-medium">Venue</label><Input id="event-venue" aria-invalid={!!errors.venue} {...register("venue", { required: "Venue is required" })} />{errors.venue && <p className="mt-2 text-sm text-destructive">{errors.venue.message}</p>}</div>
+          <div><label htmlFor="event-capacity" className="mb-2 block text-sm font-medium">Total capacity</label><Input id="event-capacity" type="number" min="1" aria-invalid={!!errors.capacity} {...register("capacity", { required: "Capacity is required", valueAsNumber: true, min: { value: 1, message: "Capacity must be at least 1" } })} />{errors.capacity && <p className="mt-2 text-sm text-destructive">{errors.capacity.message}</p>}</div>
+        </div>}
 
-        {currentStep === 3 && (
-          <div className="space-y-6">
-            <div className="bg-[var(--color-paper)] p-4 rounded-[6px] flex justify-between items-center border border-[var(--color-line)]">
-              <span className="font-medium text-[var(--color-ink)]">Capacity Allocation</span>
-              <span className={`font-mono font-bold ${allocatedQuotas > capacity ? 'text-[var(--color-stop)]' : 'text-[var(--color-ok)]'}`}>
-                Quotas {allocatedQuotas} / {capacity || 0} capacity
-              </span>
-            </div>
-            <p className="text-sm text-[var(--color-muted)]">Use standard ticket builder here to add arrays of tickets.</p>
-            {/* Note: In a real implementation, use useFieldArray to add/remove tickets dynamically */}
-            <div className="p-4 border border-[var(--color-line)] border-dashed rounded-[6px] text-center">
-              <button type="button" className="text-[var(--color-dusk)] font-medium">+ Add Ticket Type</button>
-            </div>
-          </div>
-        )}
+        {currentStep === 3 && <div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h2 className="font-display text-xl font-semibold">Ticket types</h2><p className="mt-1 text-sm text-muted-foreground">Quotas total {allocatedQuota} of {Number(values.capacity || 0)} places.</p></div><Button type="button" variant="outline" onClick={() => append({ name: "", audience: "ALL", price: 0, quota: 1, maxPerUser: 1 })}><Plus aria-hidden="true" /> Add ticket</Button></div>
+          <div className="mt-6 space-y-4">{fields.map((field, index) => <div key={field.id} className="rounded-xl border border-border bg-secondary/20 p-4"><div className="flex items-center justify-between"><h3 className="text-sm font-semibold">Ticket {index + 1}</h3><Button type="button" variant="ghost" size="icon-sm" aria-label={"Remove ticket " + (index + 1)} onClick={() => remove(index)} disabled={fields.length === 1}><Trash2 aria-hidden="true" /></Button></div><div className="mt-4 grid gap-4 sm:grid-cols-2"><div><label className="mb-2 block text-xs font-medium">Name</label><Input {...register("ticketTypes." + index + ".name", { required: "Ticket name is required" })} /></div><div><label className="mb-2 block text-xs font-medium">Audience</label><select {...register("ticketTypes." + index + ".audience")} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="ALL">Everyone</option><option value="MEMBER">Members</option><option value="NON_MEMBER">Non-members</option></select></div><div><label className="mb-2 block text-xs font-medium">Price (₹)</label><Input type="number" min="0" step="0.01" {...register("ticketTypes." + index + ".price", { valueAsNumber: true, min: 0 })} /></div><div><label className="mb-2 block text-xs font-medium">Quota</label><Input type="number" min="1" {...register("ticketTypes." + index + ".quota", { valueAsNumber: true, min: 1 })} /></div><div><label className="mb-2 block text-xs font-medium">Maximum per person</label><Input type="number" min="1" {...register("ticketTypes." + index + ".maxPerUser", { valueAsNumber: true, min: 1 })} /></div></div></div>)}</div>
+          {allocatedQuota > Number(values.capacity || 0) && <p className="mt-4 text-sm text-destructive" role="alert">Ticket quotas exceed the event capacity.</p>}
+        </div>}
 
-        {currentStep === 4 && (
-          <div className="space-y-6">
-            <h3 className="font-medium text-[var(--color-ink)]">Estimated Budget</h3>
-            <p className="text-sm text-[var(--color-muted)]">Use line-item builder here for expenses.</p>
-            <div className="p-4 border border-[var(--color-line)] border-dashed rounded-[6px] text-center mb-6">
-              <button type="button" className="text-[var(--color-dusk)] font-medium">+ Add Expense Line</button>
-            </div>
+        {currentStep === 4 && <div><h2 className="font-display text-2xl font-semibold">Review event</h2><div className="mt-6 grid gap-4 rounded-xl bg-secondary/40 p-5 text-sm sm:grid-cols-2"><div><p className="text-xs text-muted-foreground">Title</p><p className="mt-1 font-medium">{values.title}</p></div><div><p className="text-xs text-muted-foreground">Category</p><p className="mt-1 font-medium">{values.category}</p></div><div><p className="text-xs text-muted-foreground">Venue</p><p className="mt-1 font-medium">{values.venue}</p></div><div><p className="text-xs text-muted-foreground">Capacity</p><p className="mt-1 font-medium">{values.capacity}</p></div><div><p className="text-xs text-muted-foreground">Schedule</p><p className="mt-1 font-medium">{values.startAt ? new Date(values.startAt).toLocaleString() : "Not set"}</p></div><div><p className="text-xs text-muted-foreground">Tickets</p><p className="mt-1 font-medium">{fields.length} type{fields.length === 1 ? "" : "s"} · {allocatedQuota} places</p></div></div><p className="mt-5 text-sm leading-6 text-muted-foreground">Publishing makes this event visible according to its selected visibility and opens the configured ticket types.</p></div>}
 
-            <h3 className="font-medium text-[var(--color-ink)] mt-8">Logistics</h3>
-            <div>
-              <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Volunteers Needed</label>
-              <input type="number" {...register("volunteersNeeded")} className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px]" />
-            </div>
-          </div>
-        )}
-
-        {currentStep === 5 && (
-          <div className="space-y-6">
-            <h3 className="text-xl font-display font-bold text-[var(--color-ink)]">Review Proposal</h3>
-            <div className="bg-[var(--color-paper)] p-6 rounded-[6px] space-y-4 text-sm">
-              <p><strong>Title:</strong> {watch("title")}</p>
-              <p><strong>Category:</strong> {watch("category")}</p>
-              <p><strong>Venue:</strong> {watch("venue")}</p>
-              <p><strong>Capacity:</strong> {watch("capacity")}</p>
-            </div>
-            <p className="text-sm text-[var(--color-muted)]">
-              Once submitted, this will be sent to your Mentor for approval. You cannot edit the capacity or budget after it is approved.
-            </p>
-          </div>
-        )}
-
-        <div className="mt-8 pt-6 border-t border-[var(--color-line)] flex justify-between">
-          <button
-            type="button"
-            onClick={prevStep}
-            disabled={currentStep === 1}
-            className="px-4 py-2 border border-[var(--color-line)] rounded-[6px] text-sm font-medium disabled:opacity-50"
-          >
-            Previous
-          </button>
-          <button
-            type="submit"
-            className="px-6 py-2 bg-[var(--color-dusk)] text-white rounded-[6px] text-sm font-medium hover:bg-opacity-90"
-          >
-            {currentStep === 5 ? "Submit for approval" : "Save & Continue"}
-          </button>
-        </div>
+        <div className="mt-8 flex items-center justify-between border-t border-border pt-6"><Button type="button" variant="outline" onClick={() => setCurrentStep((step) => Math.max(1, step - 1))} disabled={currentStep === 1}>Previous</Button><Button type="submit" disabled={submitEvent.isPending || (currentStep === 3 && allocatedQuota > Number(values.capacity || 0))}>{submitEvent.isPending ? "Publishing…" : currentStep === STEPS.length ? "Publish event" : "Continue"}</Button></div>
       </form>
     </div>
   );

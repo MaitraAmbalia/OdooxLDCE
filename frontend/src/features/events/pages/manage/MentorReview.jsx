@@ -1,333 +1,118 @@
-import React, { useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, CalendarDays, MapPin, Users } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { ContentState } from "@/components/common/ContentState";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
+
+const money = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" });
 
 export default function MentorReview() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [decision, setDecision] = useState(null); // 'APPROVE', 'REQUEST_CHANGES', 'REJECT'
+  const queryClient = useQueryClient();
+  const [decision, setDecision] = useState("");
   const [comment, setComment] = useState("");
   const [approvedBudget, setApprovedBudget] = useState(0);
 
-  // Fetch current user
   const { data: authData } = useQuery({
-    queryKey: ['auth', 'me'],
+    queryKey: ["auth", "me"],
     queryFn: async () => {
-      const res = await fetch("/api/v1/auth/me", { credentials: "include" });
-      if (!res.ok) return null;
-      return res.json();
+      const response = await fetch("/api/v1/auth/me", { credentials: "include" });
+      if (!response.ok) return null;
+      return response.json();
     },
     retry: false,
   });
 
-  const user = authData?.data;
-  const isMentor = user?.roles?.includes('MENTOR');
-
-  const handleQuickMentorLogin = async () => {
-    try {
-      const res = await fetch("/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ email: "mentor@nirmauni.ac.in", password: "Password123!" }),
-      });
-      if (res.ok) {
-        window.location.reload();
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  // Fetch Event Proposal details
-  const { data: eventData, isLoading } = useQuery({
-    queryKey: ['events', id, 'review'],
+  const { data: eventData, isPending, isError, refetch } = useQuery({
+    queryKey: ["events", id, "review"],
     queryFn: async () => {
-      const res = await fetch(`/api/v1/events/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch event proposal");
-      const data = await res.json();
-      
-      if (data?.data?.proposedBudget) {
-        setApprovedBudget(data.data.proposedBudget);
-      }
-      return data;
-    }
+      const response = await fetch("/api/v1/events/" + id, { credentials: "include" });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message || "Failed to fetch event proposal");
+      return json;
+    },
   });
+
+  const event = eventData?.data;
+  const user = authData?.data;
+  const isMentor = user?.roles?.includes("MENTOR");
+  const canReview = event?.status === "PENDING_APPROVAL" || event?.status === "CHANGES_REQUESTED";
+  usePageTitle(event?.title ? "Review " + event.title : "Event review");
+
+  useEffect(() => {
+    if (event?.approvedBudgetPaise != null) setApprovedBudget(Number(event.approvedBudgetPaise) / 100);
+  }, [event?.approvedBudgetPaise]);
 
   const reviewMutation = useMutation({
     mutationFn: async (payload) => {
-      const res = await fetch(`/api/v1/events/${id}/review`, {
+      const response = await fetch("/api/v1/events/" + id + "/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(payload),
       });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error(json.error?.message || "Failed to submit review decision");
-      }
-      return res.json();
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message || "Failed to submit review decision");
+      return json.data;
     },
     onSuccess: () => {
-      alert("Event authorization decision recorded successfully in the organization ledger!");
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast.success("Review decision recorded.");
       navigate("/manage");
     },
-    onError: (err) => {
-      alert(err.message || "Failed to submit decision");
-    }
+    onError: (error) => toast.error(error.message || "Failed to submit decision."),
   });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const submitReview = (eventObject) => {
+    eventObject.preventDefault();
     if (!decision) return;
-    if ((decision === 'REQUEST_CHANGES' || decision === 'REJECT') && !comment.trim()) {
-      alert("A comment is required for this decision.");
+    if ((decision === "REQUEST_CHANGES" || decision === "REJECT") && !comment.trim()) {
+      toast.error("Feedback is required for this decision.");
       return;
     }
-
-    reviewMutation.mutate({
-      decision,
-      comment,
-      approvedBudget: decision === 'APPROVE' ? approvedBudget : null
-    });
+    reviewMutation.mutate({ decision, comment: comment.trim(), approvedBudget: decision === "APPROVE" && approvedBudget > 0 ? approvedBudget : null });
   };
 
-  if (isLoading) return <div className="p-12 text-center text-[var(--color-muted)]">Loading event proposal for review...</div>;
-  const event = eventData?.data;
+  if (isPending) return <div className="page-container py-12" role="status" aria-label="Loading event review"><Skeleton className="h-8 w-52" /><div className="mt-8 grid gap-6 lg:grid-cols-3"><Skeleton className="h-[34rem] rounded-2xl lg:col-span-2" /><Skeleton className="h-[34rem] rounded-2xl" /></div></div>;
+  if (isError || !event) return <div className="page-container py-16"><ContentState error title="This event proposal isn’t available." description="It may have moved or no longer be visible." action={refetch} /></div>;
 
-  const mockEvent = event || {
-    title: "Annual Tech Gala 2026",
-    proposedBy: { name: "Rohan Mehta (Event Head)" },
-    status: "PENDING_APPROVAL",
-    description: "The biggest flagship cultural and networking celebration of the semester.",
-    venue: "University Grand Auditorium",
-    startDate: "2026-10-17T10:00:00Z",
-    capacity: 350,
-    ticketTypes: [
-      { id: '1', name: 'Member Early Bird Ticket', audience: 'MEMBER', pricePaise: 15000, quota: 200 },
-      { id: '2', name: 'General Admission (Non-Member)', audience: 'NON_MEMBER', pricePaise: 30000, quota: 150 }
-    ],
-    budgetLines: [
-      { item: "Auditorium Rental & Sound", amount: 15000 },
-      { item: "Stage Décor & Lighting", amount: 8000 },
-      { item: "Refreshments & High Tea", amount: 12000 }
-    ]
-  };
+  const startAt = event.startAt || event.startDate;
+  const ticketTypes = event.ticketTypes || [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      {/* Mentor Authentication Warning / Quick Login */}
-      {!isMentor && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🎓</span>
-            <div>
-              <h4 className="text-sm font-bold text-amber-900">Faculty Mentor Authorization</h4>
-              <p className="text-xs text-amber-700">
-                {user 
-                  ? `Currently logged in as ${user.name} (${user.roles?.[0] || 'Member'}). Proposal review requires Mentor role.` 
-                  : 'You are currently not logged in. Log in as Mentor to authorize this event proposal.'}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleQuickMentorLogin}
-            className="px-4 py-2 bg-[var(--color-dusk)] text-white text-xs font-bold rounded-lg hover:bg-opacity-90 transition-all shadow-sm whitespace-nowrap self-start sm:self-center"
-          >
-            ⚡ Quick Log In as Mentor
-          </button>
-        </div>
-      )}
+    <div className="page-container py-12 sm:py-16">
+      <Button asChild variant="ghost" className="mb-6 -ml-3"><Link to="/manage"><ArrowLeft aria-hidden="true" /> Back to manage</Link></Button>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="mb-2 text-sm font-medium text-primary">Mentor authorization</p><h1 className="font-display text-4xl font-semibold tracking-tight">Review event proposal</h1></div><span className="w-fit rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800">{event.status.replaceAll("_", " ")}</span></div>
 
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <Link to="/manage" className="text-sm font-semibold text-[var(--color-dusk)] hover:underline inline-block mb-1">
-            &larr; Back to Manage Hub
-          </Link>
-          <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">Event Authorization Review</h1>
-        </div>
-        <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
-          Pending Mentor Authorization
-        </span>
-      </div>
+      {!isMentor && <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950" role="alert"><strong>Mentor access required.</strong> {user ? "You are signed in without the Mentor role, so this proposal is read-only." : "Sign in with an authorized Mentor account to record a decision."} {!user && <Link to="/login" className="ml-1 font-semibold underline">Go to login</Link>}</div>}
+      {!canReview && <div className="mt-6 rounded-xl border border-border bg-secondary/40 p-4 text-sm text-muted-foreground" role="status">This proposal is already {event.status.toLowerCase().replaceAll("_", " ")} and is available as a read-only record.</div>}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left 2 Cols: Proposal Overview & Details */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm">
-            <h2 className="text-xl font-display font-bold text-[var(--color-ink)] mb-4">{mockEvent.title}</h2>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 p-4 bg-[var(--color-paper)] rounded-lg text-xs">
-              <div>
-                <span className="text-[var(--color-muted)] block mb-0.5">Proposed By</span>
-                <span className="font-bold text-[var(--color-ink)]">{mockEvent.proposedBy?.name || "Event Head"}</span>
-              </div>
-              <div>
-                <span className="text-[var(--color-muted)] block mb-0.5">Venue</span>
-                <span className="font-bold text-[var(--color-ink)]">{mockEvent.venue}</span>
-              </div>
-              <div>
-                <span className="text-[var(--color-muted)] block mb-0.5">Start Date</span>
-                <span className="font-bold text-[var(--color-ink)]">{new Date(mockEvent.startDate || mockEvent.startAt || Date.now()).toLocaleDateString()}</span>
-              </div>
-              <div>
-                <span className="text-[var(--color-muted)] block mb-0.5">Total Capacity</span>
-                <span className="font-bold text-[var(--color-ink)]">{mockEvent.capacity} Attendees</span>
-              </div>
-            </div>
+      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <section className="rounded-2xl border border-border bg-card p-5 sm:p-7" aria-labelledby="proposal-title">
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">{event.category || "Event"}</p>
+          <h2 id="proposal-title" className="mt-2 font-display text-3xl font-semibold">{event.title}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Proposed by {event.proposedBy?.name || "Event team"}</p>
+          <div className="mt-6 grid gap-3 rounded-xl bg-secondary/40 p-4 text-sm sm:grid-cols-3"><p className="flex items-start gap-2"><CalendarDays className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" /><span>{startAt ? new Date(startAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "Schedule unavailable"}</span></p><p className="flex items-start gap-2"><MapPin className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" /><span>{event.venue}</span></p><p className="flex items-start gap-2"><Users className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" /><span>{event.capacity} capacity</span></p></div>
+          <div className="mt-7"><h3 className="text-sm font-semibold">Description</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{event.description}</p></div>
+          <div className="mt-8"><h3 className="text-sm font-semibold">Ticket allocation</h3>{ticketTypes.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">No ticket types were configured.</p> : <div className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border">{ticketTypes.map((ticket) => <div key={ticket.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-medium">{ticket.name}</p><p className="mt-1 text-xs text-muted-foreground">{ticket.audience.replaceAll("_", " ")} · Maximum {ticket.maxPerUser} per person</p></div><div className="text-sm sm:text-right"><p className="font-mono font-semibold">{money.format(Number(ticket.pricePaise || 0) / 100)}</p><p className="mt-1 text-xs text-muted-foreground">{ticket.quota} places</p></div></div>)}</div>}</div>
+        </section>
 
-            <div className="mb-6">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">Description</h3>
-              <p className="text-sm text-[var(--color-ink)] leading-relaxed">{mockEvent.description}</p>
-            </div>
+        <aside className="h-fit rounded-2xl border border-border bg-card p-5 lg:sticky lg:top-24" aria-labelledby="decision-heading">
+          <h2 id="decision-heading" className="font-display text-xl font-semibold">Decision</h2>
+          <form onSubmit={submitReview} className="mt-5 space-y-5">
+            <fieldset disabled={!isMentor || !canReview || reviewMutation.isPending}><legend className="sr-only">Review decision</legend><div className="space-y-2">{[{ id: "APPROVE", label: "Approve", description: "Publish the event and record authorization." }, { id: "REQUEST_CHANGES", label: "Request changes", description: "Return it to the event team with feedback." }, { id: "REJECT", label: "Reject", description: "Decline this proposal." }].map((option) => <label key={option.id} className={"block cursor-pointer rounded-xl border p-3 transition " + (decision === option.id ? "border-primary bg-primary/5" : "border-border hover:bg-secondary/30")}><span className="flex items-start gap-3"><input type="radio" name="decision" value={option.id} checked={decision === option.id} onChange={() => setDecision(option.id)} className="mt-1 accent-primary" /><span><span className="block text-sm font-medium">{option.label}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{option.description}</span></span></span></label>)}</div></fieldset>
 
-            {/* Ticket Tiers */}
-            <div className="mb-6">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-3">Proposed Ticket Tiers</h3>
-              <div className="space-y-2">
-                {(mockEvent.ticketTypes || []).map((t, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)] text-xs font-medium">
-                    <div>
-                      <span className="font-bold text-[var(--color-ink)]">{t.name}</span>
-                      <span className="ml-2 text-[10px] uppercase font-bold text-[var(--color-dusk)] bg-blue-50 px-2 py-0.5 rounded">
-                        {t.audience}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span>Quota: <strong>{t.quota}</strong></span>
-                      <span className="font-mono font-bold text-[var(--color-ink)]">₹{((t.pricePaise || 0) / 100).toFixed(2)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Budget Breakdown */}
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-3">Estimated Budget Breakdown</h3>
-              <div className="divide-y divide-[var(--color-line)] border border-[var(--color-line)] rounded-lg overflow-hidden text-xs">
-                {(mockEvent.budgetLines || [
-                  { item: "Venue & Audio Stage Setup", amount: 15000 },
-                  { item: "Lighting & Badges", amount: 8000 },
-                  { item: "Guest Hospitality & High Tea", amount: 12000 }
-                ]).map((line, idx) => (
-                  <div key={idx} className="flex justify-between p-3 bg-white">
-                    <span className="text-[var(--color-ink)]">{line.item}</span>
-                    <span className="font-mono font-bold text-[var(--color-ink)]">₹{line.amount.toLocaleString('en-IN')}</span>
-                  </div>
-                ))}
-                <div className="flex justify-between p-3 bg-[var(--color-paper)] font-bold text-sm">
-                  <span>Total Proposed Budget</span>
-                  <span className="font-mono text-[var(--color-dusk)]">₹35,000.00</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Col: Sticky Decision Console */}
-        <div className="space-y-6">
-          <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm sticky top-20">
-            <h3 className="text-lg font-display font-bold text-[var(--color-ink)] mb-4">Mentor Decision</h3>
-            
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">
-                  Authorization Action
-                </label>
-                <div className="grid grid-cols-1 gap-2">
-                  <label className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
-                    decision === 'APPROVE' ? 'border-[var(--color-ok)] bg-emerald-50 text-emerald-900 font-bold' : 'border-[var(--color-line)] hover:bg-gray-50'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="decision"
-                      value="APPROVE"
-                      checked={decision === 'APPROVE'}
-                      onChange={() => setDecision('APPROVE')}
-                      className="accent-[var(--color-ok)]"
-                    />
-                    <div>
-                      <span className="text-sm block">Approve Proposal</span>
-                      <span className="text-[11px] text-[var(--color-muted)] font-normal">Authorizes tickets and locks budget</span>
-                    </div>
-                  </label>
-
-                  <label className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
-                    decision === 'REQUEST_CHANGES' ? 'border-amber-400 bg-amber-50 text-amber-900 font-bold' : 'border-[var(--color-line)] hover:bg-gray-50'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="decision"
-                      value="REQUEST_CHANGES"
-                      checked={decision === 'REQUEST_CHANGES'}
-                      onChange={() => setDecision('REQUEST_CHANGES')}
-                      className="accent-amber-500"
-                    />
-                    <div>
-                      <span className="text-sm block">Request Changes</span>
-                      <span className="text-[11px] text-[var(--color-muted)] font-normal">Sends proposal back with comments</span>
-                    </div>
-                  </label>
-
-                  <label className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
-                    decision === 'REJECT' ? 'border-[var(--color-stop)] bg-red-50 text-red-900 font-bold' : 'border-[var(--color-line)] hover:bg-gray-50'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="decision"
-                      value="REJECT"
-                      checked={decision === 'REJECT'}
-                      onChange={() => setDecision('REJECT')}
-                      className="accent-[var(--color-stop)]"
-                    />
-                    <div>
-                      <span className="text-sm block">Reject Proposal</span>
-                      <span className="text-[11px] text-[var(--color-muted)] font-normal">Declines event completely</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              {decision === 'APPROVE' && (
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">
-                    Allocated Budget (₹)
-                  </label>
-                  <input
-                    type="number"
-                    value={approvedBudget || 35000}
-                    onChange={(e) => setApprovedBudget(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-[var(--color-line)] rounded-lg text-sm font-mono font-bold focus:border-[var(--color-dusk)] focus:outline-none"
-                  />
-                  <p className="text-[10px] text-[var(--color-muted)] mt-1">Pre-filled with proposal total. Adjust if needed.</p>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">
-                  Mentor Feedback / Comments {decision !== 'APPROVE' && decision && <span className="text-[var(--color-stop)]">*</span>}
-                </label>
-                <textarea
-                  rows={3}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder={decision === 'APPROVE' ? "Optional congratulations or venue remarks..." : "Specify required changes before re-submission..."}
-                  className="w-full px-3 py-2 border border-[var(--color-line)] rounded-lg text-xs focus:border-[var(--color-dusk)] focus:outline-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={!decision || !isMentor || reviewMutation.isPending}
-                className="w-full py-2.5 px-4 rounded-lg bg-[var(--color-dusk)] text-white text-sm font-bold hover:bg-opacity-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
-              >
-                {!isMentor ? "Log in as Mentor to Submit" : reviewMutation.isPending ? "Recording Decision..." : "Submit Authorization &rarr;"}
-              </button>
-            </form>
-          </div>
-        </div>
+            {decision === "APPROVE" && <div><label htmlFor="approved-budget" className="mb-2 block text-sm font-medium">Approved budget (₹)</label><Input id="approved-budget" type="number" min="0" step="1" value={approvedBudget} onChange={(eventObject) => setApprovedBudget(Number(eventObject.target.value))} /><p className="mt-2 text-xs leading-5 text-muted-foreground">Optional. Leave at zero if no budget is being authorized.</p></div>}
+            <div><label htmlFor="mentor-comment" className="mb-2 block text-sm font-medium">Feedback {(decision === "REQUEST_CHANGES" || decision === "REJECT") && <span className="text-destructive">*</span>}</label><textarea id="mentor-comment" rows={4} value={comment} onChange={(eventObject) => setComment(eventObject.target.value)} disabled={!isMentor || !canReview} placeholder="Add clear, actionable feedback…" className="w-full resize-y rounded-xl border border-input bg-background px-3 py-2 text-sm leading-6 outline-none disabled:opacity-50 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50" /></div>
+            <Button type="submit" className="w-full" disabled={!decision || !isMentor || !canReview || reviewMutation.isPending}>{reviewMutation.isPending ? "Recording…" : "Submit decision"}</Button>
+          </form>
+        </aside>
       </div>
     </div>
   );
