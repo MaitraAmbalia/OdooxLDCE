@@ -1,11 +1,10 @@
 import { Router } from 'express';
-import { debounceRequest } from '../../middleware/debounce.js';
 
 export function createTicketsRouter({ service, authenticate, authorize }) {
   const router = Router();
 
-  // POST /tickets/buy - Purchase/Issue ticket (debounced against rapid double-clicks)
-  router.post('/tickets/buy', authenticate, debounceRequest({ windowMs: 1000 }), async (req, res) => {
+  // POST /tickets/buy - Purchase/Issue ticket
+  router.post('/tickets/buy', authenticate, async (req, res) => {
     res.status(201).json({ data: await service.buyTicket(req.user.sub, req.body) });
   });
 

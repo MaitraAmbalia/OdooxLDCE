@@ -1,9 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-/**
- * Standard pure JS debounce function.
- * Delays invoking func until after wait milliseconds have elapsed since the last time it was invoked.
- */
 export function debounce(func, wait = 300) {
   let timeoutId = null;
 
