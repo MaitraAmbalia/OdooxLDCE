@@ -52,7 +52,10 @@ export default function TicketPass() {
     }
     const end = new Date(event.endAt || start.getTime() + 2 * 60 * 60 * 1000);
     const stamp = (date) => date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-    const calendar = ["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", `UID:${crypto.randomUUID()}@skyline`, `DTSTART:${stamp(start)}`, `DTEND:${stamp(end)}`, `SUMMARY:${event.title || "Skyline event"}`, `LOCATION:${event.venue || "Campus"}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+    const eventUid = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${ticket.id || 'tck'}-${Date.now()}`;
+    const calendar = ["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", `UID:${eventUid}@skyline`, `DTSTART:${stamp(start)}`, `DTEND:${stamp(end)}`, `SUMMARY:${event.title || "Skyline event"}`, `LOCATION:${event.venue || "Campus"}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
     const url = URL.createObjectURL(new Blob([calendar], { type: "text/calendar" }));
     const link = document.createElement("a");
     link.href = url;
@@ -169,12 +172,18 @@ export default function TicketPass() {
         <div className="p-6 pt-5 bg-white text-center">
           
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 shadow-inner inline-block mx-auto mb-4">
-            <QRCodeSVG 
-              value={ticket.qr} 
-              size={180}
-              level="H"
-              includeMargin={false}
-            />
+            {ticket.qr ? (
+              <QRCodeSVG 
+                value={ticket.qr} 
+                size={180}
+                level="H"
+                includeMargin={false}
+              />
+            ) : (
+              <div className="size-[180px] animate-pulse rounded-lg bg-slate-100 flex items-center justify-center text-xs text-slate-400 font-mono" role="status" aria-label="Loading pass QR">
+                Generating pass QR…
+              </div>
+            )}
             <div className="mt-2 text-[10px] font-mono text-slate-500 font-bold uppercase tracking-wider">
               SCAN AT ENTRANCE
             </div>

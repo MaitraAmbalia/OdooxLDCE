@@ -9,6 +9,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpRight,
+  Bell,
   BriefcaseBusiness,
   ChevronDown,
   HeartHandshake,
@@ -113,6 +114,19 @@ export default function DiscoveryLayout() {
     ["/me/orders", "My orders"],
     ["/me/notifications", "Notifications"],
   ];
+
+  const { data: notificationsData } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/notifications", { credentials: "include" });
+      if (!res.ok) return { data: [] };
+      return res.json();
+    },
+    enabled: Boolean(user),
+    refetchInterval: 30000,
+  });
+  const unreadNotificationsCount = (notificationsData?.data || []).filter(n => !n.readAt).length;
+
   if (user?.isVolunteer || user?.roles?.length)
     accountLinks.push(["/volunteer", "Volunteer portal"]);
   if (
@@ -159,33 +173,47 @@ export default function DiscoveryLayout() {
       Retry account
     </Button>
   ) : user ? (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="h-10 max-w-48">
-          <UserRound aria-hidden="true" />
-          <span className="truncate">
-            {user.name || "Account"}
+    <div className="flex items-center gap-2">
+      <Link
+        to="/me/notifications"
+        aria-label="View notifications"
+        className="relative inline-flex size-10 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition hover:bg-secondary hover:text-primary"
+      >
+        <Bell className="size-4" aria-hidden="true" />
+        {unreadNotificationsCount > 0 && (
+          <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+            {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
           </span>
-          <ChevronDown aria-hidden="true" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="truncate">
-          {user.name || "Your account"}
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {accountLinks.map(([to, label]) => (
-          <DropdownMenuItem key={to} asChild>
-            <Link to={to}>{label}</Link>
+        )}
+      </Link>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="h-10 max-w-48">
+            <UserRound aria-hidden="true" />
+            <span className="truncate">
+              {user.name || "Account"}
+            </span>
+            <ChevronDown aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel className="truncate">
+            {user.name || "Your account"}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {accountLinks.map(([to, label]) => (
+            <DropdownMenuItem key={to} asChild>
+              <Link to={to}>{label}</Link>
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem disabled={loggingOut} onSelect={logout}>
+            <LogOut aria-hidden="true" />
+            {loggingOut ? "Logging out…" : "Log out"}
           </DropdownMenuItem>
-        ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem disabled={loggingOut} onSelect={logout}>
-          <LogOut aria-hidden="true" />
-          {loggingOut ? "Logging out…" : "Log out"}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   ) : (
     <>
       <Button asChild variant="ghost" className="h-10">

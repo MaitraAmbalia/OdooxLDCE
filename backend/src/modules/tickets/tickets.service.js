@@ -122,8 +122,12 @@ export function createTicketsService({ prisma, config }) {
     },
 
     async checkIn(doorVolunteerId, qr, expectedEventId) {
-      const ticketId = TICKET_QR.exec(openQr(config.cardQrSecret, qr) ?? '')?.[1];
-      if (!ticketId) throw new AppError('INVALID_TICKET', 400, 'This QR code is not a valid ticket');
+      const raw = String(qr ?? '').trim();
+      let ticketId = TICKET_QR.exec(openQr(config.cardQrSecret, raw) ?? '')?.[1];
+      if (!ticketId && /^[0-9a-f-]{36}$/i.test(raw)) {
+        ticketId = raw;
+      }
+      if (!ticketId) throw new AppError('INVALID_TICKET', 400, 'This QR code or pass code is not a valid ticket');
       const ticket = await prisma.ticket.findUnique({
         where: { id: ticketId },
         include: {

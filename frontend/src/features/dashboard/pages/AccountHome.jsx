@@ -26,9 +26,21 @@ export default function AccountHome() {
     retry: false,
   });
 
+  const { data: ordersData } = useQuery({
+    queryKey: ['orders', 'me'],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/orders/me", { credentials: "include" });
+      if (!res.ok) return { data: [] };
+      return res.json();
+    },
+    retry: false,
+  });
+
   const user = authData?.data;
   const tickets = ticketsData?.data || [];
   const nextTicket = tickets[0];
+  const orders = ordersData?.data || [];
+  const activeOrdersCount = orders.filter(o => o.status === 'PAID' || o.status === 'READY' || o.status === 'PENDING_PAYMENT').length;
 
   if (authLoading) return <div className="page-container max-w-5xl py-12" role="status" aria-label="Loading account"><Skeleton className="h-10 w-72" /><Skeleton className="mt-8 h-44 w-full rounded-2xl" /></div>;
 
@@ -106,7 +118,7 @@ export default function AccountHome() {
         <Link to="/me/orders" className="block rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
           <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"><ShoppingBag className="size-3.5" /> Merch orders</p>
           <div className="flex items-end gap-2">
-            <span className="text-3xl font-display font-bold text-slate-900 leading-none">0</span>
+            <span className="text-3xl font-display font-bold text-slate-900 leading-none">{activeOrdersCount}</span>
             <span className="text-xs text-muted-foreground mb-1">active</span>
           </div>
           <p className="text-xs text-primary mt-2 font-medium">View shop catalog &rarr;</p>

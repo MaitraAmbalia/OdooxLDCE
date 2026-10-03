@@ -11,9 +11,9 @@ export const rolePermissions = Object.freeze(Object.fromEntries(
   Object.entries(map).map(([role, permissions]) => [role, Object.freeze(permissions)]),
 ));
 
-export function expandPermissions({ roles, membership, isVolunteer }) {
-  const effectiveRoles = roles.filter((role) => role === 'MENTOR' || membership.status === 'ACTIVE');
+export function expandPermissions({ roles = [], membership, isVolunteer }) {
+  const effectiveRoles = roles.filter((role) => role === 'MENTOR' || membership?.status === 'ACTIVE');
   const permissions = effectiveRoles.flatMap((role) => rolePermissions[role] ?? []);
-  if (isVolunteer && membership.status === 'ACTIVE') permissions.push('claim.submit');
+  if (isVolunteer && membership?.status === 'ACTIVE') permissions.push('claim.submit');
   return [...new Set(permissions)].sort();
 }

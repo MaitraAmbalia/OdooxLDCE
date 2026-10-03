@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, CircleAlert, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,6 +31,7 @@ export default function CheckoutStatus() {
   usePageTitle("Payment status");
   const { paymentId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [shouldPoll, setShouldPoll] = useState(true);
   const autoOpened = useRef(false);
 
@@ -110,15 +111,21 @@ export default function CheckoutStatus() {
     if (status === "PAID" || status === "FAILED") {
       setShouldPoll(false);
       
-      // If paid, redirect to membership or tickets after a short display
+      // If paid, invalidate caches and redirect to destination after a short display
       if (status === "PAID") {
+        queryClient.invalidateQueries({ queryKey: ['auth'] });
+        queryClient.invalidateQueries({ queryKey: ['membershipCard'] });
+        queryClient.invalidateQueries({ queryKey: ['tickets'] });
+        queryClient.invalidateQueries({ queryKey: ['orders'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+
         const redirectTimer = window.setTimeout(() => {
           navigate(destination.done);
         }, 2000);
         return () => window.clearTimeout(redirectTimer);
       }
     }
-  }, [data, navigate, destination.done]);
+  }, [data, navigate, destination.done, queryClient]);
 
   return (
     <section className="page-container flex min-h-[66vh] flex-col justify-center py-12">

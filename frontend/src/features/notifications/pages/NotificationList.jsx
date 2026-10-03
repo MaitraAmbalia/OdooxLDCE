@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, CheckCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Bell, CheckCheck, ExternalLink } from "lucide-react";
 import { ContentState } from "@/components/common/ContentState";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,12 +9,13 @@ import { toast } from "sonner";
 
 export default function NotificationList() {
   usePageTitle("Notifications");
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: notificationsData, isPending, isError, refetch } = useQuery({
     queryKey: ['notifications'],
     queryFn: async () => {
       // API endpoint: GET /notifications
-      const res = await fetch("/api/v1/notifications");
+      const res = await fetch("/api/v1/notifications", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch notifications");
       return res.json();
     }
@@ -21,6 +23,7 @@ export default function NotificationList() {
 
   const notifications = notificationsData?.data || [];
   const unreadCount = notifications.filter((notification) => !notification.readAt).length;
+
   const markAll = useMutation({
     mutationFn: async () => {
       const response = await fetch("/api/v1/notifications/read-all", { method: "POST", credentials: "include" });
@@ -30,6 +33,24 @@ export default function NotificationList() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
     onError: () => toast.error("Could not mark notifications as read."),
   });
+
+  const markSingle = useMutation({
+    mutationFn: async (id) => {
+      const response = await fetch(`/api/v1/notifications/${id}/read`, { method: "PATCH", credentials: "include" });
+      if (!response.ok) throw new Error("Could not update notification");
+      return response.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+
+  const handleNotificationClick = (notif) => {
+    if (!notif.readAt) {
+      markSingle.mutate(notif.id);
+    }
+    if (notif.link) {
+      navigate(notif.link);
+    }
+  };
 
   return (
     <div className="page-container max-w-3xl py-12 sm:py-16">
@@ -53,7 +74,11 @@ export default function NotificationList() {
         {
           <ul className="divide-y divide-[var(--color-line)]">
             {notifications.map(notif => (
-              <li key={notif.id} className={`p-5 transition-colors ${!notif.readAt ? 'bg-secondary/40' : 'bg-card hover:bg-secondary/20'}`}>
+              <li
+                key={notif.id}
+                onClick={() => handleNotificationClick(notif)}
+                className={`p-5 transition-colors cursor-pointer ${!notif.readAt ? 'bg-secondary/40 hover:bg-secondary/60' : 'bg-card hover:bg-secondary/20'}`}
+              >
                 <div className="flex gap-4">
                   <div className="pt-1">
                     {/* Icon based on type */}
@@ -62,7 +87,10 @@ export default function NotificationList() {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold">{notif.title}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold">{notif.title}</p>
+                      {notif.link && <ExternalLink className="size-3 text-muted-foreground" />}
+                    </div>
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">{notif.body}</p>
                     <p className="mt-2 text-xs text-muted-foreground">
                       {new Date(notif.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}

@@ -93,8 +93,8 @@ export default function MyOrders() {
                   </div>
 
                   <div>
-                    <Badge variant={isCollected ? "secondary" : isReady ? "success" : "primary"}>
-                      {order.status || "CONFIRMED"}
+                    <Badge variant={isCollected ? "secondary" : isReady ? "success" : order.status === "PENDING_PAYMENT" ? "warning" : "primary"}>
+                      {order.status === "PENDING_PAYMENT" ? "Payment pending" : order.status || "CONFIRMED"}
                     </Badge>
                   </div>
                 </div>
@@ -116,7 +116,7 @@ export default function MyOrders() {
                             </div>
                           </div>
                           <div className="font-display font-semibold tabular-nums">
-                            {formatINR((item.pricePaise * item.quantity) / 100)}
+                            {formatINR(((item.unitPricePaise || item.pricePaise || 0) * (item.quantity || 1)) / 100)}
                           </div>
                         </div>
                       ))}
@@ -129,7 +129,21 @@ export default function MyOrders() {
                       Pickup status
                     </h4>
 
-                    {isReady ? (
+                    {order.status === "PENDING_PAYMENT" ? (
+                      <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-xs text-amber-900">
+                        <div className="flex items-center gap-1.5 font-semibold">
+                          <Clock className="size-4 text-amber-600" /> Payment pending
+                        </div>
+                        <p className="text-[11px] text-amber-800/90 leading-relaxed">
+                          Complete payment to confirm your pickup reservation.
+                        </p>
+                        {order.paymentId && (
+                          <Button asChild size="sm" className="w-full">
+                            <Link to={`/checkout/status/${order.paymentId}`}>Complete payment &rarr;</Link>
+                          </Button>
+                        )}
+                      </div>
+                    ) : isReady ? (
                       <div className="space-y-2 rounded-xl border border-[#b9d1c3] bg-[#e4eee8] p-4 text-xs text-[#345d4a]">
                         <div className="flex items-center gap-1.5 font-semibold">
                           <CheckCircle2 className="size-4" /> Ready for pickup
