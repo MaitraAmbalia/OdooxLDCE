@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -10,15 +10,19 @@ import { Badge } from "../../../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { formatINR } from "../../../lib/utils";
 import { toast } from "sonner";
+import { ContentState } from "../../../components/common/ContentState";
+import { Skeleton } from "../../../components/ui/skeleton";
+import { usePageTitle } from "../../../hooks/usePageTitle";
 
 export default function Join() {
+  usePageTitle("Membership");
   const navigate = useNavigate();
   const [selectedTier, setSelectedTier] = useState(null);
   const [loadingCheckout, setLoadingCheckout] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
 
   // Fetch tiers
-  const { data: tiersData, isLoading } = useQuery({
+  const { data: tiersData, isPending, isError, refetch } = useQuery({
     queryKey: ['membershipTiers'],
     queryFn: async () => {
       const res = await fetch("/api/v1/membership-tiers");
@@ -88,63 +92,63 @@ export default function Join() {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--color-paper)]">
+    <div>
       
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-16 pb-12 sm:pt-20 sm:pb-16 border-b border-slate-200/80 bg-gradient-to-b from-white via-blue-50/20 to-transparent">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <Badge variant="gold" className="text-xs uppercase font-extrabold tracking-wider px-3 py-1 mb-4 shadow-xs">
-            <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-950" /> 2026-2027 Academic Year Enrolling Now
-          </Badge>
+      <section className="border-b border-border bg-card py-14 sm:py-20">
+        <div className="page-container max-w-5xl text-center">
+          <p className="mb-4 flex items-center justify-center gap-2 text-sm font-medium text-primary">
+            <Sparkles className="size-4" aria-hidden="true" /> 2026–27 membership is open
+          </p>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-black tracking-tight text-slate-900 leading-[1.1]">
-            Unlock the Full <span className="bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-800 bg-clip-text text-transparent">Skyline Campus Experience</span>
+          <h1 className="font-display text-4xl font-semibold leading-[1.06] tracking-tight sm:text-5xl lg:text-6xl">
+            More than showing up. <span className="text-primary">Belonging.</span>
           </h1>
           
-          <p className="mt-4 text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            Gain immediate VIP event access, exclusive merchandise discounts, voting power in student elections, and project leadership privileges.
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
+            Save on events and merchandise, keep your digital pass close, and take a more active role in campus life.
           </p>
 
           {/* Social Proof Counter */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-500 font-semibold">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs font-medium text-muted-foreground">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>450+ Active LDCE Members</span>
+              <span className="size-2.5 rounded-full bg-[#47725e]"></span>
+              <span>Built for every year and discipline</span>
             </div>
             <div className="h-3 w-px bg-slate-200"></div>
-            <div className="flex items-center gap-1.5 text-amber-600">
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span className="text-slate-700 font-bold ml-1">4.9/5 Student Rating</span>
+            <div className="flex items-center gap-1.5 text-primary">
+              <HeartHandshake className="size-4" />
+              <span>One community, year-round</span>
             </div>
             <div className="h-3 w-px bg-slate-200"></div>
             <div className="flex items-center gap-1 text-slate-600">
-              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-              <span>100% LDCE Autonomous Certified</span>
+              <ShieldCheck className="size-4 text-primary" />
+              <span>Secure digital membership pass</span>
             </div>
           </div>
         </div>
       </section>
 
       {/* Pricing Cards Section */}
-      <section className="max-w-6xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
+      <section className="page-container py-16">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-display font-extrabold text-slate-900 tracking-tight">
-            Choose Your Membership Level
+          <h2 className="font-display text-3xl font-semibold tracking-tight">
+            Choose your membership
           </h2>
-          <p className="text-sm text-slate-500 mt-2">
-            One simple annual contribution. Pays for itself with discounts on the first two events.
+          <p className="mt-2 text-sm text-muted-foreground">
+            One annual contribution, with benefits across events and community programs.
           </p>
         </div>
 
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <div className="h-96 rounded-3xl bg-slate-100 animate-pulse"></div>
-            <div className="h-96 rounded-3xl bg-slate-100 animate-pulse"></div>
+        {isPending ? (
+          <div className="mx-auto grid max-w-4xl gap-8 md:grid-cols-2" role="status" aria-label="Loading membership options">
+            <Skeleton className="h-96 rounded-2xl" />
+            <Skeleton className="h-96 rounded-2xl" />
           </div>
+        ) : isError ? (
+          <ContentState error title="Membership options aren’t available right now." description="We couldn’t load the current tiers. Try again in a moment." action={refetch} />
+        ) : tiers.length === 0 ? (
+          <ContentState title="Membership will open soon." description="Current plans will appear here when enrollment begins." />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto items-stretch">
             {tiers.map((tier, idx) => {
@@ -156,15 +160,15 @@ export default function Join() {
                   key={tier.id}
                   className={`relative flex flex-col justify-between rounded-3xl p-8 transition-all duration-300 ${
                     isRecommended 
-                      ? "bg-white border-2 border-blue-600 shadow-xl shadow-blue-600/10 ring-4 ring-blue-600/5 hover:-translate-y-1" 
-                      : "bg-white border border-slate-200/90 shadow-sm hover:shadow-md hover:border-slate-300"
+                      ? "bg-card border-2 border-primary shadow-xl shadow-primary/5 ring-4 ring-primary/5 hover:-translate-y-1"
+                      : "bg-card border border-border hover:shadow-md hover:border-primary/30"
                   }`}
                 >
                   {/* Recommended Ribbon */}
                   {isRecommended && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                      <span className="bg-gradient-to-r from-blue-700 to-indigo-600 text-white font-extrabold text-[11px] tracking-wider uppercase px-4 py-1 rounded-full shadow-md">
-                        ★ Most Popular Choice
+                      <span className="rounded-full bg-primary px-4 py-1 text-[11px] font-medium uppercase tracking-wider text-primary-foreground">
+                        Recommended
                       </span>
                     </div>
                   )}

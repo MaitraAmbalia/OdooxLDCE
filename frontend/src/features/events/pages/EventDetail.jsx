@@ -11,6 +11,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "../../../components/ui
 import { Skeleton } from "../../../components/ui/skeleton";
 import { formatINR } from "../../../lib/utils";
 import { toast } from "sonner";
+import { ContentState } from "../../../components/common/ContentState";
+import { usePageTitle } from "../../../hooks/usePageTitle";
 
 export default function EventDetail() {
   const { id } = useParams();
@@ -19,7 +21,7 @@ export default function EventDetail() {
   const [isReserving, setIsReserving] = useState(false);
 
   // Fetch Event details
-  const { data: eventData, isLoading: eventLoading } = useQuery({
+  const { data: eventData, isPending: eventLoading, isError: eventError, refetch: refetchEvent } = useQuery({
     queryKey: ['events', id],
     queryFn: async () => {
       const res = await fetch(`/api/v1/events/${id}`);
@@ -29,7 +31,7 @@ export default function EventDetail() {
   });
 
   // Fetch Ticket Types
-  const { data: ticketTypesData, isLoading: ticketsLoading } = useQuery({
+  const { data: ticketTypesData, isPending: ticketsLoading, isError: ticketsError, refetch: refetchTickets } = useQuery({
     queryKey: ['events', id, 'ticket-types'],
     queryFn: async () => {
       const res = await fetch(`/api/v1/events/${id}/ticket-types`);
@@ -40,6 +42,7 @@ export default function EventDetail() {
 
   const event = eventData?.data;
   const ticketTypes = ticketTypesData?.data || [];
+  usePageTitle(event?.title || "Event details");
 
   // Default to first ticket if none selected
   React.useEffect(() => {
@@ -97,7 +100,7 @@ export default function EventDetail() {
 
   if (eventLoading || ticketsLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6">
+      <div className="page-container py-12" role="status" aria-label="Loading event details">
         <Skeleton className="h-6 w-32 mb-6" />
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 space-y-6">
@@ -113,36 +116,31 @@ export default function EventDetail() {
     );
   }
 
-  if (!event) {
+  if (eventError || ticketsError || !event) {
     return (
-      <div className="max-w-md mx-auto py-20 px-4 text-center">
-        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
-        <h2 className="text-xl font-bold text-slate-900">Event Not Found</h2>
-        <Link to="/events" className="mt-4 inline-block">
-          <Button variant="outline" size="sm">&larr; Back to Events</Button>
-        </Link>
+      <div className="page-container py-16">
+        <ContentState error title="We couldn’t load this event." description="It may no longer be available, or the connection may have been interrupted." action={() => { refetchEvent(); refetchTickets(); }} />
       </div>
     );
   }
 
-  const eventDate = new Date(event.startDate || Date.now());
+  const eventDate = new Date(event.startAt || event.startDate || Date.now());
 
   return (
-    <div className="min-h-screen bg-[var(--color-paper)] py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="page-container py-10 sm:py-14">
         
         {/* Navigation Breadcrumb */}
         <div className="flex items-center justify-between mb-6">
           <Link 
             to="/events" 
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+            className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Back to All Events
           </Link>
 
           <button
             onClick={handleShare}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-blue-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs hover:bg-slate-50 transition-colors"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-primary"
           >
             <Share2 className="w-3.5 h-3.5" /> Share Event
           </button>
@@ -154,7 +152,7 @@ export default function EventDetail() {
           <div className="lg:col-span-7 xl:col-span-8 space-y-8">
             
             {/* Cover Banner */}
-            <div className="relative h-72 sm:h-96 w-full rounded-3xl overflow-hidden bg-slate-900 shadow-lg border border-slate-200/80">
+            <div className="relative h-72 w-full overflow-hidden rounded-2xl border border-border bg-[#272747] sm:h-96">
               {event.coverImageUrl ? (
                 <img 
                   src={event.coverImageUrl} 
@@ -162,8 +160,8 @@ export default function EventDetail() {
                   className="w-full h-full object-cover" 
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-tr from-blue-950 via-slate-900 to-indigo-950 flex items-center justify-center p-8 text-center">
-                  <div className="text-white/40 font-display font-black text-4xl uppercase tracking-widest">
+                <div className="flex size-full items-center justify-center bg-[#272747] p-8 text-center">
+                  <div className="font-display text-4xl font-semibold uppercase tracking-widest text-white/40">
                     {event.category || "SKYLINE GALA"}
                   </div>
                 </div>
@@ -171,11 +169,10 @@ export default function EventDetail() {
 
               {/* Status overlay */}
               <div className="absolute top-4 left-4 flex gap-2">
-                <Badge variant="gold" className="text-xs uppercase font-extrabold tracking-wider py-1 px-3 shadow-md">
-                  <Flame className="w-3.5 h-3.5 text-amber-950 mr-1 inline fill-amber-950" />
-                  Limited Tickets
+                <Badge className="bg-white text-[#272747]">
+                  <Flame className="mr-1 size-3.5" /> Limited tickets
                 </Badge>
-                <Badge variant="secondary" className="text-xs uppercase font-bold py-1 px-3 bg-slate-900/80 text-white backdrop-blur-sm border-slate-700">
+                <Badge variant="secondary" className="border-white/20 bg-[#272747]/85 text-white backdrop-blur-sm">
                   {event.category || "Flagship"}
                 </Badge>
               </div>
@@ -183,37 +180,37 @@ export default function EventDetail() {
 
             {/* Event Header */}
             <div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black text-slate-900 tracking-tight leading-tight">
+              <h1 className="font-display text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
                 {event.title}
               </h1>
 
               {/* Meta details pills */}
-              <div className="mt-4 flex flex-wrap gap-4 text-xs font-semibold text-slate-700">
-                <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-slate-200/80 shadow-2xs">
-                  <Calendar className="w-4 h-4 text-blue-600" />
+              <div className="mt-5 flex flex-wrap gap-3 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3.5 py-2">
+                  <Calendar className="size-4 text-primary" />
                   <span>
                     {eventDate.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-slate-200/80 shadow-2xs">
-                  <Clock className="w-4 h-4 text-blue-600" />
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3.5 py-2">
+                  <Clock className="size-4 text-primary" />
                   <span>
                     {eventDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} IST
                   </span>
                 </div>
-                <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-slate-200/80 shadow-2xs">
-                  <MapPin className="w-4 h-4 text-blue-600" />
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3.5 py-2">
+                  <MapPin className="size-4 text-primary" />
                   <span>{event.venue || "Main Auditorium, LDCE Campus"}</span>
                 </div>
               </div>
             </div>
 
             {/* Event Description */}
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-4">
-              <h3 className="text-lg font-display font-extrabold text-slate-900">
-                About this Experience
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+            <div className="space-y-4 rounded-2xl border border-border bg-card p-6 sm:p-8">
+              <h2 className="font-display text-xl font-semibold">
+                About this event
+              </h2>
+              <p className="whitespace-pre-line text-sm leading-7 text-muted-foreground">
                 {event.description || "Join the Skyline Student Association for our flagship celebration. Network with alumni founders, senior professors, industry leaders, and student innovators across engineering disciplines."}
               </p>
 
@@ -237,14 +234,14 @@ export default function EventDetail() {
 
           {/* Sticky Ticket Reservation Console */}
           <div className="lg:col-span-5 xl:col-span-4 mt-8 lg:mt-0">
-            <div className="sticky top-24 rounded-3xl bg-white border-2 border-blue-600/30 p-6 shadow-xl space-y-6">
+            <div className="sticky top-36 space-y-6 rounded-2xl border border-border bg-card p-6 shadow-xl shadow-primary/5">
               
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div>
-                  <h3 className="text-xl font-display font-black text-slate-900 tracking-tight">
-                    Select Your Pass
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Instant delivery to your digital wallet</p>
+                  <h2 className="font-display text-xl font-semibold tracking-tight">
+                    Choose your pass
+                  </h2>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Instant delivery to your digital wallet</p>
                 </div>
                 <Badge variant="primary" className="text-[10px] uppercase font-bold">
                   Instant QR
@@ -260,30 +257,34 @@ export default function EventDetail() {
                   return (
                     <div
                       key={ticket.id}
+                      role="radio"
+                      aria-checked={isSelected}
+                      tabIndex={0}
                       onClick={() => setSelectedTicket(ticket)}
-                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none ${
+                      onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setSelectedTicket(ticket); }}
+                      className={`cursor-pointer select-none rounded-xl border-2 p-4 transition ${
                         isSelected 
-                          ? "border-blue-600 bg-blue-50/40 shadow-sm" 
-                          : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/50"
+                          ? "border-primary bg-secondary/60"
+                          : "border-border hover:border-primary/30 hover:bg-secondary/30"
                       }`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
                           <div className={`w-4 h-4 rounded-full mt-0.5 border-2 flex items-center justify-center ${
-                            isSelected ? "border-blue-600 bg-blue-600" : "border-slate-300"
+                            isSelected ? "border-primary bg-primary" : "border-input"
                           }`}>
                             {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white"></div>}
                           </div>
                           <div>
-                            <div className="text-sm font-bold text-slate-900">{ticket.name}</div>
+                            <div className="text-sm font-semibold">{ticket.name}</div>
                             {ticket.description && (
-                              <div className="text-[11px] text-slate-500 mt-0.5">{ticket.description}</div>
+                              <div className="mt-0.5 text-[11px] text-muted-foreground">{ticket.description}</div>
                             )}
                           </div>
                         </div>
 
                         <div className="text-right">
-                          <div className="text-base font-display font-black text-slate-900 tabular-nums">
+                          <div className="font-display text-base font-semibold tabular-nums">
                             {formatINR(price)}
                           </div>
                           {ticket.memberOnly && (
@@ -338,7 +339,7 @@ export default function EventDetail() {
                 size="lg"
                 disabled={isReserving || !selectedTicket}
                 onClick={handleBuy}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md py-3.5 cursor-pointer"
+                className="w-full"
               >
                 {isReserving ? (
                   <span>Generating Entrance QR...</span>
@@ -357,7 +358,6 @@ export default function EventDetail() {
 
         </div>
 
-      </div>
     </div>
   );
 }
