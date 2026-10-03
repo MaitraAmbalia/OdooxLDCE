@@ -9,7 +9,6 @@ import { auditLog } from '../../utils/audit.js';
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB for images and PDFs alike
 const IMAGES = ['image/jpeg', 'image/png', 'image/webp'];
 
-// What commerce may upload (boundaries §8). Avatars/application attachments are Person B's.
 export const PURPOSES = {
   RECEIPT: { allowed: [...IMAGES, 'application/pdf'], isPublic: false },
   LEDGER_ATTACHMENT: { allowed: [...IMAGES, 'application/pdf'], isPublic: false },
@@ -54,7 +53,7 @@ export function createFilesService({ prisma, config }) {
       });
       return toPublic(row);
     } catch (e) {
-      await unlink(blobPath(storageKey)).catch(() => {}); // don't leave an orphan blob
+      await unlink(blobPath(storageKey)).catch(() => { }); // don't leave an orphan blob
       throw e;
     }
   }
@@ -76,7 +75,7 @@ export function createFilesService({ prisma, config }) {
     if (!file || file.ownerId !== user.id) throw notFound();
     if (file.attachedToType) throw new AppError('FILE_ATTACHED', 409, 'This file is attached and cannot be deleted');
     await prisma.file.delete({ where: { id } });
-    await unlink(blobPath(file.storageKey)).catch(() => {});
+    await unlink(blobPath(file.storageKey)).catch(() => { });
   }
 
   // ---- contract for other modules ----
