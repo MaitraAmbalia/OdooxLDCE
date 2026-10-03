@@ -47,10 +47,12 @@ export function createPaymentsService({ prisma, config, logger }) {
     let payment = idempotencyKey ? await prisma.payment.findUnique({ where: { idempotencyKey } }) : null;
     if (!payment) {
       const id = randomUUID(); // doubles as Razorpay's `receipt`
-      const order = await razorpay('/orders', { amount: amountPaise, currency: 'INR', receipt: id });
+      // No Razorpay keys outside production = MOCK payment, completed via /mock-complete.
+      const mock = !config.isProduction && (!config.razorpayKeyId || !config.razorpayKeySecret);
+      const order = mock ? { id: `order_mock_${id}` } : await razorpay('/orders', { amount: amountPaise, currency: 'INR', receipt: id });
       try {
         payment = await prisma.payment.create({
-          data: { id, userId, purpose, refId, amountPaise: BigInt(amountPaise), provider: 'RAZORPAY', gatewayOrderId: order.id, idempotencyKey: idempotencyKey ?? null },
+          data: { id, userId, purpose, refId, amountPaise: BigInt(amountPaise), provider: mock ? 'MOCK' : 'RAZORPAY', gatewayOrderId: order.id, idempotencyKey: idempotencyKey ?? null },
         });
       } catch (e) {
         if (e.code !== 'P2002' || !idempotencyKey) throw e; // two requests with the same key: use the winner's row
@@ -137,6 +139,7 @@ export function createPaymentsService({ prisma, config, logger }) {
   // DEV SHORTCUT (route not mounted in production): pretends the gateway captured the payment.
   async function mockComplete(userId, id) {
     const payment = await getOwned(userId, id);
+    if (payment.provider !== 'MOCK') throw new AppError('FORBIDDEN', 403, 'Only MOCK payments can be completed here');
     await handleCaptured({ gatewayOrderId: payment.gatewayOrderId, gatewayPaymentId: `pay_mock_${randomUUID()}`, amountPaise: Number(payment.amountPaise) });
     return get(userId, id);
   }
@@ -150,7 +153,9 @@ export function createPaymentsService({ prisma, config, logger }) {
     if (!Number.isSafeInteger(amountPaise) || amountPaise <= 0 || BigInt(amountPaise) > payment.amountPaise) {
       throw new AppError('VALIDATION_ERROR', 400, 'Invalid refund amount');
     }
-    const r = await razorpay(`/payments/${payment.gatewayPaymentId}/refund`, { amount: amountPaise, notes: { reason } });
+    const r = payment.provider === 'MOCK'
+      ? { id: `rfnd_mock_${randomUUID()}` }
+      : await razorpay(`/payments/${payment.gatewayPaymentId}/refund`, { amount: amountPaise, notes: { reason } });
     await prisma.payment.update({ where: { id: paymentId }, data: { status: 'REFUNDED' } });
     return { refundId: r.id };
   }

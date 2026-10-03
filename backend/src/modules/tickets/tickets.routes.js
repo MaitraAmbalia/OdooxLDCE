@@ -14,13 +14,13 @@ export function createTicketsRouter({ service, authenticate, authorize }) {
   });
 
   // GET /tickets/:id - Single ticket details
-  router.get('/tickets/:id', async (req, res) => {
-    res.json({ data: await service.getTicketById(req.params.id) });
+  router.get('/tickets/:id', authenticate, async (req, res) => {
+    res.json({ data: await service.getTicketById(req.user.sub, req.params.id) });
   });
 
-  // POST /tickets/:id/checkin - Fast Door Check-in (Volunteer / Staff)
-  router.post('/tickets/:id/checkin', authenticate, async (req, res) => {
-    res.json({ data: await service.checkIn(req.user.sub, req.params.id, req.body.eventId) });
+  // POST /tickets/checkin - Fast Door Check-in (Volunteer / Staff), body { qr, eventId }
+  router.post('/tickets/checkin', authenticate, async (req, res) => {
+    res.json({ data: await service.checkIn(req.user.sub, req.body.qr, req.body.eventId) });
   });
 
   return router;

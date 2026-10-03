@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { sealQr, openQr } from '../../lib/qrToken.js';
 import { AppError } from '../../lib/AppError.js';
 import { createPageMeta, parsePagination } from '../../lib/pagination.js';
 import { auditLog } from '../../utils/audit.js';
@@ -36,9 +36,7 @@ function semesterEnd(from) {
   return new Date(`${ist.getUTCFullYear()}-${month >= 6 ? '12-31' : '06-30'}${IST_END_OF_DAY}`);
 }
 
-const sign = (secret, data) => createHmac('sha256', secret).update(data).digest('hex');
-const sameSig = (expected, given) => given.length === expected.length && timingSafeEqual(Buffer.from(expected), Buffer.from(given));
-const QR = /^m\.([0-9a-f-]{36})\.(\d+)\.([0-9a-f]{64})$/;
+const QR = /^m:([0-9a-f-]{36}):(\d+)$/;
 
 export function createMembershipsService({ prisma, config }) {
   // ---------------------------------------------------------------- payment hooks
@@ -158,10 +156,7 @@ export function createMembershipsService({ prisma, config }) {
     if (!config.cardQrSecret) throw new AppError('NOT_CONFIGURED', 503, 'Membership cards are not configured');
     return config.cardQrSecret;
   }
-  const qrFor = (userId, version) => {
-    const body = `m.${userId}.${version}`;
-    return `${body}.${sign(cardSecret(), body)}`;
-  };
+  const qrFor = (userId, version) => sealQr(cardSecret(), `m:${userId}:${version}`);
 
   async function activeOf(userId) {
     const m = await prisma.membership.findFirst({ where: { userId, status: 'ACTIVE' }, include: { tier: true } });
@@ -182,10 +177,10 @@ export function createMembershipsService({ prisma, config }) {
     return { qr: qrFor(userId, updated.cardSecretVersion) };
   }
 
-  // Returns only name + status. The HMAC is checked first, so a forged QR never reaches the database.
+  // Returns only name + status. The token is decrypted first, so a forged QR never reaches the database.
   async function verify({ qr }) {
-    const parts = QR.exec(qr);
-    if (!parts || !sameSig(sign(cardSecret(), `m.${parts[1]}.${parts[2]}`), parts[3])) return { result: 'INVALID' };
+    const parts = QR.exec(openQr(cardSecret(), qr) ?? '');
+    if (!parts) return { result: 'INVALID' };
     const [, userId, version] = parts;
     const m = await prisma.membership.findFirst({ where: { userId, status: 'ACTIVE' }, include: { user: { select: { name: true } } } });
     if (!m || m.cardSecretVersion !== Number(version)) return { result: 'INVALID' }; // rotated or never a member
