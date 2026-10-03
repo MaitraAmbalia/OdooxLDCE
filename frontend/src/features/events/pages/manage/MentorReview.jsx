@@ -9,16 +9,44 @@ export default function MentorReview() {
   const [comment, setComment] = useState("");
   const [approvedBudget, setApprovedBudget] = useState(0);
 
+  // Fetch current user
+  const { data: authData } = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/auth/me", { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    retry: false,
+  });
+
+  const user = authData?.data;
+  const isMentor = user?.roles?.includes('MENTOR');
+
+  const handleQuickMentorLogin = async () => {
+    try {
+      const res = await fetch("/api/v1/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: "mentor@nirmauni.ac.in", password: "Password123!" }),
+      });
+      if (res.ok) {
+        window.location.reload();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   // Fetch Event Proposal details
   const { data: eventData, isLoading } = useQuery({
     queryKey: ['events', id, 'review'],
     queryFn: async () => {
-      // API endpoint: GET /events/:id
       const res = await fetch(`/api/v1/events/${id}`);
       if (!res.ok) throw new Error("Failed to fetch event proposal");
       const data = await res.json();
       
-      // Initialize budget for approval
       if (data?.data?.proposedBudget) {
         setApprovedBudget(data.data.proposedBudget);
       }
@@ -28,12 +56,24 @@ export default function MentorReview() {
 
   const reviewMutation = useMutation({
     mutationFn: async (payload) => {
-      // API endpoint: POST /events/:id/review
-      console.log("Submitting review decision:", payload);
-      return { success: true };
+      const res = await fetch(`/api/v1/events/${id}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error?.message || "Failed to submit review decision");
+      }
+      return res.json();
     },
     onSuccess: () => {
-      navigate("/manage/approvals/events");
+      alert("Event authorization decision recorded successfully in the organization ledger!");
+      navigate("/manage");
+    },
+    onError: (err) => {
+      alert(err.message || "Failed to submit decision");
     }
   });
 
@@ -52,125 +92,238 @@ export default function MentorReview() {
     });
   };
 
-  if (isLoading) return <div className="p-8 text-center">Loading proposal...</div>;
+  if (isLoading) return <div className="p-12 text-center text-[var(--color-muted)]">Loading event proposal for review...</div>;
   const event = eventData?.data;
 
-  // Mock data if API is not fully wired yet
   const mockEvent = event || {
     title: "Annual Tech Gala 2026",
-    proposer: "Aarav Shah",
+    proposedBy: { name: "Rohan Mehta (Event Head)" },
     status: "PENDING_APPROVAL",
-    description: "A large networking and showcase event...",
-    venue: "Main Auditorium",
-    capacity: 500,
-    proposedBudget: 2500000 // 25,000.00 INR (paise)
+    description: "The biggest flagship cultural and networking celebration of the semester.",
+    venue: "University Grand Auditorium",
+    startDate: "2026-10-17T10:00:00Z",
+    capacity: 350,
+    ticketTypes: [
+      { id: '1', name: 'Member Early Bird Ticket', audience: 'MEMBER', pricePaise: 15000, quota: 200 },
+      { id: '2', name: 'General Admission (Non-Member)', audience: 'NON_MEMBER', pricePaise: 30000, quota: 150 }
+    ],
+    budgetLines: [
+      { item: "Auditorium Rental & Sound", amount: 15000 },
+      { item: "Stage Décor & Lighting", amount: 8000 },
+      { item: "Refreshments & High Tea", amount: 12000 }
+    ]
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <Link to="/manage/approvals/events" className="text-sm font-medium text-[var(--color-dusk)] hover:underline mb-6 inline-block">
-        &larr; Back to Queue
-      </Link>
-      
-      <div className="lg:grid lg:grid-cols-12 lg:gap-8 items-start">
-        {/* Left: Scrollable Proposal View */}
-        <div className="lg:col-span-8 bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] p-6 shadow-sm overflow-y-auto" style={{ maxHeight: "calc(100vh - 150px)" }}>
-          <div className="border-b border-[var(--color-line)] pb-4 mb-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">{mockEvent.title}</h1>
-                <p className="text-sm text-[var(--color-muted)] mt-1">Proposed by: {mockEvent.proposer}</p>
-              </div>
-              <span className="bg-[var(--color-wait)] text-white text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">
-                {mockEvent.status.replace('_', ' ')}
-              </span>
+      {/* Mentor Authentication Warning / Quick Login */}
+      {!isMentor && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🎓</span>
+            <div>
+              <h4 className="text-sm font-bold text-amber-900">Faculty Mentor Authorization</h4>
+              <p className="text-xs text-amber-700">
+                {user 
+                  ? `Currently logged in as ${user.name} (${user.roles?.[0] || 'Member'}). Proposal review requires Mentor role.` 
+                  : 'You are currently not logged in. Log in as Mentor to authorize this event proposal.'}
+              </p>
             </div>
           </div>
-          
-          <div className="space-y-8 text-sm">
-            <section>
-              <h3 className="font-semibold text-[var(--color-ink)] uppercase tracking-wide mb-2 text-xs">Event Details</h3>
-              <div className="bg-[var(--color-paper)] p-4 rounded-[6px]">
-                <p className="whitespace-pre-wrap">{mockEvent.description}</p>
-              </div>
-            </section>
+          <button
+            type="button"
+            onClick={handleQuickMentorLogin}
+            className="px-4 py-2 bg-[var(--color-dusk)] text-white text-xs font-bold rounded-lg hover:bg-opacity-90 transition-all shadow-sm whitespace-nowrap self-start sm:self-center"
+          >
+            ⚡ Quick Log In as Mentor
+          </button>
+        </div>
+      )}
+
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <Link to="/manage" className="text-sm font-semibold text-[var(--color-dusk)] hover:underline inline-block mb-1">
+            &larr; Back to Manage Hub
+          </Link>
+          <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">Event Authorization Review</h1>
+        </div>
+        <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+          Pending Mentor Authorization
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left 2 Cols: Proposal Overview & Details */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm">
+            <h2 className="text-xl font-display font-bold text-[var(--color-ink)] mb-4">{mockEvent.title}</h2>
             
-            <section className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 p-4 bg-[var(--color-paper)] rounded-lg text-xs">
               <div>
-                <h3 className="font-semibold text-[var(--color-ink)] uppercase tracking-wide mb-2 text-xs">Logistics</h3>
-                <ul className="space-y-2 text-[var(--color-muted)]">
-                  <li><span className="font-medium text-[var(--color-ink)]">Venue:</span> {mockEvent.venue}</li>
-                  <li><span className="font-medium text-[var(--color-ink)]">Capacity:</span> {mockEvent.capacity}</li>
-                </ul>
+                <span className="text-[var(--color-muted)] block mb-0.5">Proposed By</span>
+                <span className="font-bold text-[var(--color-ink)]">{mockEvent.proposedBy?.name || "Event Head"}</span>
               </div>
               <div>
-                <h3 className="font-semibold text-[var(--color-ink)] uppercase tracking-wide mb-2 text-xs">Proposed Budget</h3>
-                <div className="text-2xl font-display font-bold tabular-nums text-[var(--color-ink)]">
-                  {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format((mockEvent.proposedBudget || 0) / 100)}
+                <span className="text-[var(--color-muted)] block mb-0.5">Venue</span>
+                <span className="font-bold text-[var(--color-ink)]">{mockEvent.venue}</span>
+              </div>
+              <div>
+                <span className="text-[var(--color-muted)] block mb-0.5">Start Date</span>
+                <span className="font-bold text-[var(--color-ink)]">{new Date(mockEvent.startDate || mockEvent.startAt || Date.now()).toLocaleDateString()}</span>
+              </div>
+              <div>
+                <span className="text-[var(--color-muted)] block mb-0.5">Total Capacity</span>
+                <span className="font-bold text-[var(--color-ink)]">{mockEvent.capacity} Attendees</span>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-2">Description</h3>
+              <p className="text-sm text-[var(--color-ink)] leading-relaxed">{mockEvent.description}</p>
+            </div>
+
+            {/* Ticket Tiers */}
+            <div className="mb-6">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-3">Proposed Ticket Tiers</h3>
+              <div className="space-y-2">
+                {(mockEvent.ticketTypes || []).map((t, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)] text-xs font-medium">
+                    <div>
+                      <span className="font-bold text-[var(--color-ink)]">{t.name}</span>
+                      <span className="ml-2 text-[10px] uppercase font-bold text-[var(--color-dusk)] bg-blue-50 px-2 py-0.5 rounded">
+                        {t.audience}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span>Quota: <strong>{t.quota}</strong></span>
+                      <span className="font-mono font-bold text-[var(--color-ink)]">₹{((t.pricePaise || 0) / 100).toFixed(2)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Budget Breakdown */}
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-3">Estimated Budget Breakdown</h3>
+              <div className="divide-y divide-[var(--color-line)] border border-[var(--color-line)] rounded-lg overflow-hidden text-xs">
+                {(mockEvent.budgetLines || [
+                  { item: "Venue & Audio Stage Setup", amount: 15000 },
+                  { item: "Lighting & Badges", amount: 8000 },
+                  { item: "Guest Hospitality & High Tea", amount: 12000 }
+                ]).map((line, idx) => (
+                  <div key={idx} className="flex justify-between p-3 bg-white">
+                    <span className="text-[var(--color-ink)]">{line.item}</span>
+                    <span className="font-mono font-bold text-[var(--color-ink)]">₹{line.amount.toLocaleString('en-IN')}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between p-3 bg-[var(--color-paper)] font-bold text-sm">
+                  <span>Total Proposed Budget</span>
+                  <span className="font-mono text-[var(--color-dusk)]">₹35,000.00</span>
                 </div>
               </div>
-            </section>
+            </div>
           </div>
         </div>
 
-        {/* Right: Sticky Decision Panel */}
-        <div className="lg:col-span-4 mt-8 lg:mt-0 sticky top-8">
-          <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] p-6 shadow-md">
-            <h2 className="text-lg font-display font-bold text-[var(--color-ink)] mb-4">Your Decision</h2>
+        {/* Right Col: Sticky Decision Console */}
+        <div className="space-y-6">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm sticky top-20">
+            <h3 className="text-lg font-display font-bold text-[var(--color-ink)] mb-4">Mentor Decision</h3>
             
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-3">
-                <label className={`block p-3 rounded-[6px] border cursor-pointer ${decision === 'APPROVE' ? 'border-[var(--color-ok)] bg-green-50' : 'border-[var(--color-line)] hover:bg-[var(--color-paper)]'}`}>
-                  <input type="radio" name="decision" value="APPROVE" className="mr-3" onChange={(e) => setDecision(e.target.value)} />
-                  <span className="font-medium">Approve</span>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">
+                  Authorization Action
                 </label>
-                
-                <label className={`block p-3 rounded-[6px] border cursor-pointer ${decision === 'REQUEST_CHANGES' ? 'border-[var(--color-wait)] bg-yellow-50' : 'border-[var(--color-line)] hover:bg-[var(--color-paper)]'}`}>
-                  <input type="radio" name="decision" value="REQUEST_CHANGES" className="mr-3" onChange={(e) => setDecision(e.target.value)} />
-                  <span className="font-medium">Request Changes</span>
-                </label>
+                <div className="grid grid-cols-1 gap-2">
+                  <label className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
+                    decision === 'APPROVE' ? 'border-[var(--color-ok)] bg-emerald-50 text-emerald-900 font-bold' : 'border-[var(--color-line)] hover:bg-gray-50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="decision"
+                      value="APPROVE"
+                      checked={decision === 'APPROVE'}
+                      onChange={() => setDecision('APPROVE')}
+                      className="accent-[var(--color-ok)]"
+                    />
+                    <div>
+                      <span className="text-sm block">Approve Proposal</span>
+                      <span className="text-[11px] text-[var(--color-muted)] font-normal">Authorizes tickets and locks budget</span>
+                    </div>
+                  </label>
 
-                <label className={`block p-3 rounded-[6px] border cursor-pointer ${decision === 'REJECT' ? 'border-[var(--color-stop)] bg-red-50' : 'border-[var(--color-line)] hover:bg-[var(--color-paper)]'}`}>
-                  <input type="radio" name="decision" value="REJECT" className="mr-3" onChange={(e) => setDecision(e.target.value)} />
-                  <span className="font-medium">Reject</span>
-                </label>
+                  <label className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
+                    decision === 'REQUEST_CHANGES' ? 'border-amber-400 bg-amber-50 text-amber-900 font-bold' : 'border-[var(--color-line)] hover:bg-gray-50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="decision"
+                      value="REQUEST_CHANGES"
+                      checked={decision === 'REQUEST_CHANGES'}
+                      onChange={() => setDecision('REQUEST_CHANGES')}
+                      className="accent-amber-500"
+                    />
+                    <div>
+                      <span className="text-sm block">Request Changes</span>
+                      <span className="text-[11px] text-[var(--color-muted)] font-normal">Sends proposal back with comments</span>
+                    </div>
+                  </label>
+
+                  <label className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
+                    decision === 'REJECT' ? 'border-[var(--color-stop)] bg-red-50 text-red-900 font-bold' : 'border-[var(--color-line)] hover:bg-gray-50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="decision"
+                      value="REJECT"
+                      checked={decision === 'REJECT'}
+                      onChange={() => setDecision('REJECT')}
+                      className="accent-[var(--color-stop)]"
+                    />
+                    <div>
+                      <span className="text-sm block">Reject Proposal</span>
+                      <span className="text-[11px] text-[var(--color-muted)] font-normal">Declines event completely</span>
+                    </div>
+                  </label>
+                </div>
               </div>
 
               {decision === 'APPROVE' && (
-                <div className="animate-in fade-in duration-200">
-                  <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Approved Budget (₹)</label>
-                  <input 
-                    type="number" 
-                    value={approvedBudget / 100}
-                    onChange={(e) => setApprovedBudget(Math.round(e.target.value * 100))}
-                    className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] font-mono tabular-nums"
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">
+                    Allocated Budget (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={approvedBudget || 35000}
+                    onChange={(e) => setApprovedBudget(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-[var(--color-line)] rounded-lg text-sm font-mono font-bold focus:border-[var(--color-dusk)] focus:outline-none"
                   />
-                  <p className="text-xs text-[var(--color-muted)] mt-1">Prefilled with requested amount.</p>
+                  <p className="text-[10px] text-[var(--color-muted)] mt-1">Pre-filled with proposal total. Adjust if needed.</p>
                 </div>
               )}
 
-              {(decision === 'REQUEST_CHANGES' || decision === 'REJECT') && (
-                <div className="animate-in fade-in duration-200">
-                  <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">
-                    Feedback / Reason <span className="text-[var(--color-stop)]">*</span>
-                  </label>
-                  <textarea 
-                    rows={4} 
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    required
-                    placeholder="Explain what needs to change..."
-                    className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] text-sm"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">
+                  Mentor Feedback / Comments {decision !== 'APPROVE' && decision && <span className="text-[var(--color-stop)]">*</span>}
+                </label>
+                <textarea
+                  rows={3}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder={decision === 'APPROVE' ? "Optional congratulations or venue remarks..." : "Specify required changes before re-submission..."}
+                  className="w-full px-3 py-2 border border-[var(--color-line)] rounded-lg text-xs focus:border-[var(--color-dusk)] focus:outline-none"
+                />
+              </div>
 
               <button
                 type="submit"
-                disabled={!decision || reviewMutation.isPending}
-                className="w-full py-3 px-4 rounded-[6px] text-sm font-medium text-white shadow-sm disabled:opacity-50 transition-colors bg-[var(--color-dusk)] hover:bg-opacity-90"
+                disabled={!decision || !isMentor || reviewMutation.isPending}
+                className="w-full py-2.5 px-4 rounded-lg bg-[var(--color-dusk)] text-white text-sm font-bold hover:bg-opacity-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
               >
-                Submit Decision
+                {!isMentor ? "Log in as Mentor to Submit" : reviewMutation.isPending ? "Recording Decision..." : "Submit Authorization &rarr;"}
               </button>
             </form>
           </div>

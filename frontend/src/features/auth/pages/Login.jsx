@@ -22,8 +22,14 @@ export default function Login() {
       if (!res.ok) {
         throw new Error(json.error?.message || json.message || "Invalid email or password");
       }
-      // Redirect to memberships or destination
-      navigate("/me/membership");
+      const user = json.data;
+      if (user?.roles && user.roles.length > 0) {
+        navigate("/manage");
+      } else if (user?.isVolunteer) {
+        navigate("/volunteer");
+      } else {
+        navigate("/me");
+      }
       window.location.reload();
     } catch (err) {
       setErrorMsg(err.message);
@@ -105,6 +111,63 @@ export default function Login() {
               </button>
             </div>
           </form>
+
+          {/* Quick Demo Persona Switcher */}
+          <div className="mt-8 pt-6 border-t border-[var(--color-line)]">
+            <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] text-center mb-3">
+              ⚡ One-Click Demo Personas
+            </p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => onSubmit({ email: "mentor@nirmauni.ac.in", password: "Password123!" })}
+                className="p-2 border border-slate-200 rounded-lg bg-slate-50 hover:bg-slate-100 text-left font-medium"
+              >
+                🎓 <strong className="text-[var(--color-ink)]">Mentor</strong>
+                <span className="block text-[10px] text-[var(--color-muted)]">Faculty Supervisor</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onSubmit({ email: "president@nirmauni.ac.in", password: "Password123!" })}
+                className="p-2 border border-blue-200 rounded-lg bg-blue-50 hover:bg-blue-100 text-left font-medium"
+              >
+                👑 <strong className="text-[var(--color-ink)]">President</strong>
+                <span className="block text-[10px] text-[var(--color-muted)]">Executive Head</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onSubmit({ email: "treasurer@nirmauni.ac.in", password: "Password123!" })}
+                className="p-2 border border-emerald-200 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-left font-medium"
+              >
+                💰 <strong className="text-[var(--color-ink)]">Treasurer</strong>
+                <span className="block text-[10px] text-[var(--color-muted)]">Ledger & Claims</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onSubmit({ email: "eventhead@nirmauni.ac.in", password: "Password123!" })}
+                className="p-2 border border-purple-200 rounded-lg bg-purple-50 hover:bg-purple-100 text-left font-medium"
+              >
+                🎟️ <strong className="text-[var(--color-ink)]">Event Head</strong>
+                <span className="block text-[10px] text-[var(--color-muted)]">Gala Ticketing</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onSubmit({ email: "volunteer1@nirmauni.ac.in", password: "Password123!" })}
+                className="p-2 border border-teal-200 rounded-lg bg-teal-50 hover:bg-teal-100 text-left font-medium"
+              >
+                🤝 <strong className="text-[var(--color-ink)]">Volunteer</strong>
+                <span className="block text-[10px] text-[var(--color-muted)]">Tasks & Door Scanner</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onSubmit({ email: "student1@nirmauni.ac.in", password: "Password123!" })}
+                className="p-2 border border-amber-200 rounded-lg bg-amber-50 hover:bg-amber-100 text-left font-medium"
+              >
+                💳 <strong className="text-[var(--color-ink)]">Member</strong>
+                <span className="block text-[10px] text-[var(--color-muted)]">Active Member</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

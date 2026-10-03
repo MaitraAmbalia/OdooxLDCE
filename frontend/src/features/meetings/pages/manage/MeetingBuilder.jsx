@@ -31,9 +31,20 @@ export default function MeetingBuilder() {
 
   const createMeetingMutation = useMutation({
     mutationFn: async (payload) => {
-      // API endpoint: POST /meetings
-      console.log("Creating meeting:", payload);
-      return { success: true };
+      const res = await fetch("/api/v1/meetings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          title: payload.title,
+          date: payload.scheduledAt,
+          venue: payload.location,
+          audience: payload.audienceType,
+          agenda: payload.agenda.map(a => `${a.topic} (${a.minutes}m - ${a.owner || 'All'})`).join('\n')
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to create meeting");
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meetings'] });
