@@ -1,30 +1,88 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ink: #17213A;
-  --color-paper: #F6F7FB;
+  --color-ink: #0F172A;
+  --color-paper: #F8FAFC;
   --color-surface: #FFFFFF;
-  --color-dusk: #2E3FA3;
-  --color-lamp: #F0AE2E;
-  --color-muted: #5B6478;
-  --color-line: #DDE1EA;
+  --color-dusk: #2563EB;
+  --color-dusk-hover: #1D4ED8;
+  --color-lamp: #F59E0B;
+  --color-muted: #64748B;
+  --color-line: #E2E8F0;
 
-  --color-ok: #1E7F55;
-  --color-wait: #9A6B12;
-  --color-stop: #B8322A;
-  --color-info: #2B66A8;
-  --color-neutral: #5B6478;
+  --color-ok: #10B981;
+  --color-wait: #F59E0B;
+  --color-stop: #EF4444;
+  --color-info: #3B82F6;
+  --color-neutral: #64748B;
 
-  --font-display: "Bricolage Grotesque", sans-serif;
-  --font-body: "IBM Plex Sans", sans-serif;
+  --font-display: "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
 }
 
 :root {
   background-color: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-body);
+  letter-spacing: -0.01em;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
+  letter-spacing: -0.025em;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Glassmorphism helpers */
+.glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-dark {
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Subtly animated shimmer for loading states */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.animate-shimmer::after {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.4) 20%,
+    rgba(255, 255, 255, 0.8) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  animation: shimmer 2s infinite;
+  content: '';
 }
