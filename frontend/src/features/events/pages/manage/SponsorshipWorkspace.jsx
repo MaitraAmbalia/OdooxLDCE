@@ -10,8 +10,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatINR } from "@/lib/utils";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
+let refreshPromise = null;
+
 async function api(path, options) {
-  const response = await fetch(path, { credentials: "include", ...options });
+  let response = await fetch(path, { credentials: "include", ...options });
+  if (response.status === 401 && !path.includes("/auth/refresh") && !path.includes("/auth/login")) {
+    refreshPromise ??= fetch("/api/v1/auth/refresh", { method: "POST", credentials: "include" })
+      .finally(() => { refreshPromise = null; });
+    const refresh = await refreshPromise;
+    if (refresh.ok) {
+      response = await fetch(path, { credentials: "include", ...options });
+    }
+  }
   const json = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(json.error?.message || "The request could not be completed");
   return json.data;
