@@ -355,11 +355,11 @@ export function createFinanceService({ prisma, files }) {
   }
 
   async function reviewClaim(user, id, { decision, reason }) {
-    const status = decision === 'APPROVE' ? 'APPROVED' : decision === 'REJECT' ? 'REJECTED' : 'CHANGES_REQUESTED';
+    const status = decision === 'APPROVE' ? 'APPROVED' : 'REJECTED';
     const row = await prisma.expenseClaim.update({
       where: { id },
       data: {
-        status: status === 'APPROVED' ? 'APPROVED_BY_EXECUTIVE' : 'REJECTED',
+        status: status,
       },
     });
     return { id: row.id, status: row.status };
