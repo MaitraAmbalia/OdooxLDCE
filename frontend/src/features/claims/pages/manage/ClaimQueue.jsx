@@ -123,7 +123,7 @@ export default function ClaimQueue() {
               </div>
             </div>
 
-            <div className="pt-6 border-t border-[var(--color-line)] space-y-4">
+            <div className="pt-6 border-t border-border space-y-4">
               <Button
                 onClick={() => reviewMutation.mutate({ claimId: selectedClaim.id, decision: 'APPROVE' })}
                 disabled={reviewMutation.isPending}

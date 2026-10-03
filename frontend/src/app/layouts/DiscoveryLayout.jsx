@@ -57,6 +57,7 @@ const manageNavigation = [
   ["/manage/projects", "Projects"],
   ["/manage/orders", "Orders"],
   ["/manage/newsletter", "Newsletter"],
+  ["/manage/selection/new/edit", "Leadership"],
 ];
 
 const volunteerNavigation = [
@@ -127,7 +128,7 @@ export default function DiscoveryLayout() {
   });
   const unreadNotificationsCount = (notificationsData?.data || []).filter(n => !n.readAt).length;
 
-  if (user?.isVolunteer || user?.roles?.length)
+  if (user?.isVolunteer || (user?.roles?.length && !user.roles.includes("MENTOR")))
     accountLinks.push(["/volunteer", "Volunteer portal"]);
   if (
     user?.roles?.some((role) =>

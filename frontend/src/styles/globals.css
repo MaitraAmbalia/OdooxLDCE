@@ -32,6 +32,19 @@
   --input: #cbd0de;
   --ring: #4544a8;
   --radius: 0.625rem;
+  
+  /* Additional custom colors used by legacy/mockup components */
+  --color-ink: var(--foreground);
+  --color-muted: var(--muted-foreground);
+  --color-dusk: var(--primary);
+  --color-surface: var(--background);
+  --color-line: var(--border);
+  --color-paper: var(--card);
+  --color-ok: #16a34a;
+  --color-stop: var(--destructive);
+  --color-wait: #d97706;
+  --color-info: #2563eb;
+  --color-neutral: #64748b;
 }
 
 @theme inline {
