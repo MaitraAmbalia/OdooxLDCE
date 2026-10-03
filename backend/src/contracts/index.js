@@ -22,5 +22,19 @@
  * createPayment(input)                                  -> CreatePaymentResult
  * registerPurposeHandler(purpose, async (payment, tx) => void, { onFailed? })
  * refund(paymentId, amountPaise, reason)                -> { refundId }
+ *
+ * Finance (Person A) - modules/finance/finance.service.js. Called inside the caller's transaction.
+ * @typedef {object} LedgerPosting
+ * @property {string} category        LedgerCategory
+ * @property {number} amountPaise     positive integer
+ * @property {string} sourceType      LedgerSourceType; (sourceType, sourceId) is unique => replays are no-ops
+ * @property {string} sourceId
+ * @property {string} description
+ * @property {string} [eventId]
+ * @property {string} [projectId]
+ * @property {string} [recordedBy]    user id; omit for system postings
+ * @property {Date}   [occurredAt]
+ *
+ * postIncome(entry, tx) / postExpense(entry, tx) / postRefund(entry, tx) -> boolean (true if newly written)
  */
 export {};

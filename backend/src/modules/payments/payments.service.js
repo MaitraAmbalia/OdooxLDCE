@@ -1,248 +1,159 @@
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { AppError } from '../../lib/AppError.js';
-import { postIncome as stubPostIncome, LEDGER_CATEGORY_BY_PURPOSE } from '../../contracts/stubs.js';
-import { createProvider } from './providers/provider.js';
-import { sharedRegistry } from './payments.registry.js';
-import { paymentsRepository as repo } from './payments.repository.js';
+import { postIncome } from '../finance/finance.service.js';
 
+// Ledger category per payment purpose (arch §5.3).
+const CATEGORY = { MEMBERSHIP: 'DUES', TICKET: 'TICKETS', MERCH_ORDER: 'MERCH' };
+
+// Other modules register what happens when a payment for their purpose is PAID / FAILED, e.g.
+//   registerPurposeHandler('MEMBERSHIP', async (payment, tx) => { ...activate membership... });
+// The handler runs inside the webhook transaction, so it commits or rolls back with the payment.
+const handlers = new Map();
+export const registerPurposeHandler = (purpose, onPaid, { onFailed } = {}) => handlers.set(purpose, { onPaid, onFailed });
+
+const sign = (secret, data) => createHmac('sha256', secret).update(data).digest('hex');
+const sameSig = (expected, given) =>
+  typeof given === 'string' && expected.length === given.length && timingSafeEqual(Buffer.from(expected), Buffer.from(given));
 const notFound = () => new AppError('NOT_FOUND', 404, 'Payment not found');
-const isUniqueViolation = (e) => e?.code === 'P2002';
 
-// BigInt is not JSON-serialisable and paise amounts fit comfortably in a Number.
-function toPublic(p) {
-  return {
-    id: p.id,
-    purpose: p.purpose,
-    refId: p.refId,
-    amountPaise: Number(p.amountPaise),
-    currency: 'INR',
-    status: p.status,
-    provider: p.provider,
-    gatewayOrderId: p.gatewayOrderId,
-    paidAt: p.paidAt,
-    createdAt: p.createdAt,
-  };
-}
+const toPublic = (p) => ({
+  id: p.id, purpose: p.purpose, refId: p.refId, amountPaise: Number(p.amountPaise), currency: 'INR',
+  status: p.status, provider: p.provider, gatewayOrderId: p.gatewayOrderId, paidAt: p.paidAt, createdAt: p.createdAt,
+});
 
-/**
- * Payments business rules. Dependencies are injected so tests can swap provider/ledger/registry.
- */
-export function createPaymentsService({
-  prisma,
-  config,
-  logger,
-  provider = createProvider(config),
-  registry = sharedRegistry,
-  postIncome = stubPostIncome, // swapped for finance.postIncome when the finance module lands
-}) {
-  // ---------------------------------------------------------------- createPayment
-  // Contract function (called by memberships / tickets / merch checkout).
-  // `amountPaise` MUST come from server-side pricing, never from the request body.
+export function createPaymentsService({ prisma, config, logger }) {
+  // Minimal Razorpay REST call (Basic auth with the key pair; test keys = test mode).
+  async function razorpay(path, body) {
+    if (!config.razorpayKeyId || !config.razorpayKeySecret) {
+      throw new AppError('PAYMENTS_NOT_CONFIGURED', 503, 'Payment gateway is not configured');
+    }
+    const auth = Buffer.from(`${config.razorpayKeyId}:${config.razorpayKeySecret}`).toString('base64');
+    const res = await fetch(`https://api.razorpay.com/v1${path}`, {
+      method: 'POST',
+      headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new AppError('GATEWAY_ERROR', 502, 'Payment gateway request failed', { gatewayCode: json?.error?.code });
+    return json;
+  }
+
+  // Contract function (called by membership / ticket / merch checkout).
+  // `amountPaise` must come from server-side pricing, never from the client.
   async function createPayment({ userId, purpose, refId, amountPaise, idempotencyKey }) {
     if (!Number.isSafeInteger(amountPaise) || amountPaise <= 0) {
       throw new AppError('VALIDATION_ERROR', 400, 'amountPaise must be a positive integer');
     }
-
-    // Same key => same payment (checkout retried by the client or a network blip).
-    const replay = async () => {
-      const existing = await repo.findByIdempotencyKey(prisma, idempotencyKey);
-      if (!existing) return null;
-      const same =
-        existing.userId === userId &&
-        existing.purpose === purpose &&
-        existing.refId === refId &&
-        Number(existing.amountPaise) === amountPaise;
-      if (!same) throw new AppError('IDEMPOTENCY_CONFLICT', 409, 'Idempotency-Key reused with a different request');
-      return existing;
-    };
-
-    let payment = idempotencyKey ? await replay() : null;
+    let payment = idempotencyKey ? await prisma.payment.findUnique({ where: { idempotencyKey } }) : null;
     if (!payment) {
-      // The id doubles as Razorpay's `receipt` (<= 40 chars), so generate it before the order.
-      const id = randomUUID();
-      const order = await provider.createOrder({ amountPaise, receipt: id });
+      const id = randomUUID(); // doubles as Razorpay's `receipt`
+      const order = await razorpay('/orders', { amount: amountPaise, currency: 'INR', receipt: id });
       try {
-        payment = await repo.create(prisma, {
-          id,
-          userId,
-          purpose,
-          refId,
-          amountPaise: BigInt(amountPaise),
-          provider: provider.name,
-          gatewayOrderId: order.gatewayOrderId,
-          idempotencyKey: idempotencyKey ?? null,
+        payment = await prisma.payment.create({
+          data: { id, userId, purpose, refId, amountPaise: BigInt(amountPaise), provider: 'RAZORPAY', gatewayOrderId: order.id, idempotencyKey: idempotencyKey ?? null },
         });
       } catch (e) {
-        // Two concurrent requests with the same key: the loser reads the winner's row.
-        if (isUniqueViolation(e) && idempotencyKey) payment = await replay();
-        else throw e;
+        if (e.code !== 'P2002' || !idempotencyKey) throw e; // two requests with the same key: use the winner's row
+        payment = await prisma.payment.findUnique({ where: { idempotencyKey } });
       }
     }
-
     return {
-      paymentId: payment.id,
-      provider: payment.provider,
-      gatewayOrderId: payment.gatewayOrderId,
-      amountPaise: Number(payment.amountPaise),
-      currency: 'INR',
-      keyId: provider.keyId ?? 'mock_key',
+      paymentId: payment.id, provider: payment.provider, gatewayOrderId: payment.gatewayOrderId,
+      amountPaise: Number(payment.amountPaise), currency: 'INR', keyId: config.razorpayKeyId,
     };
   }
 
-  // ---------------------------------------------------------------- captured (the money path)
-  // Used by the webhook, /confirm and /mock-complete, so all three behave identically.
-  // Everything below happens in ONE transaction: PAID status + purpose handler + ledger entry.
-  async function handleCaptured({ gatewayOrderId, gatewayPaymentId, amountPaise }) {
+  // The money path, shared by webhook, /confirm and /mock-complete. ONE transaction:
+  // flip to PAID (only once), run the purpose handler, post the ledger entry.
+  function handleCaptured({ gatewayOrderId, gatewayPaymentId, amountPaise }) {
     return prisma.$transaction(async (tx) => {
-      const payment = await repo.findByGatewayOrderId(tx, gatewayOrderId);
-      if (!payment) {
-        logger.warn({ gatewayOrderId }, 'capture for unknown order');
-        return 'UNKNOWN_ORDER';
-      }
-
-      // Never fulfil if the gateway captured a different amount than we asked for.
+      const payment = await tx.payment.findUnique({ where: { gatewayOrderId } });
+      if (!payment) return 'UNKNOWN_ORDER';
       if (!Number.isSafeInteger(amountPaise) || BigInt(amountPaise) !== payment.amountPaise) {
-        logger.error(
-          { paymentId: payment.id, expected: Number(payment.amountPaise), captured: amountPaise },
-          'ALERT: captured amount mismatch, not fulfilling',
-        );
+        logger.error({ paymentId: payment.id, captured: amountPaise }, 'ALERT: captured amount mismatch, not fulfilling');
         return 'AMOUNT_MISMATCH';
       }
+      // Compare-and-set: only one caller wins CREATED/FAILED -> PAID; a replay updates 0 rows.
+      const { count } = await tx.payment.updateMany({
+        where: { id: payment.id, gatewayPaymentId: null, status: { in: ['CREATED', 'FAILED'] } },
+        data: { status: 'PAID', gatewayPaymentId, paidAt: new Date() },
+      });
+      if (count === 0) return 'ALREADY_PROCESSED';
 
-      // Compare-and-set: only one caller can flip CREATED/FAILED -> PAID. Replays get count 0.
-      const { count } = await repo.markPaid(tx, payment.id, gatewayPaymentId);
-      if (count === 0) {
-        if (payment.gatewayPaymentId && payment.gatewayPaymentId !== gatewayPaymentId) {
-          logger.error({ paymentId: payment.id, gatewayPaymentId }, 'ALERT: second capture for a paid order (refund manually)');
-        }
-        return 'ALREADY_PROCESSED';
-      }
-
-      const paid = await repo.findById(tx, payment.id);
-      const handler = registry.get(paid.purpose);
-      if (handler?.onPaid) await handler.onPaid(paid, tx);
-
+      const paid = await tx.payment.findUnique({ where: { id: payment.id } });
+      await handlers.get(paid.purpose)?.onPaid?.(paid, tx);
       await postIncome(
-        {
-          category: LEDGER_CATEGORY_BY_PURPOSE[paid.purpose],
-          amountPaise: Number(paid.amountPaise),
-          sourceType: 'PAYMENT',
-          sourceId: paid.id,
-          description: `${paid.purpose} payment ${paid.gatewayPaymentId}`,
-        },
+        { category: CATEGORY[paid.purpose], amountPaise: Number(paid.amountPaise), sourceType: 'PAYMENT', sourceId: paid.id, description: `${paid.purpose} payment ${gatewayPaymentId}` },
         tx,
       );
       return 'FULFILLED';
     });
   }
 
-  async function handleFailed({ gatewayOrderId }) {
-    return prisma.$transaction(async (tx) => {
-      const payment = await repo.findByGatewayOrderId(tx, gatewayOrderId);
-      if (!payment) return 'UNKNOWN_ORDER';
-      const { count } = await repo.markFailed(tx, payment.id);
-      if (count === 0) return 'IGNORED'; // already paid / failed
-      const handler = registry.get(payment.purpose);
-      if (handler?.onFailed) await handler.onFailed(payment, tx); // e.g. release a reservation
-      return 'FAILED';
-    });
-  }
-
-  // ---------------------------------------------------------------- webhook
   // `rawBody` is the exact Buffer Razorpay sent (app.js mounts express.raw for this route).
   async function handleWebhook(rawBody, signature) {
-    if (!Buffer.isBuffer(rawBody) || !provider.verifyWebhookSignature(rawBody, signature)) {
+    if (!config.paymentWebhookSecret) throw new AppError('PAYMENTS_NOT_CONFIGURED', 503, 'Payment gateway is not configured');
+    if (!Buffer.isBuffer(rawBody) || !sameSig(sign(config.paymentWebhookSecret, rawBody), signature)) {
       throw new AppError('INVALID_SIGNATURE', 400, 'Invalid webhook signature');
     }
-
-    let event;
-    try {
-      event = JSON.parse(rawBody.toString('utf8'));
-    } catch {
-      throw new AppError('INVALID_PAYLOAD', 400, 'Webhook body is not valid JSON');
+    const event = JSON.parse(rawBody.toString('utf8'));
+    const p = event?.payload?.payment?.entity;
+    if (event?.event === 'payment.captured' && p) {
+      return handleCaptured({ gatewayOrderId: p.order_id, gatewayPaymentId: p.id, amountPaise: p.amount });
     }
-
-    const entity = event?.payload?.payment?.entity;
-    if (event?.event === 'payment.captured' && entity) {
-      return handleCaptured({
-        gatewayOrderId: entity.order_id,
-        gatewayPaymentId: entity.id,
-        amountPaise: entity.amount,
+    if (event?.event === 'payment.failed' && p) {
+      return prisma.$transaction(async (tx) => {
+        const payment = await tx.payment.findUnique({ where: { gatewayOrderId: p.order_id } });
+        if (!payment) return 'UNKNOWN_ORDER';
+        const { count } = await tx.payment.updateMany({ where: { id: payment.id, status: 'CREATED' }, data: { status: 'FAILED' } });
+        if (count) await handlers.get(payment.purpose)?.onFailed?.(payment, tx); // e.g. release a reservation
+        return count ? 'FAILED' : 'IGNORED';
       });
     }
-    if (event?.event === 'payment.failed' && entity) {
-      return handleFailed({ gatewayOrderId: entity.order_id });
-    }
-    return 'IGNORED'; // other event types: acknowledge so the gateway stops retrying
+    return 'IGNORED'; // other events: acknowledge so the gateway stops retrying
   }
 
-  // ---------------------------------------------------------------- owner endpoints
-  // Other people's payments look like they don't exist (404, not 403).
+  // Someone else's payment looks like it does not exist (404, not 403).
   async function getOwned(userId, id) {
-    const payment = await repo.findById(prisma, id);
+    const payment = await prisma.payment.findUnique({ where: { id } });
     if (!payment || payment.userId !== userId) throw notFound();
     return payment;
   }
 
-  async function get(userId, id) {
-    return toPublic(await getOwned(userId, id));
-  }
+  const get = async (userId, id) => toPublic(await getOwned(userId, id));
 
-  // Client-side confirmation: speeds up the UI, the webhook stays authoritative.
-  // The signature binds this order to this gateway payment id, and the order amount was fixed
-  // server-side when we created it, so using our own stored amount here is safe.
+  // Client-side confirmation after Razorpay checkout. The signature binds this order to the
+  // payment id, and the order amount was fixed server-side, so our stored amount is safe to use.
   async function confirm(userId, id, { gatewayPaymentId, gatewaySignature }) {
     const payment = await getOwned(userId, id);
-    const ok = provider.verifyCheckoutSignature({
-      gatewayOrderId: payment.gatewayOrderId,
-      gatewayPaymentId,
-      signature: gatewaySignature,
-    });
-    if (!ok) throw new AppError('INVALID_SIGNATURE', 400, 'Invalid payment signature');
-
-    await handleCaptured({
-      gatewayOrderId: payment.gatewayOrderId,
-      gatewayPaymentId,
-      amountPaise: Number(payment.amountPaise),
-    });
-    return toPublic(await repo.findById(prisma, id));
+    const expected = sign(config.razorpayKeySecret ?? '', `${payment.gatewayOrderId}|${gatewayPaymentId}`);
+    if (!config.razorpayKeySecret || !sameSig(expected, gatewaySignature)) {
+      throw new AppError('INVALID_SIGNATURE', 400, 'Invalid payment signature');
+    }
+    await handleCaptured({ gatewayOrderId: payment.gatewayOrderId, gatewayPaymentId, amountPaise: Number(payment.amountPaise) });
+    return get(userId, id);
   }
 
-  // Demo helper. The route is not even mounted in production; the provider check stops it
-  // from faking a payment that was created against real Razorpay.
+  // DEV SHORTCUT (route not mounted in production): pretends the gateway captured the payment.
   async function mockComplete(userId, id) {
     const payment = await getOwned(userId, id);
-    if (payment.provider !== 'MOCK') throw new AppError('FORBIDDEN', 403, 'Only MOCK payments can be completed here');
-    await handleCaptured({
-      gatewayOrderId: payment.gatewayOrderId,
-      gatewayPaymentId: `pay_mock_${randomUUID()}`,
-      amountPaise: Number(payment.amountPaise),
-    });
-    return toPublic(await repo.findById(prisma, id));
+    await handleCaptured({ gatewayOrderId: payment.gatewayOrderId, gatewayPaymentId: `pay_mock_${randomUUID()}`, amountPaise: Number(payment.amountPaise) });
+    return get(userId, id);
   }
 
-  // ---------------------------------------------------------------- refund
-  // Contract function. Caller posts the ledger refund (finance.postRefund) in its own flow.
-  // ponytail: a refund marks the payment REFUNDED even if partial; track partials with a
-  // refunds table if the product needs several partial refunds per payment.
+  // Contract function (event/ticket cancel). The caller posts the ledger refund (finance.postRefund).
+  // ponytail: any successful refund marks the payment REFUNDED, even a partial one.
   async function refund(paymentId, amountPaise, reason) {
-    const payment = await repo.findById(prisma, paymentId);
+    const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
     if (!payment) throw notFound();
+    if (payment.status !== 'PAID') throw new AppError('INVALID_STATE_TRANSITION', 409, 'Only PAID payments can be refunded');
     if (!Number.isSafeInteger(amountPaise) || amountPaise <= 0 || BigInt(amountPaise) > payment.amountPaise) {
       throw new AppError('VALIDATION_ERROR', 400, 'Invalid refund amount');
     }
-
-    // Claim PAID -> REFUNDED first so two concurrent refunds can't both reach the gateway.
-    const { count } = await repo.setStatus(prisma, paymentId, 'PAID', 'REFUNDED');
-    if (count === 0) throw new AppError('INVALID_STATE_TRANSITION', 409, 'Only PAID payments can be refunded');
-
-    try {
-      return await provider.refund({ gatewayPaymentId: payment.gatewayPaymentId, amountPaise, reason });
-    } catch (e) {
-      await repo.setStatus(prisma, paymentId, 'REFUNDED', 'PAID'); // gateway said no: undo the claim
-      throw e;
-    }
+    const r = await razorpay(`/payments/${payment.gatewayPaymentId}/refund`, { amount: amountPaise, notes: { reason } });
+    await prisma.payment.update({ where: { id: paymentId }, data: { status: 'REFUNDED' } });
+    return { refundId: r.id };
   }
 
-  return { createPayment, handleWebhook, handleCaptured, handleFailed, get, confirm, mockComplete, refund };
+  return { createPayment, handleWebhook, get, confirm, mockComplete, refund };
 }
