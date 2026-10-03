@@ -16,6 +16,8 @@ import { createPaymentsService } from './modules/payments/payments.service.js';
 import { createPaymentsRouter } from './modules/payments/payments.routes.js';
 import { createFinanceService } from './modules/finance/finance.service.js';
 import { createFinanceRouter } from './modules/finance/finance.routes.js';
+import { createFilesService } from './modules/files/files.service.js';
+import { createFilesRouter } from './modules/files/files.routes.js';
 
 function createCorsOptions(config) {
   return {
@@ -60,8 +62,12 @@ export function createApp(options = {}) {
   const payments = createPaymentsService({ prisma, config, logger });
   app.use('/api/v1/payments', createPaymentsRouter({ service: payments, authenticate, config }));
 
+  // Commerce files (receipts, merch images, event covers, ledger attachments).
+  const files = createFilesService({ prisma, config });
+  app.use('/api/v1/commerce/files', createFilesRouter({ service: files, authenticate }));
+
   // Finance: ledger + budgets. `requirePermission` is B's `authorize` (dev stub for now).
-  const finance = createFinanceService({ prisma });
+  const finance = createFinanceService({ prisma, files });
   app.use('/api/v1', createFinanceRouter({ service: finance, authenticate, requirePermission: stubRequirePermission }));
 
   app.use(notFound);

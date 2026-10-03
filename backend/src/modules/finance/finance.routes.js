@@ -19,6 +19,7 @@ const listQuery = z.object({
 const manualBody = z.object({
   direction, category, amountPaise: paise, description: z.string().min(3).max(500),
   occurredAt: z.coerce.date(), eventId: z.uuid().optional(), projectId: z.uuid().optional(),
+  attachmentFileId: z.uuid().optional(), // a LEDGER_ATTACHMENT file the caller uploaded
 });
 const reverseBody = z.object({ reason: z.string().min(3).max(500) });
 const allocationBody = z.object({ period: periodSchema, amountPaise: paise, source: z.enum(['UNIVERSITY_GRANT', 'CARRY_FORWARD', 'OTHER']), note: z.string().max(500).optional() });

@@ -38,6 +38,8 @@ const envSchema = z.object({
   RAZORPAY_KEY_ID: z.string().optional(),
   RAZORPAY_KEY_SECRET: z.string().optional(),
   PAYMENT_WEBHOOK_SECRET: z.string().optional(),
+  // Uploaded files are stored on local disk under this folder.
+  FILE_STORAGE_PATH: z.string().min(1).default('./storage'),
 });
 
 function formatIssues(issues) {
@@ -67,6 +69,7 @@ export function loadConfig(source = process.env) {
     razorpayKeyId: env.RAZORPAY_KEY_ID,
     razorpayKeySecret: env.RAZORPAY_KEY_SECRET,
     paymentWebhookSecret: env.PAYMENT_WEBHOOK_SECRET,
+    fileStoragePath: env.FILE_STORAGE_PATH,
   });
 }
 
