@@ -81,5 +81,24 @@ export function createEventsService({ prisma }) {
         })),
       };
     },
+
+    async reviewProposal(id, mentorId, { decision, comment, approvedBudget }) {
+      const status = decision === 'APPROVE' ? 'APPROVED' : decision === 'REQUEST_CHANGES' ? 'CHANGES_REQUESTED' : 'REJECTED';
+      const updated = await prisma.event.update({
+        where: { id },
+        data: {
+          status: status === 'APPROVED' ? 'PUBLISHED' : status,
+          approvedById: mentorId,
+          approvedAt: new Date(),
+          approvedBudgetPaise: approvedBudget ? BigInt(approvedBudget * 100) : undefined,
+        },
+        include: { ticketTypes: true },
+      });
+      return {
+        ...updated,
+        startDate: updated.startAt,
+        endDate: updated.endAt,
+      };
+    },
   };
 }

@@ -38,6 +38,7 @@ import { createMembershipsService } from './modules/memberships/memberships.serv
 import { createMembershipsRouter } from './modules/memberships/memberships.routes.js';
 import { createFilesService } from './modules/files/files.service.js';
 import { createFilesRouter } from './modules/files/files.routes.js';
+import { createGovernanceRouter } from './modules/governance/governance.routes.js';
 
 function createCorsOptions(config) {
   return {
@@ -102,7 +103,7 @@ export function createApp(options = {}) {
 
   // 3. Notifications (Scene 3)
   const notificationsService = createNotificationsService({ prisma });
-  app.use('/api/v1', createNotificationsRouter({ service: notificationsService, authenticate: auth }));
+  app.use('/api/v1', createNotificationsRouter({ service: notificationsService, authenticate: auth, prisma }));
 
   // 4. Events & Tickets (Scene 2)
   const eventsService = createEventsService({ prisma });
@@ -136,6 +137,9 @@ export function createApp(options = {}) {
   // 7. Finance & Treasurer Ledgers (Scene 6)
   const financeService = createFinanceService({ prisma, files: filesService });
   app.use('/api/v1', createFinanceRouter({ service: financeService, authenticate: auth, requirePermission: authorize }));
+
+  // 8. Governance, Elections & Meetings
+  app.use('/api/v1', createGovernanceRouter({ prisma, authenticate: auth }));
 
   app.use(notFound);
   app.use(errorHandler({ isProduction: config.isProduction }));

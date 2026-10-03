@@ -24,5 +24,10 @@ export function createEventsRouter({ service, authenticate, authorize }) {
     res.status(201).json({ data: await service.create(req.user.sub, req.body) });
   });
 
+  // POST /events/:id/review - Mentor review decision
+  router.post('/events/:id/review', authenticate, async (req, res) => {
+    res.json({ data: await service.reviewProposal(req.params.id, req.user.sub, req.body) });
+  });
+
   return router;
 }
