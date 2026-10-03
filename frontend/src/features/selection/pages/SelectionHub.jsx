@@ -1,4 +1,5 @@
 import React from "react";
+import { Sprout } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -31,7 +32,7 @@ export default function SelectionHub() {
           <div className="text-center py-20 text-[var(--color-muted)]">Loading available positions...</div>
         ) : openCycles.length === 0 ? (
           <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] p-12 text-center shadow-sm">
-            <span className="text-4xl mb-4 block">🪴</span>
+            <Sprout className="w-10 h-10 mb-4 block text-blue-600" aria-hidden="true" />
             <h2 className="text-xl font-bold text-[var(--color-ink)] mb-2">No Open Recruitments</h2>
             <p className="text-[var(--color-muted)]">There are currently no active selection cycles. Check back later!</p>
           </div>
@@ -42,7 +43,7 @@ export default function SelectionHub() {
                 <div>
                   <div className="flex items-center gap-3 mb-2">
                     <h2 className="text-2xl font-display font-bold text-[var(--color-ink)]">{cycle.name}</h2>
-                    <span className="bg-[var(--color-ok)] text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded">Accepting Applications</span>
+                    <span className="bg-[var(--color-ok)] text-white text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded">Accepting Applications</span>
                   </div>
                   <p className="text-sm text-[var(--color-muted)]">Term: {cycle.termStart} to {cycle.termEnd}</p>
                 </div>

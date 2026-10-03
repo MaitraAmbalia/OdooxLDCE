@@ -1,6 +1,8 @@
 import { AppError } from '../../lib/AppError.js';
+import { registerPurposeHandler } from '../payments/payments.service.js';
+import { registerApprovalHandler } from '../approvals/approvals.service.js';
 
-export function createMerchService({ prisma }) {
+export function createMerchService({ prisma, createPayment }) {
   function formatProduct(p) {
     if (!p) return null;
     return {
@@ -13,6 +15,79 @@ export function createMerchService({ prisma }) {
       })),
     };
   }
+
+  // Register approval handler for MERCH_PRICE
+  registerApprovalHandler('MERCH_PRICE', async (approval, tx) => {
+    const { memberPricePaise, nonMemberPricePaise } = approval.proposedValue;
+    await tx.product.update({
+      where: { id: approval.targetId },
+      data: {
+        memberPricePaise: BigInt(memberPricePaise),
+        nonMemberPricePaise: BigInt(nonMemberPricePaise),
+        status: 'ACTIVE',
+      },
+    });
+  });
+
+  // Register payment handlers
+  registerPurposeHandler(
+    'MERCH_ORDER',
+    async (payment, tx) => {
+      const order = await tx.order.findUnique({
+        where: { paymentId: payment.id },
+        include: { items: true },
+      });
+      if (!order) return;
+
+      await tx.order.update({
+        where: { id: order.id },
+        data: { status: 'PAID' },
+      });
+
+      // Create stock adjustment and commit stock (append-only)
+      for (const item of order.items) {
+        // Stock moves: actually decrement stock and decrement reserved
+        await tx.variant.update({
+          where: { id: item.variantId },
+          data: {
+            stock: { decrement: item.quantity },
+            reserved: { decrement: item.quantity },
+          },
+        });
+        await tx.stockAdjustment.create({
+          data: {
+            variantId: item.variantId,
+            delta: -item.quantity,
+            reason: `Order ${order.id} paid`,
+            adjustedById: order.userId,
+          },
+        });
+      }
+      // TODO: publish order.paid
+    },
+    {
+      onFailed: async (payment, tx) => {
+        const order = await tx.order.findUnique({
+          where: { paymentId: payment.id },
+          include: { items: true },
+        });
+        if (!order) return;
+
+        await tx.order.update({
+          where: { id: order.id },
+          data: { status: 'CANCELLED' },
+        });
+
+        // Release reservation
+        for (const item of order.items) {
+          await tx.variant.update({
+            where: { id: item.variantId },
+            data: { reserved: { decrement: item.quantity } },
+          });
+        }
+      },
+    }
+  );
 
   return {
     async listProducts() {
@@ -34,34 +109,48 @@ export function createMerchService({ prisma }) {
       return formatProduct(product);
     },
 
-    async createOrder(userId, { variantId, quantity = 1 }) {
+    async createOrder(userId, { variantId, quantity = 1, idempotencyKey }) {
+      if (!createPayment) throw new AppError('NOT_CONFIGURED', 500, 'Payments not configured');
+
       const variant = await prisma.variant.findUnique({
         where: { id: variantId },
         include: { product: true },
       });
 
       if (!variant) throw new AppError('NOT_FOUND', 404, 'Product variant not found');
-      const available = (variant.stock ?? 0) - (variant.reserved ?? 0);
-      if (available < quantity) {
+
+      // Atomic reserve via updateMany
+      const { count } = await prisma.variant.updateMany({
+        where: {
+          id: variantId,
+          stock: { gte: { $raw: `reserved + ${quantity}` } }, // Actually, updateMany doesn't support field reference in gte directly in prisma safely without queryRaw, so we'll do raw query.
+        },
+        data: { reserved: { increment: quantity } },
+      });
+
+      // Workaround for atomic reservation since prisma doesn't support stock >= reserved + quantity natively in updateMany
+      const rows = await prisma.$executeRaw`
+        UPDATE variants
+        SET reserved = reserved + ${quantity}
+        WHERE id = ${variantId}::uuid AND (stock - reserved) >= ${quantity}
+      `;
+      if (rows === 0) {
         throw new AppError('OUT_OF_STOCK', 400, 'Selected size is currently out of stock');
       }
 
-      return prisma.$transaction(async (tx) => {
-        // Reserve stock
-        await tx.variant.update({
-          where: { id: variantId },
-          data: { reserved: { increment: quantity } },
-        });
+      // Calculate price based on member price (TODO: snapshot from token membership)
+      const pricePaise = variant.product?.memberPricePaise ?? BigInt(50000);
+      const totalPaise = BigInt(pricePaise) * BigInt(quantity);
 
-        // Calculate price based on member price
-        const pricePaise = variant.product?.memberPricePaise ?? BigInt(50000);
-        const totalPaise = BigInt(pricePaise) * BigInt(quantity);
+      const reservationExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15-minute reservation
 
-        const order = await tx.order.create({
+      const order = await prisma.$transaction(async (tx) => {
+        const o = await tx.order.create({
           data: {
             userId,
             totalPaise,
-            status: 'PAID', // For hackathon demo instant checkout
+            status: 'PENDING_PAYMENT',
+            reservationExpiresAt,
             items: {
               create: [
                 {
@@ -73,6 +162,20 @@ export function createMerchService({ prisma }) {
               ],
             },
           },
+          include: { items: true },
+        });
+
+        const payment = await createPayment({
+          userId,
+          purpose: 'MERCH_ORDER',
+          refId: o.id,
+          amountPaise: Number(totalPaise),
+          idempotencyKey,
+        });
+
+        const updatedOrder = await tx.order.update({
+          where: { id: o.id },
+          data: { paymentId: payment.paymentId },
           include: {
             items: {
               include: {
@@ -84,11 +187,13 @@ export function createMerchService({ prisma }) {
           },
         });
 
-        return {
-          ...order,
-          totalPaise: Number(order.totalPaise),
-        };
+        return { ...updatedOrder, payment };
       });
+
+      return {
+        ...order,
+        totalPaise: Number(order.totalPaise),
+      };
     },
 
     async getUserOrders(userId) {

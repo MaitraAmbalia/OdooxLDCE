@@ -114,14 +114,14 @@ export default function ProjectKanban() {
 
                         <div className="flex items-center justify-between mt-4">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-[var(--color-dusk)] text-white flex items-center justify-center text-[10px] font-bold" title={task.assignee}>
+                            <div className="w-6 h-6 rounded-full bg-[var(--color-dusk)] text-white flex items-center justify-center text-[11px] font-bold" title={task.assignee}>
                               {task.assignee ? task.assignee.charAt(0) : '?'}
                             </div>
                             <span className="text-xs text-[var(--color-muted)] truncate max-w-[100px]">{task.assignee || 'Unassigned'}</span>
                           </div>
 
                           {task.dueDate && (
-                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded ${isOverdue ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                            <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded ${isOverdue ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
                               {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                             </span>
                           )}

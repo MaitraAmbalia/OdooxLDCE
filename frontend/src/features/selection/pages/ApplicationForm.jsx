@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { CircleCheck, FileText, Lock } from "lucide-react";
+import { toast } from "sonner";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 
@@ -66,7 +68,7 @@ export default function ApplicationForm() {
       return json.data;
     },
     onSuccess: () => {
-      alert("Application submitted successfully to the Faculty Mentor!");
+      toast.success("Application submitted to the Faculty Mentor");
       navigate("/selection");
     },
     onError: (err) => {
@@ -118,7 +120,7 @@ export default function ApplicationForm() {
       {!isMember && (
         <div className="mb-8 p-6 bg-amber-50 border-l-4 border-[var(--color-lamp)] rounded-r-xl shadow-sm">
           <div className="flex items-start gap-4">
-            <span className="text-3xl">🔒</span>
+            <Lock className="w-8 h-8 text-blue-600" aria-hidden="true" />
             <div>
               <h3 className="text-base font-bold text-[var(--color-ink)]">
                 Active Membership Required to Apply
@@ -151,8 +153,8 @@ export default function ApplicationForm() {
           </p>
           <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-[var(--color-ink)]">
             <span>⏱️ Tenure: {post?.tenure || "1 Year"}</span>
-            <span>✅ Status: Active Members Only</span>
-            <span>📝 Voting: Appointed by Faculty Mentor review</span>
+            <span><CircleCheck className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" />Status: Active Members Only</span>
+            <span><FileText className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" />Voting: Appointed by Faculty Mentor review</span>
           </div>
         </div>
 
@@ -173,7 +175,7 @@ export default function ApplicationForm() {
                     placeholder="Type your detailed response here..."
                     className="w-full px-3 py-2 border border-[var(--color-line)] rounded-lg text-sm focus:border-[var(--color-dusk)] focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
-                  <div className="text-right text-[10px] text-[var(--color-muted)] mt-1 font-mono">
+                  <div className="text-right text-[11px] text-[var(--color-muted)] mt-1 font-mono">
                     {(answers[q.id] || "").split(/\s+/).filter(Boolean).length} words
                   </div>
                 </div>

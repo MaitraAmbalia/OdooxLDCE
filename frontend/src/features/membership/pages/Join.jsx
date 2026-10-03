@@ -260,7 +260,7 @@ export default function Join() {
                         </span>
                       )}
                     </Button>
-                    <p className="mt-2 text-[10px] text-center text-slate-400">
+                    <p className="mt-2 text-[11px] text-center text-slate-400">
                       Instant wallet activation • 14-day money-back guarantee
                     </p>
                   </div>
@@ -279,7 +279,7 @@ export default function Join() {
           </h3>
 
           <div className="divide-y divide-slate-100 text-xs sm:text-sm">
-            <div className="grid grid-cols-12 py-3 font-bold text-slate-400 uppercase text-[10px] tracking-wider">
+            <div className="grid grid-cols-12 py-3 font-bold text-slate-400 uppercase text-[11px] tracking-wider">
               <div className="col-span-6">Benefit / Capability</div>
               <div className="col-span-3 text-center">Guest</div>
               <div className="col-span-3 text-center text-blue-600">Skyline Member</div>
@@ -342,7 +342,7 @@ export default function Join() {
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-900">Priya Patel</div>
-                  <div className="text-[10px] text-slate-400">Computer Eng, 3rd Year</div>
+                  <div className="text-[11px] text-slate-400">Computer Eng, 3rd Year</div>
                 </div>
               </div>
             </CardContent>
@@ -362,7 +362,7 @@ export default function Join() {
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-900">Rohan Shah</div>
-                  <div className="text-[10px] text-slate-400">Mechanical Eng, 2nd Year</div>
+                  <div className="text-[11px] text-slate-400">Mechanical Eng, 2nd Year</div>
                 </div>
               </div>
             </CardContent>
@@ -382,7 +382,7 @@ export default function Join() {
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-900">Aarav Joshi</div>
-                  <div className="text-[10px] text-slate-400">Civil Eng, 4th Year</div>
+                  <div className="text-[11px] text-slate-400">Civil Eng, 4th Year</div>
                 </div>
               </div>
             </CardContent>

@@ -1,14 +1,12 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  Sparkles, Calendar, Ticket, ShieldCheck, ArrowRight, ShoppingBag, 
-  Users, CheckCircle2, ChevronRight, Award, Compass, TrendingUp, Clock, MapPin
-} from "lucide-react";
+import { Sparkles, Calendar, Ticket, ShieldCheck, ArrowRight, ShoppingBag, Users, CheckCircle2, ChevronRight, Award, Compass, TrendingUp, Clock, MapPin, BarChart3, HandHelping, ScanLine, Star, Zap } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../components/ui/card";
 import { StatusBadge } from "../components/common/StatusBadge";
+import { formatINR } from "../lib/utils";
 
 export default function Home() {
   const { data: authData } = useQuery({
@@ -41,7 +39,14 @@ export default function Home() {
 
   const user = authData?.data;
   const events = eventsData?.data || [];
-  const galaEvent = events.find(e => e.title.includes('Gala')) || events[0];
+  const galaEvent = events.find(e => e.title?.includes('Gala')) || events[0];
+  const galaTypes = galaEvent?.ticketTypes || [];
+  const memberType = galaTypes.find(t => t.audience === 'MEMBER');
+  const publicType = galaTypes.find(t => t.audience !== 'MEMBER');
+  const galaPrice = memberType || publicType;
+  const discountPct = memberType && publicType && Number(publicType.pricePaise) > 0
+    ? Math.round((1 - Number(memberType.pricePaise) / Number(publicType.pricePaise)) * 100)
+    : 0;
   const products = productsData?.data || [];
   const hoodie = products[0];
 
@@ -53,7 +58,7 @@ export default function Home() {
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-blue-600/30 to-amber-500/20 blur-[120px] rounded-full pointer-events-none" />
 
         <div className="relative max-w-5xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/10 border border-white/15 text-blue-200 mb-6 backdrop-blur-md shadow-inner animate-pulse">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/10 border border-white/15 text-blue-200 mb-6 backdrop-blur-md shadow-inner">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>Official Student Organization Operating Platform</span>
           </div>
@@ -107,7 +112,7 @@ export default function Home() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-4xl mx-auto mt-16 pt-10 border-t border-white/10 text-left">
             <div>
               <p className="text-3xl sm:text-4xl font-display font-extrabold text-white">₹150</p>
-              <p className="text-xs sm:text-sm text-slate-400 mt-1 font-medium">Member Gala Price <span className="line-through text-slate-500">₹300</span></p>
+              <p className="text-xs sm:text-sm text-slate-400 mt-1 font-medium">Member Gala Price <span className="line-through text-slate-400">₹300</span></p>
             </div>
             <div>
               <p className="text-3xl sm:text-4xl font-display font-extrabold text-blue-400">1.2s</p>
@@ -134,12 +139,9 @@ export default function Home() {
               <div className="flex-1 space-y-4">
                 <div className="flex flex-wrap items-center gap-2.5">
                   <Badge variant="gold">
-                    ⭐ Flagship Annual Gala
+                    <Star className="w-3.5 h-3.5" aria-hidden="true" /> Featured Event
                   </Badge>
                   <StatusBadge status="PUBLISHED" />
-                  <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" /> Early bird quota closing soon
-                  </span>
                 </div>
 
                 <h2 className="text-2xl sm:text-4xl font-display font-extrabold text-slate-900 tracking-tight">
@@ -161,22 +163,28 @@ export default function Home() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-emerald-600" />
-                    <span>350 Capacity</span>
+                    <span>{galaEvent.capacity ? `${galaEvent.capacity} capacity` : "Open entry"}</span>
                   </div>
                 </div>
               </div>
 
               {/* Pricing & CTA Panel */}
               <div className="w-full lg:w-auto shrink-0 bg-white border border-slate-200 rounded-2xl p-6 shadow-md flex flex-col items-center text-center space-y-4 min-w-[280px]">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Admission Ticket</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Admission Ticket</span>
                 <div className="space-y-0.5">
                   <div className="flex items-center justify-center gap-2">
-                    <span className="text-3xl font-display font-extrabold text-slate-900">₹150</span>
-                    <span className="text-sm font-semibold text-slate-400 line-through">₹300</span>
+                    <span className="text-3xl font-display font-extrabold text-slate-900">
+                      {galaPrice ? (Number(galaPrice.pricePaise) === 0 ? "Free" : formatINR(galaPrice.pricePaise, true)) : "TBA"}
+                    </span>
+                    {discountPct > 0 && (
+                      <span className="text-sm font-semibold text-slate-500 line-through">{formatINR(publicType.pricePaise, true)}</span>
+                    )}
                   </div>
-                  <span className="inline-block text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
-                    50% Member Discount
-                  </span>
+                  {discountPct > 0 && (
+                    <span className="inline-block text-xs font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded">
+                      {discountPct}% member discount
+                    </span>
+                  )}
                 </div>
 
                 <Link to={`/events/${galaEvent.id}`} className="w-full">
@@ -265,7 +273,7 @@ export default function Home() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold text-slate-900">₹899</p>
-                  <p className="text-[10px] text-slate-400 line-through">₹1,199</p>
+                  <p className="text-[11px] text-slate-400 line-through">₹1,199</p>
                 </div>
               </div>
             </CardContent>
@@ -330,7 +338,7 @@ export default function Home() {
               <h3 className="text-xl font-display font-bold text-white">
                 Explore Operation Consoles
               </h3>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-sm text-slate-400 mt-1">
                 Jump directly into role-specific management boards, volunteer task channels, or the live door scanner.
               </p>
             </div>
@@ -338,22 +346,22 @@ export default function Home() {
             <div className="flex flex-wrap gap-2.5">
               <Link to="/volunteer">
                 <Button variant="dark" size="sm" className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs">
-                  🤝 Volunteer Hub
+                  <HandHelping className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" />Volunteer Hub
                 </Button>
               </Link>
               <Link to="/door/00000000-0000-0000-0000-000000000001">
                 <Button variant="dark" size="sm" className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs">
-                  📷 Door QR Scanner
+                  <ScanLine className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" />Door QR Scanner
                 </Button>
               </Link>
               <Link to="/manage">
                 <Button variant="dark" size="sm" className="bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 text-xs font-bold">
-                  ⚡ Executive Manage Hub
+                  <Zap className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" />Executive Manage Hub
                 </Button>
               </Link>
               <Link to="/manage/finance/ledger">
                 <Button variant="dark" size="sm" className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs">
-                  📊 Treasury Ledger
+                  <BarChart3 className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" />Treasury Ledger
                 </Button>
               </Link>
             </div>

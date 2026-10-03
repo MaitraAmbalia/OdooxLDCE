@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { CalendarDays, Camera, Lock, MessageSquare } from "lucide-react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -133,7 +134,7 @@ export default function TaskDetail() {
         <div className="lg:w-1/3 flex flex-col gap-5 overflow-y-auto">
           <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between gap-2 mb-3">
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
                 task.priority === 'HIGH' ? 'bg-red-50 text-[var(--color-stop)] border border-red-200' : 'bg-blue-50 text-[var(--color-dusk)] border border-blue-200'
               }`}>
                 {task.priority || 'NORMAL'} Priority
@@ -157,7 +158,7 @@ export default function TaskDetail() {
                   Due Deadline
                 </p>
                 <p className="text-sm font-semibold text-[var(--color-ink)]">
-                  🗓️ {new Date(task.dueAt || task.dueDate || Date.now()).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                  <CalendarDays className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" />{new Date(task.dueAt || task.dueDate || Date.now()).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                 </p>
               </div>
 
@@ -189,7 +190,7 @@ export default function TaskDetail() {
                   to="/volunteer/claims/new"
                   className="block text-center p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold hover:bg-emerald-100 transition-colors"
                 >
-                  📸 Submit Receipt Reimbursement for this Task &rarr;
+                  <Camera className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" />Submit Receipt Reimbursement for this Task &rarr;
                 </Link>
               </div>
             </div>
@@ -204,7 +205,7 @@ export default function TaskDetail() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
                 <h2 className="font-bold text-[var(--color-ink)] text-sm flex items-center gap-2">
-                  <span>💬 Task Team Coordination Channel</span>
+                  <span><MessageSquare className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" />Task Team Coordination Channel</span>
                   <span className="w-2 h-2 rounded-full bg-[var(--color-ok)] animate-pulse"></span>
                 </h2>
                 <p className="text-xs text-[var(--color-muted)] mt-0.5">
@@ -212,7 +213,7 @@ export default function TaskDetail() {
                 </p>
               </div>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-50 border border-amber-200 text-[11px] font-semibold text-amber-900">
-                <span>🔒</span> Task-Scoped Channel
+                <Lock className="w-3.5 h-3.5" aria-hidden="true" /> Task-Scoped Channel
               </div>
             </div>
             <div className="mt-2 text-[11px] text-slate-500 bg-white/60 px-3 py-1.5 rounded border border-[var(--color-line)]">
@@ -238,7 +239,7 @@ export default function TaskDetail() {
                       <span className={`text-xs font-bold ${msg.sender.includes(user?.name || '---') ? 'text-blue-100' : 'text-[var(--color-dusk)]'}`}>
                         {msg.sender}
                       </span>
-                      <span className={`text-[10px] ${msg.sender.includes(user?.name || '---') ? 'text-blue-200' : 'text-[var(--color-muted)]'}`}>
+                      <span className={`text-[11px] ${msg.sender.includes(user?.name || '---') ? 'text-blue-200' : 'text-[var(--color-muted)]'}`}>
                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>

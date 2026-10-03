@@ -13,9 +13,9 @@ export default function ForgotPassword() {
   return (
     <div className="flex-1 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-display font-extrabold text-[var(--color-ink)]">
+        <h1 className="mt-6 text-center text-3xl font-display font-extrabold text-[var(--color-ink)]">
           Reset password
-        </h2>
+        </h1>
         <p className="mt-2 text-center text-sm text-[var(--color-muted)]">
           Enter your email and we'll send you a link to reset your password.
         </p>

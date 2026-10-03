@@ -108,9 +108,9 @@ export default function Login() {
           <span className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-700 to-indigo-600 text-white font-display font-extrabold text-2xl flex items-center justify-center mx-auto shadow-md mb-4">
             S
           </span>
-          <h2 className="text-3xl font-display font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-3xl font-display font-extrabold text-slate-900 tracking-tight">
             Sign in to Skyline
-          </h2>
+          </h1>
           <p className="mt-2 text-sm text-slate-500">
             Access your membership pass, event tickets, or leadership portal.
           </p>
@@ -177,7 +177,7 @@ export default function Login() {
                           <span className={`w-8 h-8 rounded-xl bg-gradient-to-tr ${p.color} flex items-center justify-center shadow-xs`}>
                             <Icon className="w-4 h-4" />
                           </span>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                             {p.badge}
                           </span>
                         </div>
@@ -189,7 +189,7 @@ export default function Login() {
                         </p>
                       </div>
                       <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-blue-600">
-                        <span className="font-mono text-[10px] text-slate-400 truncate max-w-[130px]">{p.email}</span>
+                        <span className="font-mono text-[11px] text-slate-400 truncate max-w-[130px]">{p.email}</span>
                         <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
                       </div>
                     </button>

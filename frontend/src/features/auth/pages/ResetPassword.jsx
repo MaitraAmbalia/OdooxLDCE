@@ -22,9 +22,9 @@ export default function ResetPassword() {
     return (
       <div className="flex-1 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-          <h2 className="mt-6 text-3xl font-display font-extrabold text-[var(--color-ink)]">
+          <h1 className="mt-6 text-3xl font-display font-extrabold text-[var(--color-ink)]">
             Invalid Link
-          </h2>
+          </h1>
           <p className="mt-2 text-sm text-[var(--color-muted)]">
             The password reset link is invalid or has expired.
           </p>

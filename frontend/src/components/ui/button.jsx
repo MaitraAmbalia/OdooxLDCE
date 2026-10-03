@@ -10,7 +10,7 @@ export const Button = React.forwardRef(({
   type = "button",
   ...props
 }, ref) => {
-  const baseStyles = "inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 cursor-pointer";
+  const baseStyles = "inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 cursor-pointer select-none";
   
   const variants = {
     default: "bg-[var(--color-dusk)] text-white hover:bg-[var(--color-dusk-hover)] focus:ring-[var(--color-dusk)] shadow-sm hover:shadow",
@@ -23,10 +23,10 @@ export const Button = React.forwardRef(({
   };
 
   const sizes = {
-    sm: "text-xs px-3 py-1.5 gap-1.5",
-    md: "text-sm px-4 py-2.5 gap-2",
-    lg: "text-base px-6 py-3 gap-2.5",
-    icon: "w-9 h-9 p-0",
+    sm: "text-sm min-h-9 px-3 py-1.5 gap-1.5",
+    md: "text-sm min-h-11 px-4 py-2.5 gap-2",
+    lg: "text-base min-h-12 px-6 py-3 gap-2.5",
+    icon: "w-10 h-10 p-0",
   };
 
   return (

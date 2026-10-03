@@ -52,7 +52,7 @@ export default function CheckoutStatus() {
         {isLoading && (
           <div>
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-dusk)] mx-auto mb-4"></div>
-            <h2 className="text-xl font-display font-bold text-[var(--color-ink)]">Waiting for payment confirmation</h2>
+            <h1 className="text-xl font-display font-bold text-[var(--color-ink)]">Waiting for payment confirmation</h1>
             <p className="mt-2 text-sm text-[var(--color-muted)]">Please do not close this window...</p>
           </div>
         )}
@@ -62,7 +62,7 @@ export default function CheckoutStatus() {
             <div className="h-12 w-12 rounded-full bg-[#FEF2F2] flex items-center justify-center mx-auto mb-4">
               <span className="text-[#DC2626] text-xl">!</span>
             </div>
-            <h2 className="text-xl font-display font-bold text-[var(--color-ink)]">Status Check Failed</h2>
+            <h1 className="text-xl font-display font-bold text-[var(--color-ink)]">Status Check Failed</h1>
             <p className="mt-2 text-sm text-[var(--color-muted)]">We couldn't check your payment status. Your money might still be safe.</p>
             <Link to="/me" className="mt-6 inline-block text-sm font-medium text-[var(--color-dusk)] hover:underline">
               Go to Dashboard
@@ -75,7 +75,7 @@ export default function CheckoutStatus() {
             <div className="h-12 w-12 rounded-full bg-[#ECFDF5] flex items-center justify-center mx-auto mb-4">
               <span className="text-[#059669] text-2xl font-bold">✓</span>
             </div>
-            <h2 className="text-2xl font-display font-bold text-[var(--color-ink)] mb-2">Payment Successful!</h2>
+            <h1 className="text-2xl font-display font-bold text-[var(--color-ink)] mb-2">Payment Successful!</h1>
             <p className="text-sm text-[var(--color-muted)] mb-6">
               Amount paid: ₹{(data.data.amountPaise / 100).toFixed(2)}
             </p>
@@ -91,7 +91,7 @@ export default function CheckoutStatus() {
             <div className="h-12 w-12 rounded-full bg-[#FEF2F2] flex items-center justify-center mx-auto mb-4">
               <span className="text-[#DC2626] text-2xl font-bold">✗</span>
             </div>
-            <h2 className="text-2xl font-display font-bold text-[var(--color-ink)] mb-2">Payment Failed</h2>
+            <h1 className="text-2xl font-display font-bold text-[var(--color-ink)] mb-2">Payment Failed</h1>
             <p className="text-sm text-[var(--color-muted)] mb-6">
               Reason: {data.data.failureReason || "Unknown error"}
             </p>
@@ -104,7 +104,7 @@ export default function CheckoutStatus() {
         {data && (data.data?.status === "PENDING" || data.data?.status === "CREATED") && (
           <div>
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-wait)] mx-auto mb-4"></div>
-            <h2 className="text-xl font-display font-bold text-[var(--color-ink)]">Payment Pending</h2>
+            <h1 className="text-xl font-display font-bold text-[var(--color-ink)]">Payment Pending</h1>
             <p className="mt-2 text-sm text-[var(--color-muted)]">Awaiting transaction confirmation from payment gateway.</p>
             <button
               onClick={handleSimulatePayment}

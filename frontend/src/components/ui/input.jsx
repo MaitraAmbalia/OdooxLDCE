@@ -7,6 +7,7 @@ export const Input = React.forwardRef(({
   error,
   ...props
 }, ref) => {
+  const errorId = React.useId();
   return (
     <div className="w-full">
       <input
@@ -17,9 +18,11 @@ export const Input = React.forwardRef(({
           className
         )}
         ref={ref}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
         {...props}
       />
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p id={errorId} role="alert" className="mt-1.5 text-xs font-medium text-red-600">{error}</p>}
     </div>
   );
 });
@@ -32,6 +35,7 @@ export const Textarea = React.forwardRef(({
   rows = 3,
   ...props
 }, ref) => {
+  const errorId = React.useId();
   return (
     <div className="w-full">
       <textarea
@@ -42,9 +46,11 @@ export const Textarea = React.forwardRef(({
           className
         )}
         ref={ref}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
         {...props}
       />
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p id={errorId} role="alert" className="mt-1.5 text-xs font-medium text-red-600">{error}</p>}
     </div>
   );
 });

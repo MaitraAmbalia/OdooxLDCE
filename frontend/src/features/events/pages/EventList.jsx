@@ -57,20 +57,21 @@ export default function EventList() {
 
         {/* Category Filters */}
         <div className="flex items-center gap-2 py-6 overflow-x-auto">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1 flex items-center gap-1">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1 flex items-center gap-1">
             <Filter className="w-3 h-3" /> Filter:
           </span>
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+              aria-pressed={selectedCategory === cat}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 selectedCategory === cat
                   ? "bg-slate-900 text-white font-bold shadow-sm"
                   : "bg-white text-slate-600 border border-slate-200 hover:border-slate-300 hover:bg-slate-50"
               }`}
             >
-              {cat === "ALL" ? "All Experiences" : cat}
+              {cat === "ALL" ? "All" : cat.charAt(0) + cat.slice(1).toLowerCase()}
             </button>
           ))}
         </div>
@@ -89,14 +90,26 @@ export default function EventList() {
         ) : filteredEvents.length === 0 ? (
           <div className="py-20 text-center bg-white rounded-3xl border border-slate-200/80 p-8">
             <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-slate-800">No events found in this category</h3>
-            <p className="text-xs text-slate-400 mt-1">Check back soon for new semester schedules.</p>
+            <h2 className="text-base font-bold text-slate-800">
+              {selectedCategory === "ALL" ? "No upcoming events yet" : "No events in this category"}
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">Check back soon for new semester schedules.</p>
+            {selectedCategory !== "ALL" && (
+              <Button variant="outline" size="sm" className="mt-4" onClick={() => setSelectedCategory("ALL")}>Show all events</Button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pt-2">
             {filteredEvents.map(event => {
-              const eventDate = new Date(event.startDate || Date.now());
-              const isGala = event.title?.toLowerCase().includes("gala");
+              const eventDate = new Date(event.startDate || event.startAt || Date.now());
+              const types = event.ticketTypes || [];
+              const prices = types.map(t => Number(t.pricePaise));
+              const minPrice = prices.length ? Math.min(...prices) : null;
+              const hasMemberPrice = types.some(t => t.audience === "MEMBER");
+              const quota = types.reduce((n, t) => n + (t.quota || 0), 0);
+              const sold = types.reduce((n, t) => n + (t.sold || 0), 0);
+              const soldOut = quota > 0 && sold >= quota;
+              const fillingFast = !soldOut && quota > 0 && sold / quota >= 0.7;
 
               return (
                 <Link 
@@ -123,18 +136,23 @@ export default function EventList() {
 
                       {/* Scarcity / Highlight Badges on Cover */}
                       <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                        <Badge variant="gold" className="text-[10px] font-black uppercase tracking-wider py-0.5 shadow-sm">
-                          <Flame className="w-3 h-3 text-amber-950 mr-0.5 inline fill-amber-950" />
-                          Filling Fast
-                        </Badge>
-                        <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider py-0.5 bg-slate-900/80 text-white backdrop-blur-sm border-slate-700">
+                        {fillingFast && (
+                          <Badge variant="gold" className="text-[11px] font-bold uppercase tracking-wider py-0.5 shadow-sm">
+                            <Flame className="w-3 h-3 text-amber-950 inline fill-amber-950" aria-hidden="true" />
+                            Filling Fast
+                          </Badge>
+                        )}
+                        {soldOut && (
+                          <Badge variant="dark" className="text-[11px] font-bold uppercase tracking-wider py-0.5">Sold Out</Badge>
+                        )}
+                        <Badge variant="secondary" className="text-[11px] font-bold uppercase tracking-wider py-0.5 bg-slate-900/80 text-white backdrop-blur-sm border-slate-700">
                           {event.category || "General"}
                         </Badge>
                       </div>
 
                       {/* Floating Date Square */}
                       <div className="absolute bottom-3 right-3 rounded-2xl bg-white/95 backdrop-blur-md px-3 py-1.5 text-center shadow-md border border-white/40">
-                        <div className="text-[10px] font-mono uppercase font-bold text-blue-700">
+                        <div className="text-[11px] font-mono uppercase font-bold text-blue-700">
                           {eventDate.toLocaleDateString('en-IN', { month: 'short' })}
                         </div>
                         <div className="text-xl font-display font-black text-slate-900 leading-none">
@@ -156,7 +174,7 @@ export default function EventList() {
                       <div className="mt-4 space-y-1.5 text-xs text-slate-500 font-medium">
                         <div className="flex items-center gap-2">
                           <Clock className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{eventDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} • Main Hall</span>
+                          <span>{eventDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} • {eventDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <MapPin className="w-3.5 h-3.5 text-slate-400" />
@@ -169,19 +187,21 @@ export default function EventList() {
                   {/* Card Footer: Pricing Anchor & Action */}
                   <div className="p-6 pt-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
                     <div>
-                      <div className="text-[10px] font-mono uppercase text-slate-400">Tickets From</div>
+                      <div className="text-[11px] font-mono uppercase text-slate-500">Tickets from</div>
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-lg font-display font-black text-slate-900">
-                          {isGala ? "₹299" : "₹149"}
+                          {minPrice === null ? "TBA" : minPrice === 0 ? "Free" : formatINR(minPrice, true)}
                         </span>
-                        <span className="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
-                          Member Price
-                        </span>
+                        {hasMemberPrice && (
+                          <span className="text-[11px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                            Member pricing
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 group-hover:translate-x-1 transition-transform">
-                      Reserve &rarr;
+                      {soldOut ? "View" : "Reserve"} <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
                     </span>
                   </div>
                 </Link>

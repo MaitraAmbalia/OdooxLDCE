@@ -39,6 +39,8 @@ import { createMembershipsRouter } from './modules/memberships/memberships.route
 import { createFilesService } from './modules/files/files.service.js';
 import { createFilesRouter } from './modules/files/files.routes.js';
 import { createGovernanceRouter } from './modules/governance/governance.routes.js';
+import { createApprovalsService } from './modules/approvals/approvals.service.js';
+import { createApprovalsRouter } from './modules/approvals/approvals.routes.js';
 
 function createCorsOptions(config) {
   return {
@@ -112,13 +114,13 @@ export function createApp(options = {}) {
   const ticketsService = createTicketsService({ prisma });
   app.use('/api/v1', createTicketsRouter({ service: ticketsService, authenticate: auth, authorize }));
 
-  // 5. Merchandise Store (Scene 4)
-  const merchService = createMerchService({ prisma });
-  app.use('/api/v1', createMerchRouter({ service: merchService, authenticate: auth }));
-
   // 6. Payments & Memberships (Scene 1)
   const paymentsService = options.paymentsService ?? createPaymentsService({ prisma, config, logger });
   app.use('/api/v1/payments', createPaymentsRouter({ service: paymentsService, authenticate: auth, config }));
+
+  // 5. Merchandise Store (Scene 4)
+  const merchService = createMerchService({ prisma, createPayment: paymentsService.createPayment });
+  app.use('/api/v1', createMerchRouter({ service: merchService, authenticate: auth }));
 
   const filesService = createFilesService({ prisma, config });
   app.use('/api/v1/files', createFilesRouter({ service: filesService, authenticate: auth }));
@@ -137,6 +139,9 @@ export function createApp(options = {}) {
   // 7. Finance & Treasurer Ledgers (Scene 6)
   const financeService = createFinanceService({ prisma, files: filesService });
   app.use('/api/v1', createFinanceRouter({ service: financeService, authenticate: auth, requirePermission: authorize }));
+
+  const approvalsService = createApprovalsService({ prisma });
+  app.use('/api/v1', createApprovalsRouter({ service: approvalsService, authenticate: auth, requirePermission: authorize }));
 
   // 8. Governance, Elections & Meetings
   app.use('/api/v1', createGovernanceRouter({ prisma, authenticate: auth }));
