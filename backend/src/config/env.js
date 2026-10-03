@@ -34,6 +34,16 @@ const envSchema = z.object({
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
     .default('info'),
   JSON_BODY_LIMIT: z.string().min(1).default('1mb'),
+  // Payments (Module 1). MOCK needs no keys; RAZORPAY needs all three (checked below).
+  PAYMENT_PROVIDER: z.enum(['MOCK', 'RAZORPAY']).default('MOCK'),
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
+  PAYMENT_WEBHOOK_SECRET: z.string().optional(),
+}).superRefine((env, ctx) => {
+  if (env.PAYMENT_PROVIDER !== 'RAZORPAY') return;
+  for (const key of ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'PAYMENT_WEBHOOK_SECRET']) {
+    if (!env[key]) ctx.addIssue({ code: 'custom', path: [key], message: `${key} is required when PAYMENT_PROVIDER=RAZORPAY` });
+  }
 });
 
 function formatIssues(issues) {
@@ -60,6 +70,11 @@ export function loadConfig(source = process.env) {
     trustProxy: env.TRUST_PROXY,
     logLevel: env.LOG_LEVEL,
     jsonBodyLimit: env.JSON_BODY_LIMIT,
+    paymentProvider: env.PAYMENT_PROVIDER,
+    razorpayKeyId: env.RAZORPAY_KEY_ID,
+    razorpayKeySecret: env.RAZORPAY_KEY_SECRET,
+    // MOCK falls back to a fixed dev secret so the webhook path is exercised the same way.
+    paymentWebhookSecret: env.PAYMENT_WEBHOOK_SECRET ?? 'dev-mock-webhook-secret',
   });
 }
 
