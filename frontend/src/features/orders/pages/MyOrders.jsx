@@ -17,7 +17,7 @@ export default function MyOrders() {
   const { data: ordersData, isPending, isError, refetch } = useQuery({
     queryKey: ['orders', 'me'],
     queryFn: async () => {
-      const res = await fetch("/api/v1/orders/me");
+      const res = await fetch("/api/v1/orders/me", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch orders");
       return res.json();
     }
