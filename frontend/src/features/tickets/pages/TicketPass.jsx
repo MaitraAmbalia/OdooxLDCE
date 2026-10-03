@@ -43,8 +43,6 @@ export default function TicketPass() {
   }
 
   const isCheckedIn = ticket.status === "CHECKED_IN";
-  const ticketCode = ticket.id || "SKYL-TCK-0001";
-  const shortId = ticketCode.slice(0, 8).toUpperCase();
 
   const handleAddToCalendar = () => {
     const start = new Date(event.startAt || event.startDate);
@@ -54,7 +52,7 @@ export default function TicketPass() {
     }
     const end = new Date(event.endAt || start.getTime() + 2 * 60 * 60 * 1000);
     const stamp = (date) => date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-    const calendar = ["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", `UID:${ticketCode}@skyline`, `DTSTART:${stamp(start)}`, `DTEND:${stamp(end)}`, `SUMMARY:${event.title || "Skyline event"}`, `LOCATION:${event.venue || "Campus"}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+    const calendar = ["BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT", `UID:${crypto.randomUUID()}@skyline`, `DTSTART:${stamp(start)}`, `DTEND:${stamp(end)}`, `SUMMARY:${event.title || "Skyline event"}`, `LOCATION:${event.venue || "Campus"}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
     const url = URL.createObjectURL(new Blob([calendar], { type: "text/calendar" }));
     const link = document.createElement("a");
     link.href = url;
@@ -172,13 +170,13 @@ export default function TicketPass() {
           
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 shadow-inner inline-block mx-auto mb-4">
             <QRCodeSVG 
-              value={ticketCode} 
+              value={ticket.qr} 
               size={180}
               level="H"
               includeMargin={false}
             />
             <div className="mt-2 text-[10px] font-mono text-slate-500 font-bold uppercase tracking-wider">
-              {shortId} • SCAN AT ENTRANCE
+              SCAN AT ENTRANCE
             </div>
           </div>
 

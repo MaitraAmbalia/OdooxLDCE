@@ -35,18 +35,18 @@ export default function DoorScanner() {
     try { scannerRef.current?.resume(); } catch {}
   }, []);
 
-  const processTicket = useCallback(async (rawTicketId) => {
-    const ticketId = rawTicketId.trim();
-    if (!ticketId || processingRef.current) return;
+  const processTicket = useCallback(async (rawQr) => {
+    const qr = rawQr.trim();
+    if (!qr || processingRef.current) return;
     processingRef.current = true;
     try { scannerRef.current?.pause(true); } catch {}
 
     try {
-      const response = await fetch("/api/v1/tickets/" + encodeURIComponent(ticketId) + "/checkin", {
+      const response = await fetch("/api/v1/tickets/checkin", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId }),
+        body: JSON.stringify({ qr, eventId }),
       });
       const json = await response.json();
       if (!response.ok) {
@@ -105,7 +105,7 @@ export default function DoorScanner() {
       </section>
 
       <footer className="relative z-20 border-t border-white/10 bg-slate-950 p-4">
-        {!manualOpen ? <Button type="button" variant="outline" className="mx-auto flex w-full max-w-sm border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white" onClick={() => setManualOpen(true)}><Keyboard aria-hidden="true" /> Enter ticket ID manually</Button> : <form onSubmit={submitManual} className="mx-auto flex max-w-xl flex-col gap-2 sm:flex-row"><Input value={manualId} onChange={(eventObject) => setManualId(eventObject.target.value)} placeholder="Ticket UUID" aria-label="Ticket ID" autoFocus className="border-white/20 bg-white text-slate-950" /><Button type="submit" disabled={!manualId.trim()}>Check in</Button><Button type="button" variant="ghost" className="text-white hover:bg-white/10 hover:text-white" onClick={() => setManualOpen(false)}>Cancel</Button></form>}
+        {!manualOpen ? <Button type="button" variant="outline" className="mx-auto flex w-full max-w-sm border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white" onClick={() => setManualOpen(true)}><Keyboard aria-hidden="true" /> Enter pass code manually</Button> : <form onSubmit={submitManual} className="mx-auto flex max-w-xl flex-col gap-2 sm:flex-row"><Input value={manualId} onChange={(eventObject) => setManualId(eventObject.target.value)} placeholder="Paste pass code" aria-label="Pass code" autoFocus className="border-white/20 bg-white text-slate-950" /><Button type="submit" disabled={!manualId.trim()}>Check in</Button><Button type="button" variant="ghost" className="text-white hover:bg-white/10 hover:text-white" onClick={() => setManualOpen(false)}>Cancel</Button></form>}
       </footer>
     </main>
   );

@@ -126,9 +126,7 @@ export default function MyTickets() {
                       </div>
 
                       <div className="mt-5 flex items-center justify-between border-t border-border pt-3 text-xs">
-                        <span className="font-mono text-[11px] text-muted-foreground">
-                          ID: {ticket.id.slice(0, 8).toUpperCase()}
-                        </span>
+                        <span className="text-[11px] text-muted-foreground">{ticket.status === "CHECKED_IN" ? "Checked in" : "Ready to scan"}</span>
                         <span className="flex items-center gap-1 font-medium text-primary transition-transform group-hover:translate-x-0.5">
                           <QrCode className="size-4" /> Open pass &rarr;
                         </span>

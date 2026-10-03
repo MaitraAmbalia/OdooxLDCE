@@ -1,7 +1,10 @@
 import { AppError } from '../../lib/AppError.js';
 import { parsePagination, createPageMeta } from '../../lib/pagination.js';
+import { sealQr, openQr } from '../../lib/qrToken.js';
 
-export function createTicketsService({ prisma }) {
+const TICKET_QR = /^t:([0-9a-f-]{36})$/;
+
+export function createTicketsService({ prisma, config }) {
   return {
     async buyTicket(userId, { eventId, ticketTypeId }) {
       const event = await prisma.event.findUnique({
@@ -51,9 +54,10 @@ export function createTicketsService({ prisma }) {
       });
     },
 
-    async getTicketById(id) {
-      const ticket = await prisma.ticket.findUnique({
-        where: { id },
+    // Owner-only; 404 (not 403) for other users' tickets so ids can't be probed.
+    async getTicketById(userId, id) {
+      const ticket = await prisma.ticket.findFirst({
+        where: { id, userId },
         include: {
           event: { select: { id: true, title: true, venue: true, startAt: true, endAt: true } },
           ticketType: { select: { name: true } },
@@ -63,6 +67,7 @@ export function createTicketsService({ prisma }) {
       if (!ticket) throw new AppError('NOT_FOUND', 404, 'Ticket was not found');
       return {
         ...ticket,
+        qr: sealQr(config.cardQrSecret, `t:${ticket.id}`),
         pricePaidPaise: Number(ticket.pricePaidPaise),
         event: ticket.event
           ? {
@@ -105,7 +110,9 @@ export function createTicketsService({ prisma }) {
       return { data, meta: createPageMeta(page, total) };
     },
 
-    async checkIn(doorVolunteerId, ticketId, expectedEventId) {
+    async checkIn(doorVolunteerId, qr, expectedEventId) {
+      const ticketId = TICKET_QR.exec(openQr(config.cardQrSecret, qr) ?? '')?.[1];
+      if (!ticketId) throw new AppError('INVALID_TICKET', 400, 'This QR code is not a valid ticket');
       const ticket = await prisma.ticket.findUnique({
         where: { id: ticketId },
         include: {
@@ -137,7 +144,6 @@ export function createTicketsService({ prisma }) {
       });
 
       return {
-        ticketId: updated.id,
         status: updated.status,
         checkedInAt: updated.checkedInAt,
         attendeeName: ticket.user.name,

@@ -1,27 +1,29 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { ShieldCheck, Wifi, Sparkles, CheckCircle2, Copy, Download, Share2, AlertCircle } from "lucide-react";
+import { ShieldCheck, Wifi, Sparkles, Download } from "lucide-react";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import { toast } from "sonner";
 
 export default function MembershipCard({ membership }) {
   const [flipped, setFlipped] = useState(false);
-  const [copied, setCopied] = useState(false);
+  // Signed, opaque QR from the server: never encode raw ids into the card.
+  const { data: cardData } = useQuery({
+    queryKey: ["membershipCard"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/memberships/me/card", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch membership card");
+      return res.json();
+    },
+    enabled: membership?.status === "ACTIVE",
+  });
+  const qr = cardData?.data?.qr;
 
   if (!membership) return null;
 
   const isActive = membership.status === "ACTIVE";
   const isLapsed = membership.status === "LAPSED";
-  const memberCode = membership.code || membership.id || "SKYL-MEM-2026";
-  const memberNumber = membership.memberNumber || `SKYL-${String(membership.id || "0001").slice(0, 6).toUpperCase()}`;
-
-  const copyCode = () => {
-    navigator.clipboard.writeText(memberCode);
-    setCopied(true);
-    toast.success("Membership ID copied to clipboard!");
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const handleDownloadPass = () => {
     toast.success("Wallet pass ready! Scanning enabled at campus gates.");
@@ -88,20 +90,16 @@ export default function MembershipCard({ membership }) {
                   <span className="inline-flex items-center gap-1 text-xs text-amber-300 font-semibold bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full">
                     ★ {membership.tier?.name || "Standard Membership Tier"}
                   </span>
-                  <span className="text-[11px] text-slate-400 font-mono">
-                    ID: {memberNumber}
-                  </span>
                 </div>
               </div>
 
               {/* QR Code Centerpiece */}
               <div className="bg-white p-3.5 rounded-2xl shadow-xl w-fit mx-auto border-2 border-slate-100 flex flex-col items-center group-hover:shadow-blue-500/20 transition-all">
-                <QRCodeSVG 
-                  value={memberCode} 
-                  size={148}
-                  level="H"
-                  includeMargin={false}
-                />
+                {qr ? (
+                  <QRCodeSVG value={qr} size={148} level="H" includeMargin={false} />
+                ) : (
+                  <div className="size-[148px] animate-pulse rounded-lg bg-slate-100" role="status" aria-label="Loading pass QR" />
+                )}
                 <span className="text-[9px] font-mono text-slate-500 mt-1 font-semibold uppercase tracking-wider">
                   Tap card to view security details
                 </span>
@@ -140,20 +138,6 @@ export default function MembershipCard({ membership }) {
                 </div>
 
                 <div className="mt-4 space-y-3 text-xs">
-                  <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 flex justify-between items-center">
-                    <div>
-                      <div className="text-[10px] uppercase font-mono text-slate-400">Cryptographic Token</div>
-                      <div className="font-mono text-xs text-blue-300 font-bold truncate max-w-[200px]">{memberCode}</div>
-                    </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); copyCode(); }}
-                      className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors"
-                      title="Copy ID"
-                    >
-                      {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                  </div>
-
                   <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-1">
                     <div className="text-[10px] uppercase font-mono text-slate-400">Privileges Included</div>
                     <ul className="text-slate-300 space-y-1 text-[11px]">
@@ -178,16 +162,6 @@ export default function MembershipCard({ membership }) {
 
       {/* Quick Action Buttons below card */}
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3 w-full max-w-sm">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={copyCode}
-          className="flex-1 text-xs bg-white text-slate-800 shadow-2xs hover:bg-slate-50"
-        >
-          {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
-          <span>{copied ? "Copied!" : "Copy Pass ID"}</span>
-        </Button>
-
         <Button 
           variant="default" 
           size="sm" 

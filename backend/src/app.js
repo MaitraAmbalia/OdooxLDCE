@@ -69,7 +69,7 @@ export function createApp({
   app.use('/api/v1', createProjectsRouter({ service: createProjectsService({ prisma }), authenticate: auth }));
   app.use('/api/v1', createNotificationsRouter({ service: createNotificationsService({ prisma }), authenticate: auth, prisma }));
   app.use('/api/v1', createEventsRouter({ service: createEventsService({ prisma }), authenticate: auth, authorize }));
-  app.use('/api/v1', createTicketsRouter({ service: createTicketsService({ prisma }), authenticate: auth, authorize }));
+  app.use('/api/v1', createTicketsRouter({ service: createTicketsService({ prisma, config }), authenticate: auth, authorize }));
 
   const paymentsService = createPaymentsService({ prisma, config, logger });
   const filesService = createFilesService({ prisma, config });
@@ -90,6 +90,8 @@ export function createApp({
   app.use('/api/v1', createApprovalsRouter({ service: createApprovalsService({ prisma }), authenticate: auth, requirePermission: authorize }));
   app.use('/api/v1', createDashboardsRouter({ service: createDashboardsService({ prisma }), authenticate: auth }));
   app.use('/api/v1', createGovernanceRouter({ prisma, authenticate: auth }));
+
+  app.get('/', (req, res) => res.json({ message: 'Skyline API Server Running' }));
 
   // Error Handling
   app.use(notFound);
