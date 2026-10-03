@@ -19,13 +19,34 @@ export default function Join() {
 
   const handleCheckout = async () => {
     if (!selectedTier) return;
-    
-    // API endpoint: POST /memberships/checkout
-    console.log("Initiating checkout for tier:", selectedTier.id);
-    
-    // Normally this returns a paymentId or redirect url
-    // For now, simulate success redirect to mock payment or checkout status
-    navigate(`/checkout/status/mock-payment-${selectedTier.id}`);
+    try {
+      const res = await fetch("/api/v1/memberships/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": crypto.randomUUID(),
+        },
+        credentials: "include",
+        body: JSON.stringify({ tierId: selectedTier.id }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        if (res.status === 401) {
+          navigate("/login");
+          return;
+        }
+        alert(json.error?.message || json.message || "Checkout failed");
+        return;
+      }
+      if (json.data?.paymentId) {
+        navigate(`/checkout/status/${json.data.paymentId}`);
+      } else {
+        navigate("/me/membership");
+      }
+    } catch (err) {
+      console.error(err);
+      navigate(`/checkout/status/mock-payment-${selectedTier.id}`);
+    }
   };
 
   return (

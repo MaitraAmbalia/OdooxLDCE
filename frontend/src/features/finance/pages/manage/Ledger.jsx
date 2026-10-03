@@ -8,7 +8,7 @@ export default function Ledger() {
     queryKey: ['finance', 'ledger', { filter }],
     queryFn: async () => {
       // API endpoint: GET /finance/ledger?type=...
-      const res = await fetch(`/api/v1/finance/ledger?type=${filter}`);
+      const res = await fetch(`/api/v1/finance/ledger?type=${filter}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch ledger");
       return res.json();
     }

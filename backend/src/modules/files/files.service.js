@@ -4,7 +4,7 @@ import { access, mkdir, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { AppError } from '../../lib/AppError.js';
 import { sanitizeUpload } from '../../lib/sanitizeUpload.js';
-import { auditLog } from '../../contracts/stubs.js';
+import { auditLog } from '../../utils/audit.js';
 
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB for images and PDFs alike
 const IMAGES = ['image/jpeg', 'image/png', 'image/webp'];

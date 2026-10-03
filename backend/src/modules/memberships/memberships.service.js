@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { AppError } from '../../lib/AppError.js';
 import { createPageMeta, parsePagination } from '../../lib/pagination.js';
-import { auditLog } from '../../contracts/stubs.js';
+import { auditLog } from '../../utils/audit.js';
 import { registerPurposeHandler } from '../payments/payments.service.js';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -95,10 +95,26 @@ export function createMembershipsService({ prisma, config }) {
 
   // ---------------------------------------------------------------- my membership
   async function me(userId) {
-    const rows = await prisma.membership.findMany({ where: { userId }, include: { tier: true }, orderBy: { createdAt: 'desc' } });
-    const all = rows.map(toPublic);
-    const current = rows.find((m) => m.status === 'ACTIVE');
-    return { current: current ? toPublic(current) : null, history: all.filter((m) => m.id !== current?.id) };
+    const rows = await prisma.membership.findMany({
+      where: { userId },
+      include: {
+        tier: true,
+        user: { select: { id: true, name: true, email: true, studentId: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    const all = rows.map((m) => ({
+      ...toPublic(m),
+      user: m.user,
+      tier: m.tier ? tierPublic(m.tier) : undefined,
+      validUntil: m.expiresAt,
+    }));
+    const current = all.find((m) => m.status === 'ACTIVE') || all[0] || null;
+    return {
+      current,
+      history: all.filter((m) => m.id !== current?.id),
+      ...(current || {}),
+    };
   }
 
   // Contract function (merch, announcements, ...): is this user an active member right now?

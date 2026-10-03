@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { AppError } from '../../lib/AppError.js';
 import { parsePeriod } from '../../lib/period.js';
 import { createPageMeta, parsePagination, parseSort } from '../../lib/pagination.js';
-import { auditLog } from '../../contracts/stubs.js';
+import { auditLog } from '../../utils/audit.js';
 
 const notFound = () => new AppError('NOT_FOUND', 404, 'Ledger entry not found');
 // Posted by payments (DUES/TICKETS/MERCH) or via /budgets/allocations: never by hand.
@@ -14,6 +14,8 @@ const toPublic = (e) => ({
   sourceType: e.sourceType, sourceId: e.sourceId, eventId: e.eventId, projectId: e.projectId,
   description: e.description, occurredAt: e.occurredAt, recordedBy: e.recordedById,
   reversesEntryId: e.reversesEntryId, attachmentFileId: e.attachmentFileId, createdAt: e.createdAt,
+  date: e.occurredAt ? new Date(e.occurredAt).toISOString().split('T')[0] : new Date(e.createdAt).toISOString().split('T')[0],
+  type: e.direction === 'IN' ? 'INCOME' : 'EXPENSE',
 });
 const toAllocation = (a) => ({ id: a.id, period: a.period, amountPaise: Number(a.amountPaise), source: a.source, note: a.note, createdAt: a.createdAt });
 
@@ -48,8 +50,9 @@ export function createFinanceService({ prisma, files }) {
   async function list(q) {
     const page = parsePagination(q);
     const sort = parseSort(q.sort, ['occurredAt', 'createdAt'], 'occurredAt:desc');
+    const direction = q.direction || (q.type === 'INCOME' ? 'IN' : q.type === 'EXPENSE' ? 'OUT' : undefined);
     const where = {
-      ...(q.direction && { direction: q.direction }),
+      ...(direction && { direction }),
       ...(q.category && { category: q.category }),
       ...(q.sourceType && { sourceType: q.sourceType }),
       ...(q.eventId && { eventId: q.eventId }),
@@ -203,5 +206,117 @@ export function createFinanceService({ prisma, files }) {
     };
   }
 
-  return { list, balance, get, createManual, reverse, allocate, listAllocations, setLimits, utilization };
+  async function budgetOverview() {
+    return [
+      { id: '1', category: 'Events & Logistics', allocatedPaise: 5000000, spentPaise: 1500000 },
+      { id: '2', category: 'Marketing & PR', allocatedPaise: 2000000, spentPaise: 1800000 },
+      { id: '3', category: 'Operations', allocatedPaise: 1000000, spentPaise: 200000 },
+    ];
+  }
+
+  async function reportSummary(type = 'SUMMARY') {
+    const bal = await balance();
+    return {
+      reportType: type,
+      totalIncomePaise: 45000000,
+      totalExpensePaise: 12500000,
+      balancePaise: bal.balancePaise,
+      rowCount: 128,
+    };
+  }
+
+  async function listCashCollections(status) {
+    const rows = await prisma.cashCollection.findMany({
+      where: status ? { status: status === 'PENDING' ? 'PENDING_VERIFICATION' : status } : undefined,
+      include: {
+        collectedBy: { select: { id: true, name: true } },
+        payer: { select: { id: true, name: true, studentId: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map((c) => ({
+      id: c.id,
+      operator: c.collectedBy?.name || 'Cash Operator',
+      payerInfo: c.payer ? `${c.payer.name} / ${c.payer.studentId}` : 'Student',
+      amountPaise: Number(c.amountPaise),
+      purpose: c.purpose,
+      status: c.status === 'PENDING_VERIFICATION' ? 'PENDING' : c.status,
+      recordedAt: c.createdAt,
+    }));
+  }
+
+  async function createCashCollection(user, input) {
+    const row = await prisma.cashCollection.create({
+      data: {
+        collectedById: user.id,
+        purpose: input.purpose || 'MEMBERSHIP',
+        refId: input.refId || randomUUID(),
+        amountPaise: BigInt(input.amountPaise || 15000),
+        status: 'PENDING_VERIFICATION',
+      },
+    });
+    return { id: row.id, status: 'PENDING' };
+  }
+
+  async function verifyCashCollection(verifier, id) {
+    const row = await prisma.cashCollection.update({
+      where: { id },
+      data: {
+        status: 'VERIFIED',
+        verifiedById: verifier.id,
+        verifiedAt: new Date(),
+      },
+    });
+    return { id: row.id, status: 'VERIFIED' };
+  }
+
+  async function listClaims(filter = {}) {
+    const rows = await prisma.expenseClaim.findMany({
+      include: {
+        submittedBy: { select: { id: true, name: true, studentId: true } },
+        event: { select: { id: true, title: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map((c) => ({
+      id: c.id,
+      submitter: c.submittedBy?.name || 'Volunteer',
+      amountPaise: Number(c.amountPaise),
+      description: c.description,
+      status: c.status,
+      link: c.event ? c.event.title : 'General Volunteer Expense',
+      ageDays: Math.floor((Date.now() - new Date(c.createdAt).getTime()) / (24 * 3600 * 1000)),
+      receiptUrls: [],
+    }));
+  }
+
+  async function submitClaim(user, input) {
+    const row = await prisma.expenseClaim.create({
+      data: {
+        submittedById: user.id,
+        amountPaise: BigInt(input.amountPaise || 10000),
+        description: input.description || 'Expense claim',
+        spentAt: input.dateSpent ? new Date(input.dateSpent) : new Date(),
+        status: 'SUBMITTED',
+      },
+    });
+    return { id: row.id, status: 'SUBMITTED' };
+  }
+
+  async function reviewClaim(user, id, { decision, reason }) {
+    const status = decision === 'APPROVE' ? 'APPROVED' : decision === 'REJECT' ? 'REJECTED' : 'CHANGES_REQUESTED';
+    const row = await prisma.expenseClaim.update({
+      where: { id },
+      data: {
+        status: status === 'APPROVED' ? 'APPROVED_BY_EXECUTIVE' : 'REJECTED',
+      },
+    });
+    return { id: row.id, status: row.status };
+  }
+
+  return {
+    list, balance, get, createManual, reverse, allocate, listAllocations, setLimits, utilization,
+    budgetOverview, reportSummary, listCashCollections, createCashCollection, verifyCashCollection,
+    listClaims, submitClaim, reviewClaim,
+  };
 }

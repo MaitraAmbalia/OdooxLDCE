@@ -8,7 +8,7 @@ export default function Reports() {
     queryKey: ['finance', 'reports', reportType],
     queryFn: async () => {
       // API endpoint: GET /finance/reports?type=...
-      const res = await fetch(`/api/v1/finance/reports?type=${reportType}`);
+      const res = await fetch(`/api/v1/finance/reports?type=${reportType}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch reports");
       return res.json();
     }

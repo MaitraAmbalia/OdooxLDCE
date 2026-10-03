@@ -1,15 +1,36 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 
 export default function Register() {
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm();
+  const [errorMsg, setErrorMsg] = useState("");
+  const navigate = useNavigate();
   
   const password = watch("password", "");
 
   const onSubmit = async (data) => {
-    // To be integrated with API
-    console.log("Register data", data);
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/v1/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          studentId: data.studentId,
+          password: data.password,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error?.message || json.message || "Registration failed");
+      }
+      navigate("/login?registered=true");
+    } catch (err) {
+      setErrorMsg(err.message);
+    }
   };
 
   return (
@@ -28,6 +49,11 @@ export default function Register() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-[var(--color-surface)] py-8 px-4 shadow sm:rounded-[10px] sm:px-10 border border-[var(--color-line)]">
+          {errorMsg && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-[var(--color-stop)] text-sm rounded-md">
+              {errorMsg}
+            </div>
+          )}
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             
             <div>
@@ -42,6 +68,22 @@ export default function Register() {
                   className="appearance-none block w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[var(--color-dusk)] focus:border-[var(--color-dusk)] sm:text-sm"
                 />
                 {errors.name && <p className="mt-1 text-sm text-[var(--color-stop)]">{errors.name.message}</p>}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="studentId" className="block text-sm font-medium text-[var(--color-ink)]">
+                Student ID / Roll No.
+              </label>
+              <div className="mt-1">
+                <input
+                  id="studentId"
+                  type="text"
+                  placeholder="e.g. 2026101"
+                  {...register("studentId", { required: "Student ID is required" })}
+                  className="appearance-none block w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[var(--color-dusk)] focus:border-[var(--color-dusk)] sm:text-sm"
+                />
+                {errors.studentId && <p className="mt-1 text-sm text-[var(--color-stop)]">{errors.studentId.message}</p>}
               </div>
             </div>
 

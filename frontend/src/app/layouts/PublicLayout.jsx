@@ -1,7 +1,37 @@
 import React from "react";
-import { Outlet, Link } from "react-router-dom";
+import { Outlet, Link, useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function PublicLayout() {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const { data: authData } = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/auth/me", { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    retry: false,
+  });
+
+  const user = authData?.data;
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/v1/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      queryClient.clear();
+      navigate("/login");
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[var(--color-paper)] text-[var(--color-ink)] font-body flex flex-col">
       <header className="border-b border-[var(--color-line)] bg-[var(--color-surface)]">
@@ -13,15 +43,43 @@ export default function PublicLayout() {
             <Link to="/events" className="text-sm font-medium text-[var(--color-muted)] hover:text-[var(--color-ink)]">
               Events
             </Link>
-            <Link to="/login" className="text-sm font-medium text-[var(--color-dusk)]">
-              Log in
-            </Link>
-            <Link 
-              to="/register" 
-              className="text-sm font-medium bg-[var(--color-dusk)] text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-opacity"
-            >
-              Join
-            </Link>
+
+            {user ? (
+              <>
+                <Link to="/me/membership" className="text-sm font-medium text-[var(--color-muted)] hover:text-[var(--color-ink)]">
+                  Membership
+                </Link>
+                <Link to="/me/tickets" className="text-sm font-medium text-[var(--color-muted)] hover:text-[var(--color-ink)]">
+                  My Tickets
+                </Link>
+                {(user.roles?.includes('TREASURER') || user.roles?.includes('PRESIDENT')) && (
+                  <Link to="/manage/finance/ledger" className="text-sm font-medium text-[var(--color-muted)] hover:text-[var(--color-ink)]">
+                    Treasurer
+                  </Link>
+                )}
+                <span className="text-xs bg-[var(--color-paper)] px-2.5 py-1 rounded-full font-medium text-[var(--color-ink)] border border-[var(--color-line)]">
+                  {user.name}
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="text-sm font-medium text-[var(--color-stop)] hover:underline"
+                >
+                  Log out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="text-sm font-medium text-[var(--color-dusk)]">
+                  Log in
+                </Link>
+                <Link 
+                  to="/register" 
+                  className="text-sm font-medium bg-[var(--color-dusk)] text-white px-4 py-2 rounded-md hover:bg-opacity-90 transition-opacity"
+                >
+                  Join
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </header>

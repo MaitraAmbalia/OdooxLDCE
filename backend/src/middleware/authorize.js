@@ -1,1 +1,1 @@
-export { authorize } from '../platform/auth/middleware.js';
+export { authorize, requireMember } from './authenticate.js';

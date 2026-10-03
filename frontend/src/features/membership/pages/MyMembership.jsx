@@ -8,8 +8,8 @@ export default function MyMembership() {
     queryKey: ['myMembership'],
     queryFn: async () => {
       // API endpoint: GET /memberships/me
-      const res = await fetch("/api/v1/memberships/me");
-      if (res.status === 404) return null; // No membership
+      const res = await fetch("/api/v1/memberships/me", { credentials: "include" });
+      if (res.status === 401 || res.status === 404) return null; // No membership or not logged in
       if (!res.ok) throw new Error("Failed to fetch membership");
       return res.json();
     }
@@ -19,7 +19,7 @@ export default function MyMembership() {
     return <div className="p-8 text-center text-[var(--color-muted)]">Loading your membership...</div>;
   }
 
-  const membership = membershipData?.data;
+  const membership = membershipData?.data?.current || membershipData?.data;
 
   return (
     <div className="max-w-md mx-auto px-4 py-8 sm:px-6 lg:max-w-4xl">

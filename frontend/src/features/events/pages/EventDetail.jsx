@@ -34,10 +34,34 @@ export default function EventDetail() {
 
   const handleBuy = async () => {
     if (!selectedTicket) return;
-    
-    // API endpoint: POST /tickets/checkout or /events/:id/checkout
-    console.log("Buying ticket:", selectedTicket.id);
-    navigate(`/checkout/status/mock-ticket-${selectedTicket.id}`);
+    try {
+      const res = await fetch("/api/v1/tickets/buy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          eventId: id,
+          ticketTypeId: selectedTicket.id,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        if (res.status === 401) {
+          navigate("/login");
+          return;
+        }
+        alert(json.error?.message || json.message || "Failed to purchase ticket");
+        return;
+      }
+      if (json.data?.id) {
+        navigate(`/me/tickets/${json.data.id}`);
+      } else {
+        navigate("/me/tickets");
+      }
+    } catch (err) {
+      console.error(err);
+      navigate(`/me/tickets`);
+    }
   };
 
   if (eventLoading || ticketsLoading) {

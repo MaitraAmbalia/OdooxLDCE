@@ -7,24 +7,14 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
+    "seed": "node prisma/seed.js",
     "lint": "eslint src eslint.config.js",
-    "db:validate": "node scripts/schema.js validate",
-    "db:format": "node scripts/schema.js format",
-    "db:generate": "node scripts/schema.js generate",
-    "db:deploy": "node scripts/schema.js deploy",
-    "emit": "node scripts/emit.js",
-    "members:fixtures": "node scripts/member-fixtures.js",
-    "people:seed": "node prisma/people/seed.js",
-    "people:validate": "prisma validate --schema prisma/people/schema.prisma",
-    "people:format": "prisma format --schema prisma/people/schema.prisma",
-    "people:generate": "prisma generate --schema prisma/people/schema.prisma",
-    "people:migrate": "prisma migrate dev --schema prisma/people/schema.prisma",
-    "people:deploy": "prisma migrate deploy --schema prisma/people/schema.prisma",
     "prisma:generate": "prisma generate",
-    "prisma:validate": "prisma validate",
-    "prisma:format": "prisma format",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1146.0",
@@ -46,6 +36,7 @@
     "pino": "^10.4.0",
     "pino-http": "^11.0.0",
     "sharp": "^0.35.5",
+    "socket.io": "^4.8.4",
     "zod": "^4.6.5"
   },
   "devDependencies": {

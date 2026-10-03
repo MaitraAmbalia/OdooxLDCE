@@ -6,7 +6,7 @@ export default function Budget() {
     queryKey: ['finance', 'budget'],
     queryFn: async () => {
       // API endpoint: GET /finance/budget
-      const res = await fetch("/api/v1/finance/budget");
+      const res = await fetch("/api/v1/finance/budget", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch budget");
       return res.json();
     }

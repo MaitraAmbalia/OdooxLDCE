@@ -1,1 +1,132 @@
-// Placeholder: implementation will be added in a later phase.
+import { AppError } from '../../lib/AppError.js';
+
+export function createTicketsService({ prisma }) {
+  return {
+    async buyTicket(userId, { eventId, ticketTypeId }) {
+      const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        include: { ticketTypes: true },
+      });
+      if (!event) throw new AppError('NOT_FOUND', 404, 'Event was not found');
+
+      const ticketType = event.ticketTypes.find((t) => t.id === ticketTypeId);
+      if (!ticketType) throw new AppError('NOT_FOUND', 404, 'Ticket type was not found');
+
+      if (ticketType.sold >= ticketType.quota) {
+        throw new AppError('SOLD_OUT', 400, 'Ticket quota sold out');
+      }
+
+      return prisma.$transaction(async (tx) => {
+        // Increment sold count
+        await tx.ticketType.update({
+          where: { id: ticketTypeId },
+          data: { sold: { increment: 1 } },
+        });
+
+        await tx.event.update({
+          where: { id: eventId },
+          data: { seatsSold: { increment: 1 } },
+        });
+
+        // Create issued ticket
+        const ticket = await tx.ticket.create({
+          data: {
+            eventId,
+            ticketTypeId,
+            userId,
+            pricePaidPaise: ticketType.pricePaise,
+            status: 'ISSUED',
+          },
+          include: {
+            event: { select: { title: true, venue: true, startAt: true } },
+            ticketType: { select: { name: true } },
+          },
+        });
+
+        return {
+          ...ticket,
+          pricePaidPaise: Number(ticket.pricePaidPaise),
+        };
+      });
+    },
+
+    async getTicketById(id) {
+      const ticket = await prisma.ticket.findUnique({
+        where: { id },
+        include: {
+          event: { select: { id: true, title: true, venue: true, startAt: true, endAt: true } },
+          ticketType: { select: { name: true } },
+          user: { select: { id: true, name: true, studentId: true } },
+        },
+      });
+      if (!ticket) throw new AppError('NOT_FOUND', 404, 'Ticket was not found');
+      return {
+        ...ticket,
+        pricePaidPaise: Number(ticket.pricePaidPaise),
+        event: ticket.event
+          ? {
+              ...ticket.event,
+              startDate: ticket.event.startAt,
+            }
+          : ticket.event,
+      };
+    },
+
+    async getUserTickets(userId) {
+      const tickets = await prisma.ticket.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          event: { select: { title: true, venue: true, startAt: true, endAt: true } },
+          ticketType: { select: { name: true } },
+        },
+      });
+
+      return tickets.map((t) => ({
+        ...t,
+        pricePaidPaise: Number(t.pricePaidPaise),
+        event: t.event
+          ? {
+              ...t.event,
+              startDate: t.event.startAt,
+            }
+          : t.event,
+      }));
+    },
+
+    async checkIn(doorVolunteerId, ticketId) {
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+        include: {
+          user: { select: { name: true, studentId: true } },
+          event: { select: { title: true } },
+        },
+      });
+
+      if (!ticket) throw new AppError('NOT_FOUND', 404, 'Ticket was not found');
+      if (ticket.status === 'CHECKED_IN') {
+        throw new AppError('ALREADY_CHECKED_IN', 409, 'Ticket was already checked in', {
+          checkedInAt: ticket.checkedInAt,
+        });
+      }
+
+      const updated = await prisma.ticket.update({
+        where: { id: ticketId },
+        data: {
+          status: 'CHECKED_IN',
+          checkedInAt: new Date(),
+          checkedInById: doorVolunteerId,
+        },
+      });
+
+      return {
+        ticketId: updated.id,
+        status: updated.status,
+        checkedInAt: updated.checkedInAt,
+        attendeeName: ticket.user.name,
+        studentId: ticket.user.studentId,
+        eventTitle: ticket.event.title,
+      };
+    },
+  };
+}

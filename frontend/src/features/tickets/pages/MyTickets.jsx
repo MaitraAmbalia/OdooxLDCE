@@ -7,7 +7,7 @@ export default function MyTickets() {
     queryKey: ['tickets', 'me'],
     queryFn: async () => {
       // API endpoint: GET /tickets/me
-      const res = await fetch("/api/v1/tickets/me");
+      const res = await fetch("/api/v1/tickets/me", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch tickets");
       return res.json();
     }

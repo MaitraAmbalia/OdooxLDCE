@@ -10,7 +10,7 @@ export default function TicketPass() {
     queryKey: ['tickets', id],
     queryFn: async () => {
       // API endpoint: GET /tickets/:id
-      const res = await fetch(`/api/v1/tickets/${id}`);
+      const res = await fetch(`/api/v1/tickets/${id}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch ticket pass");
       return res.json();
     }

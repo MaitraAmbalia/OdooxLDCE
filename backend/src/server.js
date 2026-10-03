@@ -2,15 +2,11 @@ import { createApp } from './app.js';
 import { getConfig } from './config/env.js';
 import { disconnectPrisma, getPrismaClient } from './db/prisma.js';
 import { createLogger } from './lib/logger.js';
-import { startJobs } from './platform/jobs/runner.js';
-import { disconnectClients } from './platform/db/clients.js';
-import commerce from './contexts/commerce/index.js';
 
 const config = getConfig();
 const logger = createLogger(config);
 const prisma = getPrismaClient();
 const app = createApp({ config, logger, prisma });
-const jobs = await startJobs({ config, logger, contexts: [app.locals.people, commerce] });
 
 const server = app.listen(config.port, () => {
   logger.info({ port: config.port, environment: config.nodeEnv }, 'API server started');
@@ -32,8 +28,6 @@ async function shutdown(signal, exitCode = 0) {
   server.close(async (error) => {
     try {
       await disconnectPrisma();
-      await jobs.stop();
-      await disconnectClients();
     } catch (disconnectError) {
       logger.error({ err: disconnectError }, 'Failed to disconnect Prisma');
       exitCode = 1;

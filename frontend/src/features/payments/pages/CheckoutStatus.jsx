@@ -8,10 +8,10 @@ export default function CheckoutStatus() {
   const [shouldPoll, setShouldPoll] = useState(true);
 
   // Poll GET /payments/:id every 2 seconds until status is PAID or FAILED
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['payments', paymentId],
     queryFn: async () => {
-      const res = await fetch(`/api/v1/payments/${paymentId}`);
+      const res = await fetch(`/api/v1/payments/${paymentId}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch payment status");
       return res.json();
     },
@@ -19,16 +19,28 @@ export default function CheckoutStatus() {
     refetchIntervalInBackground: true,
   });
 
+  const handleSimulatePayment = async () => {
+    try {
+      await fetch(`/api/v1/payments/${paymentId}/mock-complete`, {
+        method: "POST",
+        credentials: "include",
+      });
+      refetch();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     const status = data?.data?.status;
     if (status === "PAID" || status === "FAILED") {
       setShouldPoll(false);
       
-      // If paid, redirect based on metadata or just wait for user to click
-      if (status === "PAID" && data?.data?.metadata?.type === "MEMBERSHIP") {
+      // If paid, redirect to membership or tickets after a short display
+      if (status === "PAID") {
         setTimeout(() => {
           navigate("/me/membership");
-        }, 3000); // give them 3 seconds to read success
+        }, 2000);
       }
     }
   }, [data, navigate]);
@@ -89,11 +101,17 @@ export default function CheckoutStatus() {
           </div>
         )}
 
-        {data && data.data?.status === "PENDING" && (
+        {data && (data.data?.status === "PENDING" || data.data?.status === "CREATED") && (
           <div>
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-wait)] mx-auto mb-4"></div>
-            <h2 className="text-xl font-display font-bold text-[var(--color-ink)]">Processing Payment</h2>
-            <p className="mt-2 text-sm text-[var(--color-muted)]">We're verifying your transaction with the gateway...</p>
+            <h2 className="text-xl font-display font-bold text-[var(--color-ink)]">Payment Pending</h2>
+            <p className="mt-2 text-sm text-[var(--color-muted)]">Awaiting transaction confirmation from payment gateway.</p>
+            <button
+              onClick={handleSimulatePayment}
+              className="mt-6 px-4 py-2 bg-[var(--color-ok)] text-white text-sm font-semibold rounded-[6px] hover:bg-opacity-90 shadow-sm"
+            >
+              Simulate Payment Success (Demo)
+            </button>
           </div>
         )}
       </div>

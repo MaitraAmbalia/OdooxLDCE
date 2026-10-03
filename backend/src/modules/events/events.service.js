@@ -1,1 +1,85 @@
-// Placeholder: implementation will be added in a later phase.
+import { AppError } from '../../lib/AppError.js';
+
+export function createEventsService({ prisma }) {
+  return {
+    async create(userId, input) {
+      return prisma.event.create({
+        data: {
+          title: input.title,
+          description: input.description,
+          category: input.category ?? 'GENERAL',
+          venue: input.venue,
+          startAt: new Date(input.startAt),
+          endAt: new Date(input.endAt),
+          capacity: input.capacity,
+          visibility: input.visibility ?? 'PUBLIC',
+          status: 'PUBLISHED',
+          proposedById: userId,
+          ticketTypes: input.ticketTypes
+            ? {
+                create: input.ticketTypes.map((t) => ({
+                  name: t.name,
+                  audience: t.audience ?? 'ALL',
+                  pricePaise: BigInt(t.pricePaise ?? 0),
+                  quota: t.quota ?? input.capacity,
+                  maxPerUser: t.maxPerUser ?? 5,
+                  salesStartAt: new Date(t.salesStartAt ?? input.startAt),
+                  salesEndAt: new Date(t.salesEndAt ?? input.endAt),
+                })),
+              }
+            : undefined,
+        },
+        include: {
+          ticketTypes: true,
+        },
+      });
+    },
+
+    async list(query = {}) {
+      const { visibility, status } = query;
+      const events = await prisma.event.findMany({
+        where: {
+          ...(visibility ? { visibility } : {}),
+          ...(status ? { status } : { status: 'PUBLISHED' }),
+        },
+        orderBy: { startAt: 'asc' },
+        include: {
+          ticketTypes: true,
+          proposedBy: { select: { id: true, name: true } },
+        },
+      });
+
+      return events.map((e) => ({
+        ...e,
+        startDate: e.startAt,
+        endDate: e.endAt,
+        coverImageUrl: e.coverFileId ? `/api/v1/files/${e.coverFileId}` : null,
+        ticketTypes: e.ticketTypes.map((t) => ({
+          ...t,
+          pricePaise: Number(t.pricePaise),
+        })),
+      }));
+    },
+
+    async getById(id) {
+      const event = await prisma.event.findUnique({
+        where: { id },
+        include: {
+          ticketTypes: true,
+          proposedBy: { select: { id: true, name: true } },
+        },
+      });
+      if (!event) throw new AppError('NOT_FOUND', 404, 'Event was not found');
+      return {
+        ...event,
+        startDate: event.startAt,
+        endDate: event.endAt,
+        coverImageUrl: event.coverFileId ? `/api/v1/files/${event.coverFileId}` : null,
+        ticketTypes: event.ticketTypes.map((t) => ({
+          ...t,
+          pricePaise: Number(t.pricePaise),
+        })),
+      };
+    },
+  };
+}
