@@ -565,7 +565,6 @@ export function createFinanceService({ prisma, files }) {
       await notify(tx, { userId: claim.submittedById, type: 'CLAIM_PAID', title: 'Reimbursement paid', body: `₹${Number(claim.amountPaise) / 100} via ${method} (ref ${reference}).`, link: `/volunteer/claims/${id}` });
       return { id, status: 'PAID' };
     });
->>>>>>> origin/manthan
   }
 
   return {

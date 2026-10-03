@@ -283,7 +283,6 @@ export function createEventsService({ prisma }) {
     async removeDoorStaff(eventId, userId) {
       await prisma.eventDoorStaff.deleteMany({ where: { eventId, userId } });
       return this.listDoorStaff(eventId);
->>>>>>> origin/manthan
     },
 
     async list(query = {}) {
@@ -373,6 +372,7 @@ export function createEventsService({ prisma }) {
               sponsorBenefits: event.sponsorBenefits,
               ticketTypes: event.ticketTypes.map((t) => ({ name: t.name, audience: t.audience, pricePaise: Number(t.pricePaise), quota: t.quota })),
               budgetLines: event.budgetLines?.map((b) => ({ category: b.category, amountPaise: Number(b.amountPaise) })),
+            },
           },
         });
         const row = await tx.event.update({
