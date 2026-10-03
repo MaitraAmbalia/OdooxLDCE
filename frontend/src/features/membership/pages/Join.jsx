@@ -57,7 +57,7 @@ export default function Join() {
         setLoadingCheckout(false);
         return;
       }
-      toast.success("Membership pass generated successfully! Welcome to Skyline.");
+      toast.success("Order created. Complete payment to activate your membership.");
       if (json.data?.paymentId) {
         navigate(`/checkout/status/${json.data.paymentId}`);
       } else {
