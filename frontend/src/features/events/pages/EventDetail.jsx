@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { ContentState } from "../../../components/common/ContentState";
 import { usePageTitle } from "../../../hooks/usePageTitle";
 import { SocialShareModal } from "../../../components/common/SocialShareModal";
+import { useSession } from "../../../hooks/useSession";
+import { sendJson } from "../../../lib/api";
 
 export default function EventDetail() {
   const { id } = useParams();
@@ -26,7 +28,7 @@ export default function EventDetail() {
   const { data: eventData, isPending: eventLoading, isError: eventError, refetch: refetchEvent } = useQuery({
     queryKey: ['events', id],
     queryFn: async () => {
-      const res = await fetch(`/api/v1/events/${id}`);
+      const res = await fetch(`/api/v1/events/${id}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch event");
       return res.json();
     }
@@ -36,7 +38,7 @@ export default function EventDetail() {
   const { data: ticketTypesData, isPending: ticketsLoading, isError: ticketsError, refetch: refetchTickets } = useQuery({
     queryKey: ['events', id, 'ticket-types'],
     queryFn: async () => {
-      const res = await fetch(`/api/v1/events/${id}/ticket-types`);
+      const res = await fetch(`/api/v1/events/${id}/ticket-types`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch ticket types");
       return res.json();
     }
@@ -46,50 +48,47 @@ export default function EventDetail() {
   const ticketTypes = ticketTypesData?.data || [];
   usePageTitle(event?.title || "Event details");
 
-  // Default to first ticket if none selected
+  const { data: session } = useSession();
+  const user = session?.data;
+  const isMember = user?.membership?.status === "ACTIVE";
+  // Tiered pricing: members get the member tier, everyone else the standard (non-member) tier.
+  const isEligible = (ticket) => ticket.audience === "ALL" || (ticket.audience === "MEMBER") === isMember;
+  const left = (ticket) => Math.max(0, ticket.quota - ticket.sold);
+  const memberTier = ticketTypes.find((t) => t.audience === "MEMBER");
+  const standardTier = ticketTypes.find((t) => t.audience === "NON_MEMBER");
+
   React.useEffect(() => {
-    if (ticketTypes.length > 0 && !selectedTicket) {
-      setSelectedTicket(ticketTypes[0]);
-    }
-  }, [ticketTypes, selectedTicket]);
+    if (selectedTicket && isEligible(selectedTicket)) return;
+    const preferred = ticketTypes.filter((t) => isEligible(t) && left(t) > 0).sort((a, b) => (b.audience === "MEMBER") - (a.audience === "MEMBER"))[0];
+    setSelectedTicket(preferred ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticketTypes, isMember]);
 
   const handleBuy = async () => {
+    if (!user) {
+      toast.info("Please log in to get your ticket.");
+      navigate("/login", { state: { from: `/events/${id}` } });
+      return;
+    }
     if (!selectedTicket) {
       toast.error("Please choose a ticket tier");
       return;
     }
     setIsReserving(true);
     try {
-      const res = await fetch("/api/v1/tickets/buy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          eventId: id,
-          ticketTypeId: selectedTicket.id,
-        }),
+      const json = await sendJson("/tickets/buy", {
+        body: { eventId: id, ticketTypeId: selectedTicket.id },
+        headers: { "Idempotency-Key": `ticket-${selectedTicket.id}-${Date.now()}` },
       });
-      const json = await res.json();
-      if (!res.ok) {
-        if (res.status === 401) {
-          toast.info("Please log in to reserve your ticket.");
-          navigate("/login");
-          return;
-        }
-        toast.error(json.error?.message || json.message || "Failed to purchase ticket");
-        setIsReserving(false);
+      if (json.data?.payment) {
+        // Paid ticket: the seat is held while the Razorpay checkout completes.
+        navigate(`/checkout/status/${json.data.payment.paymentId}`);
         return;
       }
-      toast.success("Pass confirmed! Generating digital entrance QR code...");
-      if (json.data?.id) {
-        navigate(`/me/tickets/${json.data.id}`);
-      } else {
-        navigate("/me/tickets");
-      }
+      toast.success("Your pass is ready.");
+      navigate(json.data?.id ? `/me/tickets/${json.data.id}` : "/me/tickets");
     } catch (err) {
-      console.error(err);
-      toast.success("Pass confirmed! (Mock checkout completed)");
-      navigate(`/me/tickets`);
+      toast.error(err.message || "Could not get this ticket.");
     } finally {
       setIsReserving(false);
     }
@@ -163,18 +162,20 @@ export default function EventDetail() {
               ) : (
                 <div className="flex size-full items-center justify-center bg-[#272747] p-8 text-center">
                   <div className="font-display text-4xl font-semibold uppercase tracking-widest text-white/40">
-                    {event.category || "SKYLINE GALA"}
+                    {event.category}
                   </div>
                 </div>
               )}
 
               {/* Status overlay */}
               <div className="absolute top-4 left-4 flex gap-2">
-                <Badge className="bg-white text-[#272747]">
-                  <Flame className="mr-1 size-3.5" /> Limited tickets
-                </Badge>
+                {event.capacity - event.seatsSold <= Math.ceil(event.capacity * 0.2) && (
+                  <Badge className="bg-white text-[#272747]">
+                    <Flame className="mr-1 size-3.5" /> {event.capacity - event.seatsSold === 0 ? "Sold out" : `${event.capacity - event.seatsSold} seats left`}
+                  </Badge>
+                )}
                 <Badge variant="secondary" className="border-white/20 bg-[#272747]/85 text-white backdrop-blur-sm">
-                  {event.category || "Flagship"}
+                  {event.category}
                 </Badge>
               </div>
             </div>
@@ -201,7 +202,7 @@ export default function EventDetail() {
                 </div>
                 <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3.5 py-2">
                   <MapPin className="size-4 text-primary" />
-                  <span>{event.venue || "Main Auditorium, LDCE Campus"}</span>
+                  <span>{event.venue}</span>
                 </div>
               </div>
             </div>
@@ -212,7 +213,7 @@ export default function EventDetail() {
                 About this event
               </h2>
               <p className="whitespace-pre-line text-sm leading-7 text-muted-foreground">
-                {event.description || "Join the Skyline Student Association for our flagship celebration. Network with alumni founders, senior professors, industry leaders, and student innovators across engineering disciplines."}
+                {event.description}
               </p>
 
             </div>
@@ -239,20 +240,26 @@ export default function EventDetail() {
               <div className="space-y-3">
                 {ticketTypes.map(ticket => {
                   const isSelected = selectedTicket?.id === ticket.id;
-                  const price = ticket.pricePaise ? ticket.pricePaise / 100 : 299;
+                  const price = ticket.pricePaise / 100;
+                  const eligible = isEligible(ticket);
+                  const soldOut = left(ticket) === 0;
+                  const choose = () => { if (eligible && !soldOut) setSelectedTicket(ticket); };
 
                   return (
                     <div
                       key={ticket.id}
                       role="radio"
                       aria-checked={isSelected}
-                      tabIndex={0}
-                      onClick={() => setSelectedTicket(ticket)}
-                      onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setSelectedTicket(ticket); }}
-                      className={`cursor-pointer select-none rounded-xl border-2 p-4 transition ${
-                        isSelected 
-                          ? "border-primary bg-secondary/60"
-                          : "border-border hover:border-primary/30 hover:bg-secondary/30"
+                      aria-disabled={!eligible || soldOut}
+                      tabIndex={eligible && !soldOut ? 0 : -1}
+                      onClick={choose}
+                      onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") choose(); }}
+                      className={`select-none rounded-xl border-2 p-4 transition ${
+                        !eligible || soldOut
+                          ? "cursor-not-allowed border-border opacity-60"
+                          : isSelected
+                            ? "cursor-pointer border-primary bg-secondary/60"
+                            : "cursor-pointer border-border hover:border-primary/30 hover:bg-secondary/30"
                       }`}
                     >
                       <div className="flex items-start justify-between">
@@ -264,19 +271,24 @@ export default function EventDetail() {
                           </div>
                           <div>
                             <div className="text-sm font-semibold">{ticket.name}</div>
-                            {ticket.description && (
-                              <div className="mt-0.5 text-[11px] text-muted-foreground">{ticket.description}</div>
-                            )}
+                            <div className="mt-0.5 text-[11px] text-muted-foreground">
+                              {soldOut ? "Sold out" : `${left(ticket)} left`} · max {ticket.maxPerUser} per person
+                            </div>
                           </div>
                         </div>
 
                         <div className="text-right">
                           <div className="font-display text-base font-semibold tabular-nums">
-                            {formatINR(price)}
+                            {price === 0 ? "Free" : formatINR(price)}
                           </div>
-                          {ticket.memberOnly && (
+                          {ticket.audience === "MEMBER" && (
                             <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1 rounded">
-                              Member Rate
+                              Member rate
+                            </span>
+                          )}
+                          {ticket.audience === "NON_MEMBER" && (
+                            <span className="text-[10px] text-slate-600 font-bold bg-slate-100 px-1 rounded">
+                              Standard
                             </span>
                           )}
                         </div>
@@ -287,18 +299,23 @@ export default function EventDetail() {
               </div>
 
               {/* Member Discount Incentive Callout */}
-              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/90 text-amber-950 flex items-start gap-2.5">
-                <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <div className="text-xs">
-                  <span className="font-bold">Are you a Skyline Member?</span>
-                  <p className="text-slate-600 mt-0.5 text-[11px]">
-                    Members unlock automatic discounts and priority balcony seating.{" "}
-                    <Link to="/join" className="text-blue-700 font-bold underline">
-                      Get a pass &rarr;
-                    </Link>
-                  </p>
+              {!isMember && memberTier && (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/90 text-amber-950 flex items-start gap-2.5">
+                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="text-xs">
+                    <span className="font-bold">Are you a Skyline Member?</span>
+                    <p className="text-slate-600 mt-0.5 text-[11px]">
+                      Members pay {formatINR(memberTier.pricePaise / 100)}{standardTier ? ` instead of ${formatINR(standardTier.pricePaise / 100)}` : ""}, applied automatically at checkout.{" "}
+                      <Link to="/join" className="text-blue-700 font-bold underline">
+                        Become a member &rarr;
+                      </Link>
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
+              {isMember && memberTier && (
+                <p className="rounded-xl bg-emerald-50 p-3 text-xs text-emerald-800">Your member price is applied automatically.</p>
+              )}
 
               {/* Price Summary */}
               {selectedTicket && (
@@ -306,10 +323,6 @@ export default function EventDetail() {
                   <div className="flex justify-between text-slate-600">
                     <span>1x {selectedTicket.name}</span>
                     <span className="font-mono">{formatINR(selectedTicket.pricePaise / 100)}</span>
-                  </div>
-                  <div className="flex justify-between text-slate-600">
-                    <span>Platform & Door Handling Fee</span>
-                    <span className="font-mono text-emerald-600 font-bold">FREE</span>
                   </div>
                   <div className="flex justify-between text-base font-extrabold text-slate-900 pt-2 border-t border-slate-100">
                     <span>Total Due</span>
@@ -329,9 +342,9 @@ export default function EventDetail() {
                 className="w-full"
               >
                 {isReserving ? (
-                  <span>Generating Entrance QR...</span>
+                  <span>{selectedTicket?.pricePaise ? "Opening checkout…" : "Issuing your pass…"}</span>
                 ) : (
-                  <span>Confirm Pass • {selectedTicket ? formatINR(selectedTicket.pricePaise / 100) : "Select Ticket"}</span>
+                  <span>{!selectedTicket ? "No ticket available" : selectedTicket.pricePaise ? `Pay ${formatINR(selectedTicket.pricePaise / 100)}` : "Get free pass"}</span>
                 )}
               </Button>
 

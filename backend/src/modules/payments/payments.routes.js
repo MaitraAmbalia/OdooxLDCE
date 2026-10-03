@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { validate } from '../../middleware/validate.js';
 
-const idParams = z.object({ id: z.uuid() });
+const idParams = z.object({ id: z.guid() });
 // Values come from Razorpay checkout's success callback.
 const confirmBody = z.object({ gatewayPaymentId: z.string().min(1).max(100), gatewaySignature: z.string().min(1).max(200) });
 

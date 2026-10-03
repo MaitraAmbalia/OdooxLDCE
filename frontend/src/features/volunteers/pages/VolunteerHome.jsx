@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { getJson } from "@/lib/api";
 
 export default function VolunteerHome() {
   usePageTitle("Volunteer space");
@@ -39,6 +40,9 @@ export default function VolunteerHome() {
     retry: false,
   });
 
+  // Door shifts the Event Head assigned to me.
+  const { data: doorData } = useQuery({ queryKey: ["door-duties", "me"], queryFn: () => getJson("/events/door-duties/me") });
+  const doorDuties = doorData?.data || [];
   const tasks = tasksData?.data || [];
   const claims = claimsData?.data || [];
   const allEvents = eventsData?.data || [];
@@ -137,7 +141,15 @@ export default function VolunteerHome() {
 
           <section>
             <h2 className="mb-4 font-display text-xl font-semibold">Upcoming duties</h2>
-            {upcomingDuties.length > 0 ? (
+            {doorDuties.length > 0 && (
+              <ul className="mb-3 space-y-2">{doorDuties.map((d) => (
+                <li key={d.eventId} className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-card p-4 text-sm">
+                  <span><span className="font-semibold">Door · {d.title}</span><span className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"><CalendarDays className="size-3" />{new Date(d.startAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })} · {d.venue}</span></span>
+                  {d.open ? <Button asChild size="sm"><Link to={`/door/${d.eventId}`}>Open scanner</Link></Button> : <span className="text-right text-xs text-muted-foreground">Scanner opens 6h before start</span>}
+                </li>
+              ))}</ul>
+            )}
+            {upcomingDuties.length > 0 || doorDuties.length > 0 ? (
               <div className="space-y-3">
                 {upcomingDuties.slice(0, 5).map(duty => (
                   <Link

@@ -22,7 +22,7 @@ import { createProjectsService } from './modules/projects/projects.service.js';
 import { createProjectsRouter } from './modules/projects/projects.routes.js';
 import { createNotificationsService } from './modules/notifications/notifications.service.js';
 import { createNotificationsRouter } from './modules/notifications/notifications.routes.js';
-import { createEventsService } from './modules/events/events.service.js';
+import { canWorkDoor, createEventsService } from './modules/events/events.service.js';
 import { createEventsRouter } from './modules/events/events.routes.js';
 import { createTicketsService } from './modules/tickets/tickets.service.js';
 import { createTicketsRouter } from './modules/tickets/tickets.routes.js';
@@ -71,9 +71,9 @@ export function createApp({
   app.use('/api/v1', createProjectsRouter({ service: createProjectsService({ prisma }), authenticate: auth }));
   app.use('/api/v1', createNotificationsRouter({ service: createNotificationsService({ prisma }), authenticate: auth, prisma }));
   app.use('/api/v1', createEventsRouter({ service: createEventsService({ prisma }), authenticate: auth, authorize }));
-  app.use('/api/v1', createTicketsRouter({ service: createTicketsService({ prisma, config }), authenticate: auth, authorize }));
 
   const paymentsService = createPaymentsService({ prisma, config, logger });
+  app.use('/api/v1', createTicketsRouter({ service: createTicketsService({ prisma, config, createPayment: paymentsService.createPayment }), authenticate: auth, authorize }));
   const filesService = createFilesService({ prisma, config });
 
   app.use('/api/v1', createMerchRouter({ service: createMerchService({ prisma, createPayment: paymentsService.createPayment }), authenticate: auth }));
@@ -86,6 +86,7 @@ export function createApp({
       createPayment: paymentsService.createPayment,
       authenticate: auth,
       requirePermission: authorize,
+      canWorkDoor: (user, eventId) => canWorkDoor(prisma, user, eventId),
     })
   );
   app.use('/api/v1', createFinanceRouter({ service: createFinanceService({ prisma, files: filesService }), authenticate: auth, requirePermission: authorize }));
