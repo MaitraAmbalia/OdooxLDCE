@@ -84,23 +84,19 @@ export function createApp(options = {}) {
   // Health route
   app.use('/api/v1', createHealthRouter({ prisma }));
 
-  // Shared middleware
-  const auth = options.authenticate ?? authenticate({ config });
+  // Feature Routers
+  app.use('/api/v1', createAuthRouter({ service: createAuthService({ prisma, config }), authenticate: auth }));
+  app.use('/api/v1', createUsersRouter({ service: createUsersService({ prisma }), authenticate: auth, authorize }));
+  app.use('/api/v1', createAccessRouter({ service: createAccessService({ prisma }), authenticate: auth, authorize }));
+  app.use('/api/v1', createVolunteersRouter({ service: createVolunteersService({ prisma }), authenticate: auth }));
+  app.use('/api/v1', createProjectsRouter({ service: createProjectsService({ prisma }), authenticate: auth }));
+  app.use('/api/v1', createNotificationsRouter({ service: createNotificationsService({ prisma }), authenticate: auth, prisma }));
+  app.use('/api/v1', createEventsRouter({ service: createEventsService({ prisma }), authenticate: auth, authorize }));
+  app.use('/api/v1', createTicketsRouter({ service: createTicketsService({ prisma }), authenticate: auth, authorize }));
+  app.use('/api/v1', createMerchRouter({ service: createMerchService({ prisma }), authenticate: auth }));
 
-  // Feature Modules
-  // 1. Auth & Users
-  const authService = createAuthService({ prisma, config });
-  app.use('/api/v1', createAuthRouter({ service: authService, authenticate: auth, config }));
-
-  const usersService = createUsersService({ prisma });
-  app.use('/api/v1', createUsersRouter({ service: usersService, authenticate: auth, authorize }));
-
-  const accessService = createAccessService({ prisma });
-  app.use('/api/v1', createAccessRouter({ service: accessService, authenticate: auth, authorize }));
-
-  // 2. Volunteers & Projects (Scene 5)
-  const volunteersService = createVolunteersService({ prisma });
-  app.use('/api/v1', createVolunteersRouter({ service: volunteersService, authenticate: auth }));
+  const paymentsService = createPaymentsService({ prisma, config, logger });
+  const filesService = createFilesService({ prisma, config });
 
   const projectsService = createProjectsService({ prisma });
   app.use('/api/v1', createProjectsRouter({ service: projectsService, authenticate: auth }));

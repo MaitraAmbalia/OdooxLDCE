@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { validate } from '../../middleware/validate.js';
-import { requireJson } from '../../middleware/requireJson.js';
 import { periodSchema } from '../../lib/period.js';
 
 const category = z.enum(['DUES', 'TICKETS', 'MERCH', 'FUNDRAISER', 'BUDGET_ALLOCATION', 'SPONSORSHIP', 'REIMBURSEMENT', 'PURCHASE', 'REFUND', 'OTHER']);
@@ -33,28 +32,27 @@ const limitsBody = z.object({
 export function createFinanceRouter({ service, authenticate, requirePermission }) {
   const router = Router();
   const can = (key) => [authenticate, requirePermission(key)];
-  const json = [requireJson];
 
   // ---- ledger (/balance and /manual are declared before /:id)
-  router.get('/ledger', ...can('ledger.read'), validate({ query: listQuery }), async (req, res) => res.json(await service.list(req.validated.query)));
-  router.get('/finance/ledger', authenticate, validate({ query: listQuery }), async (req, res) => res.json(await service.list(req.validated.query)));
+  router.get('/ledger', ...can('ledger.read'), validate({ query: listQuery }), async (req, res) => res.json(await service.list(req.query)));
+  router.get('/finance/ledger', authenticate, validate({ query: listQuery }), async (req, res) => res.json(await service.list(req.query)));
   router.get('/ledger/balance', ...can('ledger.read'), async (_req, res) => res.json({ data: await service.balance() }));
   router.get('/finance/balance', authenticate, async (_req, res) => res.json({ data: await service.balance() }));
-  router.post('/ledger/manual', ...can('ledger.write'), ...json, validate({ body: manualBody }), async (req, res) =>
+  router.post('/ledger/manual', ...can('ledger.write'), validate({ body: manualBody }), async (req, res) =>
     res.status(201).json({ data: await service.createManual(req.user, req.body, req) }));
   router.get('/ledger/:id', ...can('ledger.read'), validate({ params: idParams }), async (req, res) => res.json({ data: await service.get(req.params.id) }));
-  router.post('/ledger/:id/reverse', ...can('ledger.write'), ...json, validate({ params: idParams, body: reverseBody }), async (req, res) =>
+  router.post('/ledger/:id/reverse', ...can('ledger.write'), validate({ params: idParams, body: reverseBody }), async (req, res) =>
     res.status(201).json({ data: await service.reverse(req.user, req.params.id, req.body, req) }));
 
   // ---- budgets
-  router.post('/budgets/allocations', ...can('budget.allocate'), ...json, validate({ body: allocationBody }), async (req, res) =>
+  router.post('/budgets/allocations', ...can('budget.allocate'), validate({ body: allocationBody }), async (req, res) =>
     res.status(201).json({ data: await service.allocate(req.user, req.body, req) }));
   router.get('/budgets/allocations', ...can('ledger.read'), validate({ query: z.object({ period: periodSchema.optional() }) }), async (req, res) =>
-    res.json({ data: await service.listAllocations(req.validated.query.period) }));
-  router.put('/budgets/limits', ...can('budget.limit.manage'), ...json, validate({ body: limitsBody }), async (req, res) =>
+    res.json({ data: await service.listAllocations(req.query.period) }));
+  router.put('/budgets/limits', ...can('budget.limit.manage'), validate({ body: limitsBody }), async (req, res) =>
     res.json({ data: await service.setLimits(req.user, req.body, req) }));
   router.get('/budgets/utilization', ...can('ledger.read'), validate({ query: z.object({ period: periodSchema }) }), async (req, res) =>
-    res.json({ data: await service.utilization(req.validated.query.period) }));
+    res.json({ data: await service.utilization(req.query.period) }));
   router.get('/finance/budget', authenticate, async (_req, res) => res.json({ data: await service.budgetOverview() }));
 
   // ---- reports
@@ -64,7 +62,7 @@ export function createFinanceRouter({ service, authenticate, requirePermission }
   // ---- cash collections
   router.get('/cash-collections', authenticate, async (req, res) =>
     res.json({ data: await service.listCashCollections(req.query.status) }));
-  router.post('/cash-collections', authenticate, requireJson, async (req, res) =>
+  router.post('/cash-collections', authenticate, async (req, res) =>
     res.status(201).json({ data: await service.createCashCollection(req.user, req.body) }));
   router.patch('/cash-collections/:id/verify', authenticate, async (req, res) =>
     res.json({ data: await service.verifyCashCollection(req.user, req.params.id) }));
@@ -72,9 +70,9 @@ export function createFinanceRouter({ service, authenticate, requirePermission }
   // ---- expense claims
   router.get('/claims', authenticate, async (req, res) =>
     res.json({ data: await service.listClaims(req.query) }));
-  router.post('/claims', authenticate, requireJson, async (req, res) =>
+  router.post('/claims', authenticate, async (req, res) =>
     res.status(201).json({ data: await service.submitClaim(req.user, req.body) }));
-  router.post('/claims/:id/review', authenticate, requireJson, async (req, res) =>
+  router.post('/claims/:id/review', authenticate, async (req, res) =>
     res.json({ data: await service.reviewClaim(req.user, req.params.id, req.body) }));
 
   return router;

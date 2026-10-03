@@ -1,70 +1,58 @@
 import { Router } from 'express';
 import { validate } from '../../middleware/validate.js';
-import { requireJson } from '../../middleware/requireJson.js';
 import { registerSchema, loginSchema, emailSchema, resetSchema, verifySchema } from './auth.schemas.js';
 
-function clearSessionCookies(res, config) {
-  const options = {
-    httpOnly: true,
-    secure: config.isProduction,
-    sameSite: 'strict',
-    path: '/api/v1',
-  };
-  res.clearCookie('access_token', options);
-  res.clearCookie('refresh_token', { ...options, path: '/api/v1/auth' });
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: 'lax',
+  path: '/api/v1',
+};
+
+function clearSessionCookies(res) {
+  res.clearCookie('access_token', COOKIE_OPTIONS);
+  res.clearCookie('refresh_token', { ...COOKIE_OPTIONS, path: '/api/v1/auth' });
 }
 
-function setSessionCookies(res, session, config) {
-  const options = {
-    httpOnly: true,
-    secure: config.isProduction,
-    sameSite: 'strict',
-    path: '/api/v1',
-  };
+function setSessionCookies(res, session) {
   res.cookie('access_token', session.accessToken, {
-    ...options,
-    maxAge: 900000,
+    ...COOKIE_OPTIONS,
+    maxAge: 15 * 60 * 1000, // 15 mins
   });
   res.cookie('refresh_token', session.refreshToken, {
-    ...options,
+    ...COOKIE_OPTIONS,
     path: '/api/v1/auth',
-    maxAge: 30 * 24 * 3600000,
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 }
 
-export function createAuthRouter({ service, authenticate, config }) {
+export function createAuthRouter({ service, authenticate }) {
   const router = Router();
 
-  const publicWrite = (schema) => [
-    requireJson,
-    validate(schema),
-  ];
-
-  router.post('/auth/register', ...publicWrite(registerSchema), async (req, res) => {
-    const user = await service.register(req.validated.body, { ip: req.ip });
+  router.post('/auth/register', validate(registerSchema), async (req, res) => {
+    const user = await service.register(req.body);
     return res.status(201).json({ data: { message: 'Registration successful', user } });
   });
 
-  router.post('/auth/login', ...publicWrite(loginSchema), async (req, res) => {
-    const session = await service.login(req.validated.body, { ip: req.ip });
-    setSessionCookies(res, session, config);
+  router.post('/auth/login', validate(loginSchema), async (req, res) => {
+    const session = await service.login(req.body);
+    setSessionCookies(res, session);
     return res.json({ data: session.data });
   });
 
   router.post('/auth/refresh', async (req, res) => {
     try {
-      const session = await service.refresh(req.cookies.refresh_token, { ip: req.ip });
-      setSessionCookies(res, session, config);
+      const session = await service.refresh(req.cookies.refresh_token);
+      setSessionCookies(res, session);
       return res.json({ data: session.data });
     } catch (error) {
-      clearSessionCookies(res, config);
+      clearSessionCookies(res);
       throw error;
     }
   });
 
   router.post('/auth/logout', async (req, res) => {
     await service.logout(req.cookies.refresh_token);
-    clearSessionCookies(res, config);
+    clearSessionCookies(res);
     return res.json({ data: { loggedOut: true } });
   });
 
@@ -72,16 +60,16 @@ export function createAuthRouter({ service, authenticate, config }) {
     return res.json({ data: await service.me(req.user) });
   });
 
-  router.post('/auth/verify-email', ...publicWrite(verifySchema), async (req, res) => {
-    return res.json({ data: await service.verifyEmail(req.validated.body) });
+  router.post('/auth/verify-email', validate(verifySchema), async (req, res) => {
+    return res.json({ data: await service.verifyEmail(req.body) });
   });
 
-  router.post('/auth/forgot-password', ...publicWrite(emailSchema), async (req, res) => {
-    return res.json({ data: await service.forgotPassword(req.validated.body) });
+  router.post('/auth/forgot-password', validate(emailSchema), async (req, res) => {
+    return res.json({ data: await service.forgotPassword(req.body) });
   });
 
-  router.post('/auth/reset-password', ...publicWrite(resetSchema), async (req, res) => {
-    return res.json({ data: await service.resetPassword(req.validated.body) });
+  router.post('/auth/reset-password', validate(resetSchema), async (req, res) => {
+    return res.json({ data: await service.resetPassword(req.body) });
   });
 
   return router;

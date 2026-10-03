@@ -1,9 +1,13 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowUpRight, CalendarClock, UsersRound } from "lucide-react";
+import { ContentState } from "@/components/common/ContentState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function SelectionHub() {
-  const { data: cyclesData, isLoading } = useQuery({
+  usePageTitle("Leadership opportunities");
+  const { data: cyclesData, isPending, isError, refetch } = useQuery({
     queryKey: ['selection', 'cycles'],
     queryFn: async () => {
       // API endpoint: GET /selection/cycles
@@ -18,74 +22,76 @@ export default function SelectionHub() {
   const closedCycles = cycles.filter(c => c.status === 'CLOSED' || new Date(c.deadlineAt) <= new Date());
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
-      <div className="text-center mb-16">
-        <h1 className="text-4xl font-display font-extrabold text-[var(--color-ink)] mb-4">Leadership Selection</h1>
-        <p className="text-lg text-[var(--color-muted)] max-w-2xl mx-auto">
-          Step up and lead. Browse open positions for upcoming terms and apply to be part of the Skyline Student Association executive board.
+    <div className="page-container py-12 sm:py-16">
+      <div className="mb-12 max-w-2xl">
+        <p className="mb-3 text-sm font-medium text-primary">Shape what comes next</p>
+        <h1 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Bring your ideas. Build your community.</h1>
+        <p className="mt-4 text-base leading-7 text-muted-foreground">
+          Find open Skyline roles, understand the commitment, and apply when the fit feels right.
         </p>
       </div>
 
       <div className="space-y-12">
-        {isLoading ? (
-          <div className="text-center py-20 text-[var(--color-muted)]">Loading available positions...</div>
-        ) : openCycles.length === 0 ? (
-          <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] p-12 text-center shadow-sm">
-            <span className="text-4xl mb-4 block">🪴</span>
-            <h2 className="text-xl font-bold text-[var(--color-ink)] mb-2">No Open Recruitments</h2>
-            <p className="text-[var(--color-muted)]">There are currently no active selection cycles. Check back later!</p>
+        {isPending ? (
+          <div className="space-y-5" role="status" aria-label="Loading leadership opportunities">
+            <Skeleton className="h-52 w-full rounded-2xl" />
+            <Skeleton className="h-52 w-full rounded-2xl" />
           </div>
+        ) : isError ? (
+          <ContentState error title="Opportunities are taking a little longer." description="We couldn’t load the current selection cycles." action={refetch} />
+        ) : openCycles.length === 0 ? (
+          <ContentState title="No applications are open right now." description="New leadership opportunities will appear here when the next selection cycle begins." />
         ) : (
           openCycles.map(cycle => (
-            <div key={cycle.id} className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] overflow-hidden shadow-sm">
-              <div className="p-6 sm:p-8 bg-[var(--color-paper)] border-b border-[var(--color-line)] flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <section key={cycle.id} className="overflow-hidden rounded-2xl border border-border bg-card">
+              <div className="flex flex-col gap-5 border-b border-border bg-secondary/50 p-6 sm:p-8 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-2xl font-display font-bold text-[var(--color-ink)]">{cycle.name}</h2>
-                    <span className="bg-[var(--color-ok)] text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded">Accepting Applications</span>
+                  <div className="mb-2 flex flex-wrap items-center gap-3">
+                    <h2 className="font-display text-2xl font-semibold tracking-tight">{cycle.name}</h2>
+                    <span className="rounded-full bg-[#e4eee8] px-2.5 py-1 text-xs font-medium text-[#345d4a]">Applications open</span>
                   </div>
-                  <p className="text-sm text-[var(--color-muted)]">Term: {cycle.termStart} to {cycle.termEnd}</p>
+                  <p className="text-sm text-muted-foreground">Term: {cycle.termStart} to {cycle.termEnd}</p>
                 </div>
-                <div className="bg-white px-4 py-2 rounded-[6px] border border-[var(--color-line)] text-center md:text-right">
-                  <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Deadline</p>
-                  <p className="text-sm font-bold text-[var(--color-stop)]">
+                <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
+                  <CalendarClock className="size-5 text-primary" aria-hidden="true" />
+                  <div><p className="text-xs text-muted-foreground">Apply by</p><p className="text-sm font-semibold">
                     {new Date(cycle.deadlineAt).toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric' })}
-                  </p>
+                  </p></div>
                 </div>
               </div>
 
               <div className="p-6 sm:p-8">
-                <h3 className="text-sm font-bold text-[var(--color-ink)] uppercase tracking-wider mb-6">Open Positions ({cycle.posts?.length || 0})</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h3 className="mb-6 text-sm font-medium text-muted-foreground">{cycle.posts?.length || 0} open position{cycle.posts?.length === 1 ? "" : "s"}</h3>
+                <div className="grid gap-4 md:grid-cols-2">
                   {cycle.posts?.map(post => (
-                    <div key={post.id} className="border border-[var(--color-line)] rounded-[6px] p-5 hover:border-[var(--color-dusk)] transition-colors flex flex-col h-full">
+                    <div key={post.id} className="flex h-full flex-col rounded-xl border border-border p-5 transition hover:border-primary/40">
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-bold text-[var(--color-ink)] text-lg">{post.title}</h4>
-                        <span className="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-1 rounded">{post.capacity} slot{post.capacity > 1 ? 's' : ''}</span>
+                        <h4 className="font-display text-lg font-semibold">{post.title}</h4>
+                        <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground"><UsersRound className="size-3" aria-hidden="true" />{post.capacity}</span>
                       </div>
-                      <p className="text-sm text-[var(--color-muted)] mb-6 flex-1">{post.description}</p>
+                      <p className="mb-6 flex-1 text-sm leading-6 text-muted-foreground">{post.description}</p>
                       <Link
                         to={`/selection/posts/${post.id}/apply`}
-                        className="block w-full text-center bg-[var(--color-dusk)] text-white py-2 rounded-[6px] text-sm font-medium hover:bg-opacity-90 transition-opacity"
+                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                       >
-                        Apply for {post.title}
+                        Apply now <ArrowUpRight className="size-4" aria-hidden="true" />
                       </Link>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
+            </section>
           ))
         )}
 
         {closedCycles.length > 0 && (
           <div className="pt-8">
-            <h3 className="text-xl font-display font-bold text-[var(--color-ink)] mb-6">Past Cycles</h3>
+            <h3 className="mb-6 font-display text-2xl font-semibold">Past cycles</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {closedCycles.map(cycle => (
-                <div key={cycle.id} className="bg-[var(--color-paper)] border border-[var(--color-line)] p-4 rounded-[6px] opacity-75 grayscale hover:grayscale-0 transition-all">
-                  <h4 className="font-bold text-[var(--color-ink)]">{cycle.name}</h4>
-                  <p className="text-xs text-[var(--color-muted)] mt-1">Closed {new Date(cycle.deadlineAt).toLocaleDateString()}</p>
+                <div key={cycle.id} className="rounded-xl border border-border bg-card p-4">
+                  <h4 className="font-semibold">{cycle.name}</h4>
+                  <p className="mt-1 text-xs text-muted-foreground">Closed {new Date(cycle.deadlineAt).toLocaleDateString()}</p>
                 </div>
               ))}
             </div>
