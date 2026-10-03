@@ -107,7 +107,7 @@ export function createNotificationsRouter({ service, authenticate, prisma }) {
   });
 
   // 3. Dynamic Executive Dashboard Aggregate Counts
-  router.get('/dashboard/counts', async (_req, res) => {
+  router.get('/dashboard/counts', authenticate, async (_req, res) => {
     try {
       const [claimsCount, tasksCount, proposalsCount, ordersCount] = await Promise.all([
         prisma.expenseClaim.count({ where: { status: 'SUBMITTED' } }).catch(() => 0),

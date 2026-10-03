@@ -7,6 +7,17 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { getJson, sendJson } from "@/lib/api";
+
+async function uploadReceipt(file) {
+  const form = new FormData();
+  form.append("purpose", "RECEIPT");
+  form.append("file", file);
+  const response = await fetch("/api/v1/files", { method: "POST", credentials: "include", body: form });
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(`${file.name}: ${json.error?.message || "upload failed"}`);
+  return json.data.id;
+}
 
 export default function SubmitClaim() {
   usePageTitle("Submit expense claim");
@@ -16,11 +27,15 @@ export default function SubmitClaim() {
   
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
-      dateSpent: new Date().toISOString().split('T')[0]
+      dateSpent: new Date().toLocaleDateString("en-CA"), // local YYYY-MM-DD
+      category: "REIMBURSEMENT",
+      link: "",
     }
   });
 
   const amount = watch("amount", 0);
+  const events = useQuery({ queryKey: ["events", "published"], queryFn: () => getJson("/events?limit=100") });
+  const projects = useQuery({ queryKey: ["projects"], queryFn: () => getJson("/projects") });
   
   // Predict route based on amount (e.g. over 2000 INR = 200000 paise goes to President)
   const isHighValue = Number(amount) > 2000;
@@ -34,19 +49,18 @@ export default function SubmitClaim() {
 
   const submitClaim = useMutation({
     mutationFn: async (data) => {
-      const response = await fetch("/api/v1/claims", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const receiptFileIds = await Promise.all(receipts.map(uploadReceipt));
+      const [kind, linkId] = data.link.split(":");
+      const json = await sendJson("/claims", {
+        body: {
           amountPaise: Math.round(Number(data.amount) * 100),
           dateSpent: data.dateSpent,
-          description: data.description,
+          description: data.description.trim(),
           category: data.category,
-        }),
+          [kind === "event" ? "eventId" : "projectId"]: linkId,
+          receiptFileIds,
+        },
       });
-      const json = await response.json();
-      if (!response.ok) throw new Error(json.error?.message || "Could not submit claim");
       return json.data;
     },
     onSuccess: async () => {
@@ -94,7 +108,7 @@ export default function SubmitClaim() {
               </div>)}
             </div>
           )}
-          <p className="mt-3 flex items-start justify-center gap-1.5 text-xs leading-5 text-muted-foreground"><Info className="mt-0.5 size-3.5 shrink-0" />Receipt upload persistence is not connected yet; keep the originals for review.</p>
+          <p className="mt-3 flex items-start justify-center gap-1.5 text-xs leading-5 text-muted-foreground"><Info className="mt-0.5 size-3.5 shrink-0" />JPG, PNG, WebP or PDF, up to 5 MB each. Only you and finance reviewers can see them.</p>
         </div>
 
         {/* Amount & Date */}
@@ -115,6 +129,7 @@ export default function SubmitClaim() {
             <Input
               id="claim-date"
               type="date" 
+              max={new Date().toLocaleDateString("en-CA")}
               {...register("dateSpent", { required: true })} 
             />
           </div>
@@ -122,12 +137,21 @@ export default function SubmitClaim() {
 
         {/* Link / Category */}
         <div>
-          <label htmlFor="claim-category" className="mb-1.5 block text-sm font-medium">Category</label>
+          <label htmlFor="claim-link" className="mb-1.5 block text-sm font-medium">Spent for</label>
+          <select id="claim-link" aria-invalid={!!errors.link} {...register("link", { required: "Choose the event or project this was for" })} className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <option value="">Choose an event or project…</option>
+            <optgroup label="Events">{(events.data?.data || []).map((e) => <option key={e.id} value={`event:${e.id}`}>{e.title}</option>)}</optgroup>
+            <optgroup label="Projects">{(projects.data?.data || []).map((p) => <option key={p.id} value={`project:${p.id}`}>{p.name}</option>)}</optgroup>
+          </select>
+          {errors.link && <p className="mt-1.5 text-sm text-destructive">{errors.link.message}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="claim-category" className="mb-1.5 block text-sm font-medium">Type</label>
           <select id="claim-category" {...register("category")} className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <option value="Logistics">Logistics</option>
-            <option value="Food & Bev">Food & Bev</option>
-            <option value="Travel">Travel</option>
-            <option value="Other">Other</option>
+            <option value="REIMBURSEMENT">Reimbursement (I paid out of pocket)</option>
+            <option value="PURCHASE">Supplies purchase</option>
+            <option value="OTHER">Other</option>
           </select>
         </div>
 

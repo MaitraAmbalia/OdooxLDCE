@@ -14,7 +14,8 @@ export default function Ledger() {
     queryKey: ['finance', 'ledger', { filter }],
     queryFn: async () => {
       // API endpoint: GET /finance/ledger?type=...
-      const query = filter === "ALL" ? "" : `?type=${filter}`;
+      // ponytail: newest 100 rows (API max); add paging when the ledger outgrows it.
+      const query = `?limit=100${filter === "ALL" ? "" : `&type=${filter}`}`;
       const res = await fetch(`/api/v1/finance/ledger${query}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch ledger");
       return res.json();
