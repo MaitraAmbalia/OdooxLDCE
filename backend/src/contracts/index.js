@@ -23,6 +23,15 @@
  * registerPurposeHandler(purpose, async (payment, tx) => void, { onFailed? })
  * refund(paymentId, amountPaise, reason)                -> { refundId }
  *
+ * Commerce files (Person A) - modules/files/files.service.js. `tx` = caller's transaction.
+ * assertUsable(fileIds, { ownerId, purpose }, db?)      -> void; 422 FILE_NOT_USABLE unless every file exists,
+ *                                                          is owned by ownerId, is unattached and has `purpose`
+ * attach(fileIds, { type, id }, tx)                     -> void; all-or-nothing
+ * registerReadPolicy(purpose, (user, file) => boolean)  -> who besides the owner may read a private file
+ *
+ * Memberships (Person A) - modules/memberships/memberships.service.js
+ * isActiveMember(userId) -> boolean   (stored ACTIVE and not expired; expiry is lazy, there is no job)
+ *
  * Finance (Person A) - modules/finance/finance.service.js. Called inside the caller's transaction.
  * @typedef {object} LedgerPosting
  * @property {string} category        LedgerCategory

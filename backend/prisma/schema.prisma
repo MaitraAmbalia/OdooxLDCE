@@ -698,7 +698,9 @@ model LedgerEntry {
   occurredAt      DateTime         @map("occurred_at") @db.Timestamptz(6)
   recordedById    String?          @map("recorded_by") @db.Uuid
   reversesEntryId String?          @unique @map("reverses_entry_id") @db.Uuid
+  attachmentFileId String?         @map("attachment_file_id") @db.Uuid
   createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  attachmentFile  File?            @relation("LedgerAttachment", fields: [attachmentFileId], references: [id], onDelete: Restrict)
   event           Event?           @relation(fields: [eventId], references: [id], onDelete: Restrict)
   recordedBy      User?            @relation("LedgerRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
   reversesEntry   LedgerEntry?     @relation("LedgerReversal", fields: [reversesEntryId], references: [id], onDelete: Restrict)
@@ -1005,6 +1007,7 @@ model File {
   coveredEvents  Event[]        @relation("EventCover")
   claimReceipts  ClaimReceipt[]
   productImages  ProductImage[]
+  ledgerEntries  LedgerEntry[]  @relation("LedgerAttachment")
 
   @@index([ownerId, purpose, createdAt])
   @@index([attachedToType, attachedToId])

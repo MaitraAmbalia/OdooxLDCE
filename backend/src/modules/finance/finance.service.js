@@ -13,7 +13,7 @@ const toPublic = (e) => ({
   id: e.id, direction: e.direction, category: e.category, amountPaise: Number(e.amountPaise),
   sourceType: e.sourceType, sourceId: e.sourceId, eventId: e.eventId, projectId: e.projectId,
   description: e.description, occurredAt: e.occurredAt, recordedBy: e.recordedById,
-  reversesEntryId: e.reversesEntryId, createdAt: e.createdAt,
+  reversesEntryId: e.reversesEntryId, attachmentFileId: e.attachmentFileId, createdAt: e.createdAt,
 });
 const toAllocation = (a) => ({ id: a.id, period: a.period, amountPaise: Number(a.amountPaise), source: a.source, note: a.note, createdAt: a.createdAt });
 
@@ -43,7 +43,8 @@ export const postExpense = (entry, tx) => post('OUT', entry, tx);
 export const postRefund = (entry, tx) => post('OUT', { ...entry, category: 'REFUND', sourceType: 'REFUND' }, tx);
 
 // ------------------------------------------------------------------ HTTP-facing service
-export function createFinanceService({ prisma }) {
+// `files` = the files service (assertUsable / attach), used for ledger attachments.
+export function createFinanceService({ prisma, files }) {
   async function list(q) {
     const page = parsePagination(q);
     const sort = parseSort(q.sort, ['occurredAt', 'createdAt'], 'occurredAt:desc');
@@ -89,13 +90,20 @@ export function createFinanceService({ prisma }) {
       throw new AppError('VALIDATION_ERROR', 422, 'Unknown project', [{ path: ['body', 'projectId'], message: 'Project not found' }]);
     }
     return prisma.$transaction(async (tx) => {
+      // The ledger is append-only, so a file can only be linked when the entry is created:
+      // check it (owned by the actor, unattached, right purpose), create the entry, attach it, all in one tx.
+      if (body.attachmentFileId) {
+        await files.assertUsable([body.attachmentFileId], { ownerId: actor.id, purpose: 'LEDGER_ATTACHMENT' }, tx);
+      }
       const entry = await tx.ledgerEntry.create({
         data: {
           direction: body.direction, category: body.category, amountPaise: BigInt(body.amountPaise),
           sourceType: 'MANUAL', sourceId: randomUUID(), eventId: body.eventId ?? null, projectId: body.projectId ?? null,
           description: body.description, occurredAt: body.occurredAt, recordedById: actor.id,
+          attachmentFileId: body.attachmentFileId ?? null,
         },
       });
+      if (body.attachmentFileId) await files.attach([body.attachmentFileId], { type: 'ledger_entry', id: entry.id }, tx);
       const out = toPublic(entry);
       await auditLog({ actorId: actor.id, action: 'LEDGER.MANUAL', entityType: 'ledger_entry', entityId: entry.id, after: out, req }, tx);
       return out;

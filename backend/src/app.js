@@ -14,6 +14,10 @@ import { createPaymentsService } from './modules/payments/payments.service.js';
 import { createPaymentsRouter } from './modules/payments/payments.routes.js';
 import { createFinanceService } from './modules/finance/finance.service.js';
 import { createFinanceRouter } from './modules/finance/finance.routes.js';
+import { createMembershipsService } from './modules/memberships/memberships.service.js';
+import { createMembershipsRouter } from './modules/memberships/memberships.routes.js';
+import { createFilesService } from './modules/files/files.service.js';
+import { createFilesRouter } from './modules/files/files.routes.js';
 import { authenticate, authorize } from './platform/auth/middleware.js';
 import { createPeopleContext } from './contexts/people/index.js';
 import { router as commerceRouter } from './contexts/commerce/index.js';
@@ -67,8 +71,19 @@ export function createApp(options = {}) {
   const payments = options.paymentsService ?? createPaymentsService({ prisma, config, logger });
   app.use('/api/v1/payments', createPaymentsRouter({ service: payments, authenticate: auth, config }));
 
-  const finance = createFinanceService({ prisma });
+  // Commerce files (receipts, merch images, event covers, ledger attachments).
+  const files = createFilesService({ prisma, config });
+  app.use('/api/v1/commerce/files', createFilesRouter({ service: files, authenticate: auth }));
+
+  const finance = createFinanceService({ prisma, files });
   app.use('/api/v1', createFinanceRouter({ service: finance, authenticate: auth, requirePermission: authorize }));
+
+  // Memberships: tiers, checkout (via payments), card QR, verify, list, stats.
+  const memberships = createMembershipsService({ prisma, config });
+  app.use(
+    '/api/v1',
+    createMembershipsRouter({ service: memberships, createPayment: payments.createPayment, authenticate: auth, requirePermission: authorize }),
+  );
 
   app.use(notFound);
   app.use(errorHandler({ isProduction: config.isProduction }));

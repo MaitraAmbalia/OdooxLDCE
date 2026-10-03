@@ -43,6 +43,8 @@ const envSchema = z.object({
   RAZORPAY_KEY_ID: z.string().optional(),
   RAZORPAY_KEY_SECRET: z.string().optional(),
   PAYMENT_WEBHOOK_SECRET: z.string().optional(),
+  // Secret that signs membership card QR codes.
+  CARD_QR_SECRET: z.string().min(16).optional(),
   PEOPLE_DATABASE_URL: z.string().url().optional(),
   PLATFORM_DATABASE_URL: z.string().url().optional(),
   COMMERCE_DATABASE_URL: z.string().url().optional(),
@@ -121,6 +123,7 @@ export function loadConfig(source = process.env) {
     razorpayKeyId: env.RAZORPAY_KEY_ID,
     razorpayKeySecret: env.RAZORPAY_KEY_SECRET,
     paymentWebhookSecret: env.PAYMENT_WEBHOOK_SECRET,
+    cardQrSecret: env.CARD_QR_SECRET,
   });
 }
 
