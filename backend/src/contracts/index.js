@@ -29,6 +29,9 @@
  * attach(fileIds, { type, id }, tx)                     -> void; all-or-nothing
  * registerReadPolicy(purpose, (user, file) => boolean)  -> who besides the owner may read a private file
  *
+ * Memberships (Person A) - modules/memberships/memberships.service.js
+ * isActiveMember(userId) -> boolean   (stored ACTIVE and not expired; expiry is lazy, there is no job)
+ *
  * Finance (Person A) - modules/finance/finance.service.js. Called inside the caller's transaction.
  * @typedef {object} LedgerPosting
  * @property {string} category        LedgerCategory

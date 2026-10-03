@@ -16,6 +16,8 @@ import { createPaymentsService } from './modules/payments/payments.service.js';
 import { createPaymentsRouter } from './modules/payments/payments.routes.js';
 import { createFinanceService } from './modules/finance/finance.service.js';
 import { createFinanceRouter } from './modules/finance/finance.routes.js';
+import { createMembershipsService } from './modules/memberships/memberships.service.js';
+import { createMembershipsRouter } from './modules/memberships/memberships.routes.js';
 import { createFilesService } from './modules/files/files.service.js';
 import { createFilesRouter } from './modules/files/files.routes.js';
 
@@ -69,6 +71,13 @@ export function createApp(options = {}) {
   // Finance: ledger + budgets. `requirePermission` is B's `authorize` (dev stub for now).
   const finance = createFinanceService({ prisma, files });
   app.use('/api/v1', createFinanceRouter({ service: finance, authenticate, requirePermission: stubRequirePermission }));
+
+  // Memberships: tiers, checkout (via payments), card QR, verify, list, stats.
+  const memberships = createMembershipsService({ prisma, config });
+  app.use(
+    '/api/v1',
+    createMembershipsRouter({ service: memberships, createPayment: payments.createPayment, authenticate, requirePermission: stubRequirePermission }),
+  );
 
   app.use(notFound);
   app.use(errorHandler({ isProduction: config.isProduction }));
