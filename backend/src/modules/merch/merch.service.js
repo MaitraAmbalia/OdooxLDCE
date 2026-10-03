@@ -2,6 +2,7 @@ import { AppError } from '../../lib/AppError.js';
 import { parsePagination, createPageMeta } from '../../lib/pagination.js';
 import { registerPurposeHandler } from '../payments/payments.service.js';
 import { registerApprovalHandler } from '../approvals/approvals.service.js';
+import { notify } from '../../lib/notify.js';
 
 export function createMerchService({ prisma, createPayment }) {
   function formatProduct(p) {
@@ -296,6 +297,15 @@ export function createMerchService({ prisma, createPayment }) {
           ? { status: nextStatus, collectedAt: new Date(), collectedById: userId }
           : { status: nextStatus },
       });
+      if (nextStatus === 'READY') {
+        await notify(prisma, {
+          userId: order.userId,
+          type: 'MERCH_READY',
+          title: 'Merch ready for pickup',
+          body: `Your order #${order.id.slice(0, 8).toUpperCase()} is ready for pickup at the campus merch desk.`,
+          link: '/me/orders',
+        }).catch(() => {});
+      }
       return {
         ...updated,
         totalPaise: Number(updated.totalPaise),

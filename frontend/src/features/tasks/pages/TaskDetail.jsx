@@ -28,15 +28,18 @@ export default function TaskDetail() {
 
   const user = authData?.data;
 
-  const [messages, setMessages] = useState([]);
-
-  // Fetch Task Details
+  // Fetch Task Details using direct endpoint with fallback
   const { data: taskData, isPending: taskLoading, isError: taskError, refetch } = useQuery({
     queryKey: ['tasks', id],
     queryFn: async () => {
-      const res = await fetch(`/api/v1/projects`);
+      const res = await fetch(`/api/v1/tasks/${id}`, { credentials: "include" });
       if (res.ok) {
-        const json = await res.json();
+        return res.json();
+      }
+      // Fallback to project search if direct task endpoint fails
+      const fallbackRes = await fetch(`/api/v1/projects`, { credentials: "include" });
+      if (fallbackRes.ok) {
+        const json = await fallbackRes.json();
         const projects = json.data || [];
         for (const p of projects) {
           const found = (p.tasks || []).find(t => t.id === id);
@@ -45,6 +48,18 @@ export default function TaskDetail() {
       }
       throw new Error("Task not found");
     }
+  });
+
+  // Real-time task chat messages from backend
+  const { data: messages = [] } = useQuery({
+    queryKey: ['tasks', id, 'messages'],
+    queryFn: async () => {
+      const res = await fetch(`/api/v1/tasks/${id}/messages`, { credentials: "include" });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data || [];
+    },
+    refetchInterval: 3000,
   });
 
   const task = taskData?.data;
@@ -70,6 +85,31 @@ export default function TaskDetail() {
     onError: () => toast.error("Could not update the task status."),
   });
 
+  const sendMessageMutation = useMutation({
+    mutationFn: async (text) => {
+      const clientMsgId = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      const res = await fetch(`/api/v1/tasks/${id}/messages`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: text, clientMsgId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || "Could not post message");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', id, 'messages'] });
+    },
+    onError: (err) => {
+      toast.error(err.message || "Could not send message");
+    },
+  });
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -77,16 +117,7 @@ export default function TaskDetail() {
   const handleSend = (e) => {
     e.preventDefault();
     if (!chatMessage.trim()) return;
-
-    const newMsg = {
-      id: Date.now(),
-      sender: user?.name || "Volunteer",
-      content: chatMessage.trim(),
-      timestamp: new Date().toISOString(),
-      isSystem: false,
-    };
-
-    setMessages(prev => [...prev, newMsg]);
+    sendMessageMutation.mutate(chatMessage.trim());
     setChatMessage("");
   };
 
@@ -119,7 +150,7 @@ export default function TaskDetail() {
               }`}>
                 {task.priority || 'NORMAL'} Priority
               </span>
-              <span className="text-xs text-[var(--color-muted)] font-mono">
+              <span className="text-xs text-muted-foreground font-mono font-medium">
                 Task #{String(id).slice(-4)}
               </span>
             </div>
@@ -180,67 +211,77 @@ export default function TaskDetail() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
                 <h2 className="flex items-center gap-2 text-sm font-semibold">
-                  <MessageSquareText className="size-4 text-primary" /><span>Session notes</span>
+                  <MessageSquareText className="size-4 text-primary" /><span>Task Discussion</span>
                 </h2>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Notes for <span className="font-semibold text-foreground">{task.title}</span>
+                  Team chat for <span className="font-semibold text-foreground">{task.title}</span>
                 </p>
               </div>
               <div className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-primary">
-                <LockKeyhole className="size-3" /> This browser session
+                <LockKeyhole className="size-3" /> Assignees & Leads Only
               </div>
-            </div>
-            <div className="mt-2 rounded border border-border bg-card/70 px-3 py-1.5 text-[11px] text-muted-foreground">
-              These notes are temporary and are not sent to other volunteers.
             </div>
           </div>
 
           {/* Chat Messages Log */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.length === 0 ? <div className="flex min-h-48 flex-col items-center justify-center text-center text-sm text-muted-foreground"><MessageSquareText className="mb-3 size-8 text-primary/40" /><p>No session notes yet.</p></div> : null}
-            {messages.map(msg => (
-              <div key={msg.id} className={`flex flex-col ${msg.isSystem ? 'items-center my-3' : msg.sender.includes(user?.name || '---') ? 'items-end' : 'items-start'}`}>
-                {msg.isSystem ? (
-                  <span className="text-[11px] text-[var(--color-muted)] bg-[var(--color-paper)] border border-[var(--color-line)] px-3 py-1 rounded-full font-medium">
-                    {msg.content}
-                  </span>
-                ) : (
-                  <div className={`max-w-[75%] rounded-2xl p-3.5 shadow-xs ${
-                    msg.sender.includes(user?.name || '---') 
-                      ? 'bg-[var(--color-dusk)] text-white rounded-br-none' 
-                      : 'bg-[var(--color-paper)] border border-[var(--color-line)] text-[var(--color-ink)] rounded-bl-none'
-                  }`}>
-                    <div className="flex items-center justify-between gap-3 mb-1">
-                      <span className={`text-xs font-bold ${msg.sender.includes(user?.name || '---') ? 'text-blue-100' : 'text-[var(--color-dusk)]'}`}>
-                        {msg.sender}
-                      </span>
-                      <span className={`text-[10px] ${msg.sender.includes(user?.name || '---') ? 'text-blue-200' : 'text-[var(--color-muted)]'}`}>
-                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                  </div>
-                )}
+            {messages.length === 0 ? (
+              <div className="flex min-h-48 flex-col items-center justify-center text-center text-sm text-muted-foreground">
+                <MessageSquareText className="mb-3 size-8 text-primary/40" />
+                <p>No messages yet. Send the first update!</p>
               </div>
-            ))}
+            ) : null}
+            {messages.map((msg) => {
+              const isMe = msg.sender?.id === user?.id || (user?.name && msg.sender?.name === user.name) || (typeof msg.sender === 'string' && msg.sender.includes(user?.name || '---'));
+              const senderName = msg.sender?.name || (typeof msg.sender === 'string' ? msg.sender : 'Volunteer');
+              const messageText = msg.body || msg.content;
+              const timeString = new Date(msg.createdAt || msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+              return (
+                <div key={msg.id} className={`flex flex-col ${msg.isSystem ? 'items-center my-3' : isMe ? 'items-end' : 'items-start'}`}>
+                  {msg.isSystem ? (
+                    <span className="text-[11px] text-muted-foreground bg-secondary border border-border px-3 py-1 rounded-full font-medium">
+                      {messageText}
+                    </span>
+                  ) : (
+                    <div className={`max-w-[75%] rounded-2xl p-3.5 shadow-xs ${
+                      isMe 
+                        ? 'bg-primary text-primary-foreground rounded-br-none' 
+                        : 'bg-secondary/70 border border-border text-foreground rounded-bl-none'
+                    }`}>
+                      <div className="flex items-center justify-between gap-3 mb-1">
+                        <span className={`text-xs font-bold ${isMe ? 'text-blue-100' : 'text-primary'}`}>
+                          {senderName}
+                        </span>
+                        <span className={`text-[10px] ${isMe ? 'text-blue-200' : 'text-muted-foreground'}`}>
+                          {timeString}
+                        </span>
+                      </div>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{messageText}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             <div ref={messagesEndRef} />
           </div>
 
           {/* Message Composer */}
-          <div className="p-4 border-t border-[var(--color-line)] bg-white rounded-b-xl">
+          <div className="p-4 border-t border-border bg-card rounded-b-2xl">
             <form onSubmit={handleSend} className="flex gap-2">
               <Input
                 type="text"
                 value={chatMessage}
                 onChange={(e) => setChatMessage(e.target.value)}
-                placeholder="Add a temporary note…"
+                placeholder="Type an update for the task team…"
+                disabled={sendMessageMutation.isPending || task.status === 'DONE'}
                 className="flex-1"
               />
               <Button
                 type="submit"
-                disabled={!chatMessage.trim()}
+                disabled={!chatMessage.trim() || sendMessageMutation.isPending || task.status === 'DONE'}
               >
-                Add note
+                {sendMessageMutation.isPending ? "Sending…" : "Send"}
               </Button>
             </form>
           </div>

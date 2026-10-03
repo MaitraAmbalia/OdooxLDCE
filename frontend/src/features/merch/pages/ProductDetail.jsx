@@ -72,8 +72,10 @@ export default function ProductDetail() {
     : product.coverImageUrl ? [product.coverImageUrl] : [];
 
   const memberPrice = product.memberPricePaise ? product.memberPricePaise / 100 : 599;
-  const regularPrice = product.pricePaise ? product.pricePaise / 100 : 799;
-  const discountAmount = regularPrice - memberPrice;
+  const regularPrice = product.nonMemberPricePaise 
+    ? product.nonMemberPricePaise / 100 
+    : (product.pricePaise ? product.pricePaise / 100 : Math.round(memberPrice * 1.3));
+  const discountAmount = Math.max(0, regularPrice - memberPrice);
 
   const handleCheckout = async () => {
     setIsCheckingOut(true);
@@ -97,8 +99,13 @@ export default function ProductDetail() {
         }
         throw new Error(json.error?.message || "Could not reserve this item");
       }
-      toast.success(`Reserved "${product.name}"! Pickup pass ready.`);
-      navigate("/me/orders");
+      const paymentId = json.data?.payment?.paymentId;
+      if (paymentId) {
+        toast.success(`Reserved "${product.name}" for 15 minutes. Complete payment to confirm.`);
+        navigate(`/checkout/status/${paymentId}`);
+      } else {
+        navigate("/me/orders");
+      }
     } catch (error) {
       toast.error(error.message || "Could not reserve this item. Please try again.");
     } finally {
@@ -240,7 +247,9 @@ export default function ProductDetail() {
                 <div className="grid grid-cols-5 gap-2.5">
                   {variants.map(v => {
                     const isSelected = selectedVariant === v.id;
-                    const stock = v.stockLeft !== undefined ? v.stockLeft : 10;
+                    const stock = v.stockAvailable !== undefined
+                      ? v.stockAvailable
+                      : (v.stock !== undefined ? Math.max(0, (v.stock || 0) - (v.reserved || 0)) : (v.stockLeft !== undefined ? v.stockLeft : 10));
                     const isSoldOut = stock <= 0;
 
                     return (
@@ -327,7 +336,7 @@ export default function ProductDetail() {
               type: "merch",
               title: product.name,
               description: product.description,
-              price: formatINR(product.basePricePaise / 100),
+              price: formatINR(memberPrice),
               venue: "Skyline Merch Desk (Counter B)",
               url: typeof window !== "undefined" ? window.location.href : "",
             }}

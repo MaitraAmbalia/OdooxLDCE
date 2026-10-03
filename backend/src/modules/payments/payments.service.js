@@ -122,7 +122,11 @@ export function createPaymentsService({ prisma, config, logger }) {
     return payment;
   }
 
-  const get = async (userId, id) => toPublic(await getOwned(userId, id));
+  // keyId is Razorpay's public key; the checkout page needs it to open the payment popup.
+  const get = async (userId, id) => {
+    const p = toPublic(await getOwned(userId, id));
+    return p.provider === 'RAZORPAY' ? { ...p, keyId: config.razorpayKeyId } : p;
+  };
 
   // Client-side confirmation after Razorpay checkout. The signature binds this order to the
   // payment id, and the order amount was fixed server-side, so our stored amount is safe to use.

@@ -1,4 +1,5 @@
 import { sealQr, openQr } from '../../lib/qrToken.js';
+import { notify } from '../../lib/notify.js';
 import { AppError } from '../../lib/AppError.js';
 import { createPageMeta, parsePagination } from '../../lib/pagination.js';
 import { auditLog } from '../../utils/audit.js';
@@ -56,6 +57,13 @@ export function createMembershipsService({ prisma, config }) {
       const expiresAt =
         m.tier.durationType === 'SEMESTER' ? semesterEnd(startsAt) : nextYearEnd(startsAt, await setting(tx, 'club.academicYearEnd', '05-31'));
       await tx.membership.update({ where: { id: m.id }, data: { status: 'ACTIVE', startsAt, expiresAt, paymentId: payment.id } });
+      await notify(tx, {
+        userId: m.userId,
+        type: 'MEMBERSHIP_ACTIVE',
+        title: 'Welcome to Skyline',
+        body: `Your ${m.tier.name} is active until ${expiresAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}.`,
+        link: '/me/membership',
+      });
     },
     {
       onFailed: (payment, tx) => tx.membership.updateMany({ where: { id: payment.refId, status: 'PENDING' }, data: { status: 'CANCELLED' } }),
@@ -187,6 +195,47 @@ export function createMembershipsService({ prisma, config }) {
     return { result: effectiveStatus(m) === 'ACTIVE' ? 'VALID' : 'LAPSED', name: m.user.name, expiresAt: m.expiresAt };
   }
 
+  // ---------------------------------------------------------------- renewal reminders
+  // Treasurer action: remind members whose dues expire soon, and people who started checkout
+  // but never paid. Anyone reminded in the last 7 days is skipped so repeat clicks don't spam.
+  // Emails are queued in EmailOutbox for the mail worker; in-app notifications appear immediately.
+  async function remindExpiring({ withinDays = 30 } = {}) {
+    const now = new Date();
+    const [expiring, pending, recent] = await Promise.all([
+      prisma.membership.findMany({
+        where: { status: 'ACTIVE', expiresAt: { gte: now, lte: new Date(now.getTime() + withinDays * DAY) } },
+        include: { tier: true, user: { select: { email: true, name: true } } },
+      }),
+      prisma.membership.findMany({
+        where: { status: 'PENDING' },
+        include: { tier: true, user: { select: { email: true, name: true } } },
+      }),
+      prisma.notification.findMany({
+        where: { type: 'RENEWAL_REMINDER', createdAt: { gte: new Date(now.getTime() - 7 * DAY) } },
+        select: { userId: true },
+      }),
+    ]);
+    const skip = new Set(recent.map((n) => n.userId));
+    const fmt = (d) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+    const targets = new Map(); // userId -> reminder; one per user even if they match both lists
+    for (const m of expiring) {
+      if (!skip.has(m.userId)) targets.set(m.userId, { m, body: `Your ${m.tier.name} expires on ${fmt(m.expiresAt)}. Renew to keep your member benefits.` });
+    }
+    for (const m of pending) {
+      if (!skip.has(m.userId) && !targets.has(m.userId)) targets.set(m.userId, { m, body: `Your ${m.tier.name} payment is still pending. Complete it to activate your membership.` });
+    }
+    const list = [...targets.entries()];
+    await prisma.$transaction([
+      prisma.notification.createMany({
+        data: list.map(([userId, { body }]) => ({ userId, type: 'RENEWAL_REMINDER', title: 'Membership renewal', body, link: '/join' })),
+      }),
+      prisma.emailOutbox.createMany({
+        data: list.map(([, { m, body }]) => ({ to: m.user.email, template: 'membership_renewal', payload: { name: m.user.name, message: body, link: '/join' } })),
+      }),
+    ]);
+    return { reminded: list.length, expiring: expiring.length, pending: pending.length, skippedRecentlyReminded: expiring.length + pending.length - list.length };
+  }
+
   // ---------------------------------------------------------------- admin list + stats
   // Status filters use the lazy rule: ACTIVE means stored ACTIVE and not yet expired.
   function statusWhere(status, now) {
@@ -237,5 +286,5 @@ export function createMembershipsService({ prisma, config }) {
     };
   }
 
-  return { listTiers, createTier, updateTier, me, isActiveMember, checkout, card, rotate, verify, list, stats };
+  return { listTiers, createTier, updateTier, me, isActiveMember, checkout, card, rotate, verify, list, stats, remindExpiring };
 }

@@ -72,9 +72,6 @@
   }
 }
 
-.discovery-shell {
-  --color-muted: #f0f1f5;
-}
 .page-container {
   width: min(100% - 3rem, 1200px);
   margin-inline: auto;

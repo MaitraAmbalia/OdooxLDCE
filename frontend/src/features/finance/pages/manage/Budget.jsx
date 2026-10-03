@@ -33,21 +33,21 @@ export default function Budget() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="rounded-2xl border border-border bg-card p-6">
-          <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-2">Total Budget</p>
-          <p className="text-3xl font-display font-bold font-mono tabular-nums text-[var(--color-ink)]">
+          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Total Budget</p>
+          <p className="text-3xl font-display font-bold font-mono tabular-nums text-foreground">
             {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(totalAllocated / 100)}
           </p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-6">
-          <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-2">Total Spent</p>
+          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Total Spent</p>
           <p className="text-3xl font-display font-bold font-mono tabular-nums text-[var(--color-stop)]">
             {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(totalSpent / 100)}
           </p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-6">
-          <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-2">Overall Utilisation</p>
+          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Overall Utilisation</p>
           <div className="flex items-end gap-3">
-            <p className="text-3xl font-display font-bold font-mono tabular-nums text-[var(--color-ink)]">
+            <p className="text-3xl font-display font-bold font-mono tabular-nums text-foreground">
               {totalUtilisation.toFixed(1)}%
             </p>
             <div className="flex-1 h-2 mb-2 bg-[var(--color-line)] rounded-full overflow-hidden">
@@ -61,7 +61,7 @@ export default function Budget() {
       </div>
 
       <div className="space-y-6">
-        <h2 className="text-lg font-display font-bold text-[var(--color-ink)]">Category Limits</h2>
+        <h2 className="text-lg font-display font-bold text-foreground">Category Limits</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {budgets.map(b => {
@@ -69,15 +69,15 @@ export default function Budget() {
             return (
               <div key={b.id} className="rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="font-semibold text-[var(--color-ink)]">{b.category}</h3>
+                  <h3 className="font-semibold text-foreground">{b.category}</h3>
                   <span className="text-sm font-medium bg-[var(--color-paper)] border border-[var(--color-line)] px-2 py-1 rounded">
                     {util.toFixed(1)}%
                   </span>
                 </div>
                 
                 <div className="flex justify-between text-sm mb-2 font-mono tabular-nums">
-                  <span className="text-[var(--color-muted)]">Spent: {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(b.spentPaise / 100)}</span>
-                  <span className="font-bold text-[var(--color-ink)]">Limit: {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(b.allocatedPaise / 100)}</span>
+                  <span className="text-muted-foreground font-medium">Spent: {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(b.spentPaise / 100)}</span>
+                  <span className="font-bold text-foreground">Limit: {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(b.allocatedPaise / 100)}</span>
                 </div>
                 
                 <div className="w-full h-3 bg-[var(--color-line)] rounded-full overflow-hidden">
