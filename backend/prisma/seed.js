@@ -151,12 +151,27 @@ async function main() {
         where: { userId: user.id, status: 'ACTIVE' },
       });
       if (!existingMembership) {
+        const payment = await prisma.payment.create({
+          data: {
+            userId: user.id,
+            purpose: 'MEMBERSHIP',
+            refId: user.id,
+            amountPaise: BigInt(50000),
+            status: 'PAID',
+            provider: 'MOCK',
+            gatewayOrderId: `mock_order_${user.id}`,
+            gatewayPaymentId: `mock_payment_${user.id}`,
+            paidAt: new Date(),
+          },
+        });
+
         await prisma.membership.create({
           data: {
             userId: user.id,
             tierId: def.isSemesterMember ? semesterTier.id : annualTier.id,
             status: 'ACTIVE',
             source: 'ONLINE',
+            paymentId: payment.id,
             startsAt: new Date(),
             expiresAt: new Date(Date.now() + (def.isSemesterMember ? 180 : 365) * 24 * 3600000),
           },
@@ -188,7 +203,8 @@ async function main() {
           pricePaise: tt.pricePaise,
           quota: tt.quota,
           maxPerUser: tt.maxPerUser,
-          salesStartAt: tt.salesStartAt ?? new Date(),
+          // Past events: open sales 30 days before they ended so start < end (DB check constraint).
+          salesStartAt: tt.salesStartAt ?? new Date(Math.min(Date.now(), event.endAt.getTime() - 30 * 24 * 3600000)),
           salesEndAt: tt.salesEndAt ?? event.endAt,
         },
       });
@@ -1151,6 +1167,7 @@ async function main() {
       description: 'Certificates thick cardstock printing and official wax seal stamp',
       status: 'APPROVED', // Ready for Treasurer to pay
       spentAt: new Date(Date.now() - 5 * 24 * 3600000),
+      eventId: hackathon.id, // claims must link to an event/project/task (DB check)
     },
     {
       id: '60000000-0000-0000-0000-000000000004',
@@ -1164,6 +1181,7 @@ async function main() {
       paidMethod: 'BANK_TRANSFER',
       paidReference: 'TXN-REF-902188',
       spentAt: new Date(Date.now() - 6 * 24 * 3600000),
+      eventId: hackathon.id, // claims must link to an event/project/task (DB check)
     },
     {
       id: '60000000-0000-0000-0000-000000000005',
@@ -1174,6 +1192,7 @@ async function main() {
       description: 'Personal travel expenses for sponsor meetup across town',
       status: 'REJECTED',
       spentAt: new Date(Date.now() - 8 * 24 * 3600000),
+      eventId: gala.id, // claims must link to an event/project/task (DB check)
     },
     {
       id: '60000000-0000-0000-0000-000000000006',
@@ -1197,9 +1216,8 @@ async function main() {
   }
   console.log('✓ Seeded budget limits, allocations, multi-month ledger, cash desk entries, and claims');
 
-  // ==========================================
-  // 9. Governance: Selection Cycles, Leadership Posts, and Applications
-  // ==========================================
+  // ===================================
+  // 8. Governance: Elections & Selection Cycles
   const cycle = await prisma.selectionCycle.upsert({
     where: { id: '70000000-0000-0000-0000-000000000001' },
     update: { status: 'OPEN' },
@@ -1208,7 +1226,7 @@ async function main() {
       title: 'Executive Council Selection 2026–2027',
       termStart: new Date('2026-06-01T00:00:00Z'),
       termEnd: new Date('2027-05-31T23:59:59Z'),
-      applicationsOpenAt: new Date(Date.now() - 10 * 24 * 3600000),
+      applicationsOpenAt: new Date(Date.now() - 5 * 24 * 3600000),
       applicationsCloseAt: new Date(Date.now() + 25 * 24 * 3600000),
       maxApplicationsPerMember: 2,
       status: 'OPEN',
@@ -1424,13 +1442,15 @@ async function main() {
     }
 
     for (const inv of invites) {
+      const respondedAt = inv.rsvp === 'PENDING' ? null : new Date(); // DB check: answered <=> respondedAt set
       await prisma.meetingInvite.upsert({
         where: { meetingId_userId: { meetingId: meeting.id, userId: inv.userId } },
-        update: { rsvp: inv.rsvp },
+        update: { rsvp: inv.rsvp, respondedAt },
         create: {
           meetingId: meeting.id,
           userId: inv.userId,
           rsvp: inv.rsvp,
+          respondedAt,
         },
       });
     }
