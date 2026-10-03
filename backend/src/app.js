@@ -10,12 +10,14 @@ import { requestId } from './middleware/requestId.js';
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { createHealthRouter } from './health/health.routes.js';
-import { stubAuth } from './middleware/stubAuth.js';
-import { requirePermission as stubRequirePermission } from './middleware/stubAuthorize.js';
 import { createPaymentsService } from './modules/payments/payments.service.js';
 import { createPaymentsRouter } from './modules/payments/payments.routes.js';
 import { createFinanceService } from './modules/finance/finance.service.js';
 import { createFinanceRouter } from './modules/finance/finance.routes.js';
+import { authenticate, authorize } from './platform/auth/middleware.js';
+import { createPeopleContext } from './contexts/people/index.js';
+import { router as commerceRouter } from './contexts/commerce/index.js';
+import { createPlatformRouter } from './platform/routes.js';
 
 function createCorsOptions(config) {
   return {
@@ -54,15 +56,19 @@ export function createApp(options = {}) {
   app.use(createRequestLogger(logger));
 
   app.use('/api/v1', createHealthRouter({ prisma }));
+  const people = options.peopleContext ?? createPeopleContext({ config, client: options.peopleClient, storage: options.storage, transport: options.transport });
+  app.locals.people = people;
+  app.use('/api/v1', createPlatformRouter({ config, client: options.platformClient }));
+  app.use('/api/v1', commerceRouter);
+  app.use('/api/v1', people.router);
 
-  // `authenticate` is Person B's middleware; until it lands the dev-only stubAuth stands in.
-  const authenticate = stubAuth(config);
-  const payments = createPaymentsService({ prisma, config, logger });
-  app.use('/api/v1/payments', createPaymentsRouter({ service: payments, authenticate, config }));
+  // Payment and finance services use req.user.id; the kernel also exposes the JWT sub.
+  const auth = options.authenticate ?? authenticate({ config });
+  const payments = options.paymentsService ?? createPaymentsService({ prisma, config, logger });
+  app.use('/api/v1/payments', createPaymentsRouter({ service: payments, authenticate: auth, config }));
 
-  // Finance: ledger + budgets. `requirePermission` is B's `authorize` (dev stub for now).
   const finance = createFinanceService({ prisma });
-  app.use('/api/v1', createFinanceRouter({ service: finance, authenticate, requirePermission: stubRequirePermission }));
+  app.use('/api/v1', createFinanceRouter({ service: finance, authenticate: auth, requirePermission: authorize }));
 
   app.use(notFound);
   app.use(errorHandler({ isProduction: config.isProduction }));

@@ -1,0 +1,45 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../../src/generated/commerce-client"
+  previewFeatures = ["views"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("COMMERCE_DATABASE_URL")
+}
+
+// Phase 0 starts with read contracts only. No Commerce business tables yet.
+// Prisma view declarations describe producer-owned SQL views, not tables.
+view MemberStatus {
+  userId      String    @unique @map("user_id") @db.Uuid
+  status      String
+  activeSince DateTime? @map("active_since") @db.Timestamptz(6)
+  expiresAt   DateTime? @map("expires_at") @db.Timestamptz(6)
+
+  @@map("v_member_status")
+}
+
+view ActiveMember {
+  userId String @unique @map("user_id") @db.Uuid
+
+  @@map("v_active_members")
+}
+
+view EventAttendee {
+  eventId String @map("event_id") @db.Uuid
+  userId  String @map("user_id") @db.Uuid
+
+  @@unique([eventId, userId])
+  @@map("v_event_attendees")
+}
+
+view PublishedEvent {
+  id      String   @unique @db.Uuid
+  title   String
+  startAt DateTime @map("start_at") @db.Timestamptz(6)
+  endAt   DateTime @map("end_at") @db.Timestamptz(6)
+  status  String
+
+  @@map("v_events")
+}

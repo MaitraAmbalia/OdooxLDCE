@@ -1,0 +1,1 @@
+export { validate } from '../../middleware/validate.js';

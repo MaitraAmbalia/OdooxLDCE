@@ -1,1 +1,1 @@
-// Placeholder: implementation will be added in a later phase.
+export { idempotency, withIdempotency } from '../platform/http/idempotency.js';

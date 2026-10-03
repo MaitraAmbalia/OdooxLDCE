@@ -1,1 +1,1 @@
-// Placeholder: implementation will be added in a later phase.
+export { authorize } from '../platform/auth/middleware.js';

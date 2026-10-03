@@ -6,6 +6,8 @@ node_modules/
 dist/
 build/
 coverage/
+backend/src/generated/
+backend/storage/
 
 # Environment and local configuration
 .env
