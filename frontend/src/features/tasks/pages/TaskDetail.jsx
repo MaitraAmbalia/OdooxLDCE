@@ -150,7 +150,7 @@ export default function TaskDetail() {
               }`}>
                 {task.priority || 'NORMAL'} Priority
               </span>
-              <span className="text-xs text-[var(--color-muted)] font-mono">
+              <span className="text-xs text-muted-foreground font-mono font-medium">
                 Task #{String(id).slice(-4)}
               </span>
             </div>

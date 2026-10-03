@@ -107,7 +107,7 @@ export default function VolunteerHome() {
               ) : claimsError ? (
                 <div className="p-4 text-center text-sm text-destructive"><button onClick={() => refetchClaims()} className="font-medium hover:underline">Retry claims</button></div>
               ) : claims.length === 0 ? (
-                <div className="p-4 text-center text-[var(--color-muted)] text-sm">No recent claims.</div>
+                <div className="p-4 text-center text-muted-foreground text-sm">No recent claims.</div>
               ) : (
                 <ul className="divide-y divide-[var(--color-line)]">
                   {claims.map(claim => (
@@ -115,7 +115,7 @@ export default function VolunteerHome() {
                       <Link to={`/volunteer/claims/${claim.id}`} className="flex justify-between items-center">
                         <div>
                           <p className="text-sm font-medium text-[var(--color-ink)]">{claim.description}</p>
-                          <p className="text-xs text-[var(--color-muted)] mt-1">{new Date(claim.createdAt).toLocaleDateString()}</p>
+                          <p className="text-xs text-muted-foreground font-medium mt-1">{new Date(claim.createdAt).toLocaleDateString()}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-mono font-bold">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(claim.amountPaise / 100)}</p>

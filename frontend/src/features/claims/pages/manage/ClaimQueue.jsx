@@ -57,10 +57,10 @@ export default function ClaimQueue() {
           <table className="min-w-full divide-y divide-border">
             <thead className="bg-secondary/40">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Date/Age</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Submitter</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Description</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Amount</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">Date/Age</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">Submitter</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">Description</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-foreground uppercase tracking-wider">Amount</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border bg-card">
@@ -73,12 +73,12 @@ export default function ClaimQueue() {
                   className={`cursor-pointer transition-colors hover:bg-secondary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${selectedClaim?.id === claim.id ? 'bg-secondary/50' : ''}`}
                 >
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">{claim.ageDays} days ago</td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">{claim.submitter}</td>
-                  <td className="px-6 py-4 text-sm text-[var(--color-ink)]">
-                    <p className="truncate max-w-[200px]">{claim.description}</p>
-                    <p className="text-xs text-[var(--color-muted)]">{claim.link}</p>
+                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-foreground">{claim.submitter}</td>
+                  <td className="px-6 py-4 text-sm">
+                    <p className="font-medium text-foreground truncate max-w-[240px]">{claim.description}</p>
+                    <p className="text-xs text-muted-foreground font-medium mt-0.5">{claim.link}</p>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-ink)] font-mono text-right tabular-nums">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground font-mono font-medium text-right tabular-nums">
                     {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(claim.amountPaise / 100)}
                   </td>
                 </tr>
@@ -91,7 +91,7 @@ export default function ClaimQueue() {
 
       {/* Review Drawer (Right Side on Desktop, Overlaid on Mobile) */}
       {selectedClaim && (
-        <div className="fixed inset-y-0 right-0 w-full md:w-96 bg-[var(--color-surface)] border-l border-[var(--color-line)] shadow-2xl z-40 flex flex-col transform transition-transform">
+        <div className="fixed inset-y-0 right-0 w-full md:w-96 bg-card border-l border-border shadow-2xl z-40 flex flex-col transform transition-transform">
           <div className="flex items-center justify-between border-b border-border bg-secondary/40 p-4">
             <h2 className="font-display text-xl font-semibold">Review claim</h2>
             <Button variant="ghost" size="icon" onClick={() => setSelectedClaim(null)} aria-label="Close claim review"><X /></Button>
@@ -99,25 +99,25 @@ export default function ClaimQueue() {
           
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             <div>
-              <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Amount</p>
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Amount</p>
               <p className="text-3xl font-display font-bold font-mono tabular-nums">
                 {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(selectedClaim.amountPaise / 100)}
               </p>
             </div>
             
             <div>
-              <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Submitter</p>
-              <p className="font-medium text-[var(--color-ink)]">{selectedClaim.submitter}</p>
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Submitter</p>
+              <p className="font-medium text-foreground">{selectedClaim.submitter}</p>
             </div>
             
             <div>
-              <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Description</p>
-              <p className="text-sm">{selectedClaim.description}</p>
-              <p className="text-xs text-[var(--color-dusk)] mt-1">{selectedClaim.link}</p>
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Description</p>
+              <p className="text-sm font-medium text-foreground">{selectedClaim.description}</p>
+              <p className="text-xs text-muted-foreground font-medium mt-1">{selectedClaim.link}</p>
             </div>
 
             <div>
-              <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-2">Receipts</p>
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Receipts</p>
               <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-border bg-secondary/30 text-sm text-muted-foreground">
                 <ReceiptIndianRupee className="mr-2 size-5" /> No persisted receipt
               </div>

@@ -72,28 +72,28 @@ export default function ClaimDetail() {
             
             <div className="grid grid-cols-2 gap-y-4 gap-x-8 text-sm">
               <div>
-                <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Submitter</p>
-                <p className="font-medium text-[var(--color-ink)]">{claim.user?.name || "Unknown"}</p>
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Submitter</p>
+                <p className="font-medium text-foreground">{claim.user?.name || "Unknown"}</p>
               </div>
               <div>
-                <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Amount</p>
-                <p className="font-medium text-[var(--color-ink)] font-mono tabular-nums">
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Amount</p>
+                <p className="font-medium text-foreground font-mono tabular-nums">
                   {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(claim.amountPaise / 100)}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Date Spent</p>
-                <p className="text-[var(--color-ink)]">
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Date Spent</p>
+                <p className="text-foreground">
                   {claim.dateSpent ? new Date(claim.dateSpent).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : "Not available"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Category</p>
-                <p className="text-[var(--color-ink)]">{claim.category || "General expense"}</p>
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Category</p>
+                <p className="text-foreground">{claim.category || "General expense"}</p>
               </div>
               <div className="col-span-2">
-                <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Description</p>
-                <p className="text-[var(--color-ink)]">{claim.description}</p>
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Description</p>
+                <p className="text-foreground">{claim.description}</p>
               </div>
             </div>
           </div>
@@ -127,7 +127,7 @@ export default function ClaimDetail() {
                 </div>
                 <div className="pb-4">
                   <p className="text-sm font-medium text-[var(--color-ink)]">Submitted</p>
-                  <p className="text-xs text-[var(--color-muted)]">{new Date(claim.createdAt).toLocaleString('en-IN')}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(claim.createdAt).toLocaleString('en-IN')}</p>
                 </div>
               </div>
               {claim.status !== 'SUBMITTED' && (
@@ -140,7 +140,7 @@ export default function ClaimDetail() {
                     <p className="text-sm font-medium text-[var(--color-ink)]">
                       {claim.status === 'REJECTED' ? 'Rejected' : 'Approved'}
                     </p>
-                    <p className="text-xs text-[var(--color-muted)]">By Treasurer</p>
+                    <p className="text-xs text-muted-foreground">By Treasurer</p>
                   </div>
                 </div>
               )}

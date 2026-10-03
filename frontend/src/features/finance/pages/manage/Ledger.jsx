@@ -71,12 +71,12 @@ export default function Ledger() {
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-[var(--color-line)]">
-            <thead className="bg-white">
+            <thead className="bg-secondary/40">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Date</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Description</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Category</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Amount</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">Date</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">Description</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">Category</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-foreground uppercase tracking-wider">Amount</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border bg-card">
@@ -85,19 +85,19 @@ export default function Ledger() {
               ) : isError ? (
                 <tr><td colSpan="4" className="p-6"><ContentState error title="The ledger isn’t available." description="Try loading the records again." action={refetch} /></td></tr>
               ) : transactions.map((tx) => (
-                <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-muted)]">
+                <tr key={tx.id} className="hover:bg-secondary/30 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {new Date(tx.date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium text-[var(--color-ink)]">
+                  <td className="px-6 py-4 text-sm font-medium text-foreground">
                     {tx.description}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-muted)]">
-                    <span className="bg-[var(--color-paper)] border border-[var(--color-line)] px-2 py-1 rounded text-xs">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <span className="bg-secondary text-secondary-foreground border border-border px-2.5 py-1 rounded-md text-xs font-medium">
                       {tx.category}
                     </span>
                   </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-mono text-right tabular-nums font-bold ${tx.type === 'INCOME' ? 'text-[var(--color-ok)]' : 'text-[var(--color-ink)]'}`}>
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-mono text-right tabular-nums font-bold ${tx.type === 'INCOME' ? 'text-[var(--color-ok)]' : 'text-foreground'}`}>
                     {tx.type === 'INCOME' ? '+' : '-'} {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(tx.amountPaise / 100)}
                   </td>
                 </tr>

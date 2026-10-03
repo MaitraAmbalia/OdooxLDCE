@@ -64,15 +64,15 @@ export default function Reports() {
               
               <div className="flex justify-center gap-6 text-left max-w-lg mx-auto bg-white p-6 rounded-[10px] border border-[var(--color-line)] shadow-sm">
                 <div>
-                  <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Rows</p>
+                  <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Rows</p>
                   <p className="font-mono text-lg font-semibold">{report?.rowCount || 0}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Total Income</p>
+                  <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Total Income</p>
                   <p className="font-mono text-lg font-semibold text-[#345d4a]">{money(report?.totalIncomePaise)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Total Expense</p>
+                  <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Total Expense</p>
                   <p className="font-mono text-lg font-semibold">{money(report?.totalExpensePaise)}</p>
                 </div>
               </div>
