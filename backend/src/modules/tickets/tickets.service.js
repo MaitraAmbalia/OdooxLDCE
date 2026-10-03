@@ -1,6 +1,7 @@
 import { AppError } from '../../lib/AppError.js';
 import { parsePagination, createPageMeta } from '../../lib/pagination.js';
 import { sealQr, openQr } from '../../lib/qrToken.js';
+import { notify } from '../../lib/notify.js';
 
 const TICKET_QR = /^t:([0-9a-f-]{36})$/;
 
@@ -12,6 +13,8 @@ export function createTicketsService({ prisma, config }) {
         include: { ticketTypes: true },
       });
       if (!event) throw new AppError('NOT_FOUND', 404, 'Event was not found');
+      // Tickets go on sale only after Mentor authorization publishes the event.
+      if (event.status !== 'PUBLISHED') throw new AppError('EVENT_NOT_ON_SALE', 409, 'Tickets for this event are not on sale');
 
       const ticketType = event.ticketTypes.find((t) => t.id === ticketTypeId);
       if (!ticketType) throw new AppError('NOT_FOUND', 404, 'Ticket type was not found');
@@ -45,6 +48,14 @@ export function createTicketsService({ prisma, config }) {
             event: { select: { title: true, venue: true, startAt: true } },
             ticketType: { select: { name: true } },
           },
+        });
+
+        await notify(tx, {
+          userId,
+          type: 'TICKET_ISSUED',
+          title: 'Your pass is ready',
+          body: `${ticket.ticketType.name} for "${ticket.event.title}".`,
+          link: `/me/tickets/${ticket.id}`,
         });
 
         return {
