@@ -7,11 +7,17 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useSession } from "@/hooks/useSession";
 
 const STEPS = ["Basics", "Schedule", "Tickets", "Sponsorship", "Review"];
 
 export default function EventProposalStepper() {
   usePageTitle("Create event");
+  const { data: sessionData, isPending: isSessionPending } = useSession();
+  const user = sessionData?.data;
+  const canPropose = user?.permissions?.includes("event.propose");
+  const isSponsorshipHead = user?.roles?.includes("SPONSORSHIP_HEAD") && !canPropose;
+
   const [currentStep, setCurrentStep] = useState(1);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -105,6 +111,35 @@ export default function EventProposalStepper() {
     }
     submitEvent.mutate(data);
   };
+
+  if (!isSessionPending && user && !canPropose) {
+    return (
+      <div className="page-container py-16">
+        <Button asChild variant="ghost" className="mb-6 -ml-3">
+          <Link to="/manage"><ArrowLeft aria-hidden="true" /> Back to manage</Link>
+        </Button>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-950 sm:p-8" role="alert">
+          <h1 className="font-display text-2xl font-semibold">Event Lead role required</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-amber-900">
+            Event proposals can only be drafted and submitted by an authorized <strong>Event Head</strong> or <strong>President</strong>.
+            {isSponsorshipHead
+              ? " As Sponsorship Head, you manage corporate partnerships and Odoo CRM opportunities for approved events."
+              : " Sign in with an authorized leadership account to propose events."}
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            {isSponsorshipHead && (
+              <Button asChild>
+                <Link to="/manage/sponsorship">Open Sponsorship CRM</Link>
+              </Button>
+            )}
+            <Button asChild variant="outline">
+              <Link to="/manage">Back to overview</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container max-w-4xl py-12 sm:py-16">

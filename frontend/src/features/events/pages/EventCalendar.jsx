@@ -176,6 +176,7 @@ export default function EventCalendar() {
   const { data: sessionData } = useSession();
   const user = sessionData?.data;
   const canManage = Boolean(user?.permissions?.some((permission) => LEAD_PERMISSIONS.includes(permission)));
+  const canPropose = Boolean(user?.permissions?.includes("event.propose"));
   const { data: publishedData, isPending, isError, refetch } = useEvents();
   const { data: proposalData } = useQuery({
     queryKey: ["events", "calendar-proposals"],
@@ -264,7 +265,7 @@ export default function EventCalendar() {
           <h1 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Everything happening, <span className="text-primary">in one place.</span></h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Published events for everyone{canManage ? ", with proposals layered in for the leadership team" : " — clear, current, and easy to save"}.</p>
         </div>
-        {canManage && <Button asChild className="h-11 shrink-0"><Link to="/manage/events/new"><Plus /> Propose event</Link></Button>}
+        {canPropose && <Button asChild className="h-11 shrink-0"><Link to="/manage/events/new"><Plus /> Propose event</Link></Button>}
       </div>
 
       <div className="mt-8 grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Link,
   NavLink,
@@ -48,18 +48,19 @@ const navigation = [
   ["/selection", "Leadership"],
 ];
 
-const manageNavigation = [
-  ["/manage", "Overview"],
-  ["/calendar", "Calendar"],
-  ["/manage/events/new", "Propose event"],
-  ["/manage/meetings", "Meetings"],
-  ["/manage/claims", "Claims"],
-  ["/manage/finance/ledger", "Finance"],
-  ["/manage/budget", "Budgets"],
-  ["/manage/projects", "Projects"],
-  ["/manage/orders", "Orders"],
-  ["/manage/newsletter", "Newsletter"],
-  ["/manage/selection/new/edit", "Leadership"],
+const manageNavigationItems = [
+  { to: "/manage", label: "Overview" },
+  { to: "/calendar", label: "Calendar" },
+  { to: "/manage/events/new", label: "Propose event", anyPermission: ["event.propose"] },
+  { to: "/manage/sponsorship", label: "Sponsorship", anyPermission: ["sponsorship.crm.read", "sponsorship.crm.manage"] },
+  { to: "/manage/meetings", label: "Meetings", anyPermission: ["meeting.manage"] },
+  { to: "/manage/claims", label: "Claims", anyPermission: ["claim.review", "claim.review.treasurer", "claim.review.high"] },
+  { to: "/manage/finance/ledger", label: "Finance", anyPermission: ["ledger.read"] },
+  { to: "/manage/budget", label: "Budgets", anyPermission: ["budget.limit.manage", "budget.allocate"] },
+  { to: "/manage/projects", label: "Projects", anyPermission: ["project.manage"] },
+  { to: "/manage/orders", label: "Orders", anyPermission: ["order.fulfil"] },
+  { to: "/manage/newsletter", label: "Newsletter", anyPermission: ["newsletter.stats.read", "newsletter.send", "announcement.publish"] },
+  { to: "/manage/selection/new/edit", label: "Leadership", anyPermission: ["selection.manage"] },
 ];
 
 const volunteerNavigation = [
@@ -92,11 +93,19 @@ export default function DiscoveryLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const userPermissions = user?.permissions || [];
+  const filteredManageNav = useMemo(() => {
+    return manageNavigationItems
+      .filter((item) => !item.anyPermission || item.anyPermission.some((perm) => userPermissions.includes(perm)))
+      .map((item) => [item.to, item.label]);
+  }, [userPermissions]);
+
   const section = location.pathname.startsWith("/manage")
     ? {
         label: "Manage Skyline",
         icon: BriefcaseBusiness,
-        links: manageNavigation,
+        links: filteredManageNav,
       }
     : location.pathname.startsWith("/volunteer")
       ? {
