@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { validate } from '../../middleware/validate.js';
-import { requireJson } from '../../middleware/requireJson.js';
 
 const idParams = z.object({ id: z.string().uuid() });
 const assignmentQuery = z.object({
@@ -32,15 +31,15 @@ export function createAccessRouter({ service, authenticate, authorize }) {
   });
 
   router.get('/role-assignments', authenticate, authorize('role.read'), validate({ query: assignmentQuery }), async (req, res) => {
-    res.json(await service.list(req.validated.query));
+    res.json(await service.list(req.query));
   });
 
-  router.post('/role-assignments', authenticate, authorize('role.assign'), requireJson, validate({ body: assignmentBody }), async (req, res) => {
-    res.status(201).json({ data: await service.assign(req.user.sub, req.validated.body) });
+  router.post('/role-assignments', authenticate, authorize('role.assign'), validate({ body: assignmentBody }), async (req, res) => {
+    res.status(201).json({ data: await service.assign(req.user.sub, req.body) });
   });
 
-  router.post('/role-assignments/:id/end', authenticate, authorize('role.assign'), requireJson, validate({ params: idParams, body: endBody }), async (req, res) => {
-    res.json({ data: await service.end(req.user.sub, req.params.id, req.validated.body.reason) });
+  router.post('/role-assignments/:id/end', authenticate, authorize('role.assign'), validate({ params: idParams, body: endBody }), async (req, res) => {
+    res.json({ data: await service.end(req.user.sub, req.params.id, req.body.reason) });
   });
 
   return router;

@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { validate } from '../../middleware/validate.js';
-import { requireJson } from '../../middleware/requireJson.js';
 
 const idParams = z.object({ id: z.uuid() });
 // Values come from Razorpay checkout's success callback.
@@ -22,7 +21,7 @@ export function createPaymentsRouter({ service, authenticate, config }) {
   router.get('/:id', authenticate, validate({ params: idParams }), async (req, res) =>
     res.json({ data: await service.get(req.user.id, req.params.id) }));
 
-  router.post('/:id/confirm', authenticate, requireJson, validate({ params: idParams, body: confirmBody }), async (req, res) =>
+  router.post('/:id/confirm', authenticate, validate({ params: idParams, body: confirmBody }), async (req, res) =>
     res.json({ data: await service.confirm(req.user.id, req.params.id, req.body) }));
 
   // Dev shortcut: not registered at all in production, so it is a plain 404 there.
