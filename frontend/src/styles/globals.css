@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #17213A;
+  --color-paper: #F6F7FB;
+  --color-surface: #FFFFFF;
+  --color-dusk: #2E3FA3;
+  --color-lamp: #F0AE2E;
+  --color-muted: #5B6478;
+  --color-line: #DDE1EA;
+
+  --color-ok: #1E7F55;
+  --color-wait: #9A6B12;
+  --color-stop: #B8322A;
+  --color-info: #2B66A8;
+  --color-neutral: #5B6478;
+
+  --font-display: "Bricolage Grotesque", sans-serif;
+  --font-body: "IBM Plex Sans", sans-serif;
+}
+
+:root {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}
