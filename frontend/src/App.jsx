@@ -32,18 +32,7 @@ import ShopCatalog from "./features/merch/pages/ShopCatalog";
 import ProductDetail from "./features/merch/pages/ProductDetail";
 import MyOrders from "./features/orders/pages/MyOrders";
 import FulfilmentQueue from "./features/orders/pages/manage/FulfilmentQueue";
-import AnnouncementFeed from "./features/announcements/pages/AnnouncementFeed";
-import AnnouncementDetail from "./features/announcements/pages/AnnouncementDetail";
-import AnnouncementComposer from "./features/announcements/pages/manage/AnnouncementComposer";
 import NotificationList from "./features/notifications/pages/NotificationList";
-import NewsletterDashboard from "./features/newsletter/pages/manage/NewsletterDashboard";
-import MeetingList from "./features/meetings/pages/manage/MeetingList";
-import MeetingBuilder from "./features/meetings/pages/manage/MeetingBuilder";
-import MeetingDetail from "./features/meetings/pages/manage/MeetingDetail";
-import SelectionHub from "./features/selection/pages/SelectionHub";
-import ApplicationForm from "./features/selection/pages/ApplicationForm";
-import CycleBuilder from "./features/selection/pages/manage/CycleBuilder";
-import ApplicationReview from "./features/selection/pages/manage/ApplicationReview";
 import ManageHome from "./features/dashboard/pages/ManageHome";
 import AccountHome from "./features/dashboard/pages/AccountHome";
 
@@ -55,8 +44,10 @@ function App() {
       <Route path="/cash-desk" element={<CashDesk />} />
 
       <Route path="/" element={<PublicLayout />}>
-        {/* Public Routes */}
-        <Route index element={<div className="p-8"><h1 className="text-3xl font-display font-bold text-[var(--color-ink)]">Skyline Home</h1></div>} />
+        {/* Public & Navigation Routes */}
+        <Route index element={<AccountHome />} />
+        <Route path="me" element={<AccountHome />} />
+        <Route path="manage" element={<ManageHome />} />
         <Route path="join" element={<Join />} />
 
         {/* Auth Routes */}
@@ -66,43 +57,33 @@ function App() {
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
 
-        {/* Phase 10: Dashboards */}
-        <Route path="me" element={<AccountHome />} />
-        <Route path="manage" element={<ManageHome />} />
-
-        {/* Phase 2: Memberships and Payments */}
+        {/* Memberships & Payments */}
         <Route path="me/membership" element={<MyMembership />} />
         <Route path="checkout/status/:paymentId" element={<CheckoutStatus />} />
 
-        {/* Phase 3: Events & Ticketing */}
+        {/* Events & Ticketing */}
         <Route path="events" element={<EventList />} />
         <Route path="events/:id" element={<EventDetail />} />
         <Route path="me/tickets" element={<MyTickets />} />
         <Route path="me/tickets/:id" element={<TicketPass />} />
-
-        {/* Phase 6: Shop & Orders */}
-        <Route path="shop" element={<ShopCatalog />} />
-        <Route path="shop/:id" element={<ProductDetail />} />
-        <Route path="me/orders" element={<MyOrders />} />
-
-        {/* Phase 7: Announcements & Notifications */}
-        <Route path="announcements" element={<AnnouncementFeed />} />
-        <Route path="announcements/:id" element={<AnnouncementDetail />} />
-        <Route path="me/notifications" element={<NotificationList />} />
-
-        {/* Phase 9: Selection (Public) */}
-        <Route path="selection" element={<SelectionHub />} />
-        <Route path="selection/posts/:postId/apply" element={<ApplicationForm />} />
-
-        {/* Phase 3, 4, 5, 6, 7, 8 & 9: Manage */}
         <Route path="manage/events/new" element={<EventProposalStepper />} />
         <Route path="manage/events/:id/review" element={<MentorReview />} />
 
+        {/* Merch Store & Orders */}
+        <Route path="shop" element={<ShopCatalog />} />
+        <Route path="shop/:id" element={<ProductDetail />} />
+        <Route path="me/orders" element={<MyOrders />} />
+        <Route path="manage/orders" element={<FulfilmentQueue />} />
+
+        {/* Volunteers & Projects */}
         <Route path="volunteer" element={<VolunteerHome />} />
         <Route path="volunteer/tasks/:id" element={<TaskDetail />} />
+        <Route path="manage/projects" element={<ProjectList />} />
+        <Route path="manage/projects/:id" element={<ProjectKanban />} />
+
+        {/* Finance, Claims & Cash Desk */}
         <Route path="volunteer/claims/new" element={<SubmitClaim />} />
         <Route path="volunteer/claims/:id" element={<ClaimDetail />} />
-
         <Route path="manage/claims" element={<ClaimQueue />} />
         <Route path="manage/claims/:id" element={<ClaimDetail />} />
         <Route path="manage/cash" element={<CashVerificationQueue />} />
@@ -110,20 +91,8 @@ function App() {
         <Route path="manage/budget" element={<Budget />} />
         <Route path="manage/finance/reports" element={<Reports />} />
 
-        <Route path="manage/projects" element={<ProjectList />} />
-        <Route path="manage/projects/:id" element={<ProjectKanban />} />
-
-        <Route path="manage/orders" element={<FulfilmentQueue />} />
-
-        <Route path="manage/announcements/new" element={<AnnouncementComposer />} />
-        <Route path="manage/newsletter" element={<NewsletterDashboard />} />
-
-        <Route path="manage/meetings" element={<MeetingList />} />
-        <Route path="manage/meetings/new" element={<MeetingBuilder />} />
-        <Route path="manage/meetings/:id" element={<MeetingDetail />} />
-
-        <Route path="manage/selection/:id/edit" element={<CycleBuilder />} />
-        <Route path="manage/selection/:id/applications" element={<ApplicationReview />} />
+        {/* Notifications */}
+        <Route path="me/notifications" element={<NotificationList />} />
       </Route>
     </Routes>
   );

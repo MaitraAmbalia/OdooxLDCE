@@ -4,23 +4,24 @@ import { useQuery } from "@tanstack/react-query";
 
 export default function AccountHome() {
   const { data: meData, isLoading } = useQuery({
-    queryKey: ['dashboard', 'me'],
+    queryKey: ['auth', 'me'],
     queryFn: async () => {
-      // API endpoint: GET /dashboard/me
-      const res = await fetch("/api/v1/dashboard/me");
-      if (!res.ok) throw new Error("Failed to fetch account dashboard");
+      const res = await fetch("/api/v1/auth/me", { credentials: "include" });
+      if (!res.ok) return null;
       return res.json();
-    }
+    },
+    retry: false,
   });
 
   if (isLoading) return <div className="p-12 text-center text-[var(--color-muted)]">Loading your account...</div>;
 
-  const data = meData?.data || {
-    user: { name: "Student", studentId: "..." },
-    membership: null,
+  const user = meData?.data;
+  const data = {
+    user: user ? { name: user.name, studentId: user.studentId } : { name: "Guest Student", studentId: "Not logged in" },
+    membership: user?.membership?.status === 'ACTIVE' ? user.membership : null,
     nextTicket: null,
     openOrdersCount: 0,
-    activeTasksCount: 0
+    activeTasksCount: user?.isVolunteer ? 1 : 0,
   };
 
   return (
