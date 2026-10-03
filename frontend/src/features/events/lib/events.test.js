@@ -8,18 +8,23 @@ import {
   isPastEvent,
 } from "./events.js";
 
-test("listing prices never assume eligibility for member-only tickets", () => {
+test("listing prices show the lowest available ticket price", () => {
   assert.equal(
     eventPrice({
       ticketTypes: [
-        { audience: "MEMBERS", pricePaise: 1000 },
-        { audience: "ALL", pricePaise: 25000 },
+        { audience: "MEMBER", pricePaise: 15000 },
+        { audience: "NON_MEMBER", pricePaise: 30000 },
+        { audience: "ALL", pricePaise: 100000 },
       ],
     }),
-    "From ₹250.00",
+    "From ₹150.00",
   );
   assert.equal(
-    eventPrice({ ticketTypes: [{ audience: "MEMBERS", pricePaise: 1000 }] }),
+    eventPrice({ ticketTypes: [{ audience: "MEMBER", pricePaise: 1000 }] }),
+    "From ₹10.00",
+  );
+  assert.equal(
+    eventPrice({ ticketTypes: [] }),
     "See ticket options",
   );
 });

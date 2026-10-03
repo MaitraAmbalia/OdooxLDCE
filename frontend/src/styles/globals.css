@@ -157,6 +157,81 @@
   }
 }
 
+/* FullCalendar is deliberately restyled to feel native to Skyline. */
+.calendar-shell .fc {
+  --fc-border-color: var(--border);
+  --fc-page-bg-color: var(--card);
+  --fc-neutral-bg-color: var(--muted);
+  --fc-today-bg-color: color-mix(in srgb, var(--primary) 8%, transparent);
+  --fc-now-indicator-color: var(--destructive);
+  color: var(--foreground);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+}
+.calendar-shell .fc .fc-scrollgrid,
+.calendar-shell .fc-theme-standard td,
+.calendar-shell .fc-theme-standard th {
+  border-color: var(--border);
+}
+.calendar-shell .fc .fc-col-header-cell-cushion {
+  padding: 0.75rem 0.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.calendar-shell .fc .fc-daygrid-day-number {
+  margin: 0.3rem;
+  display: inline-flex;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.calendar-shell .fc .fc-day-today .fc-daygrid-day-number {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.calendar-shell .fc .fc-daygrid-day-frame {
+  min-height: 7.5rem;
+}
+.calendar-shell .fc .fc-event {
+  margin: 1px 3px;
+  border: 0;
+  border-radius: 0.45rem;
+  background: #eeedf7;
+  color: #38366c;
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+.calendar-shell .fc .fc-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgb(32 36 59 / 12%);
+}
+.calendar-shell .fc .fc-event-main {
+  color: inherit;
+}
+.calendar-shell .fc .calendar-event-blue { background: #e0efff; color: #174f82; }
+.calendar-shell .fc .calendar-event-violet { background: #eee9ff; color: #56389a; }
+.calendar-shell .fc .calendar-event-green { background: #e2f3e8; color: #27633e; }
+.calendar-shell .fc .calendar-event-rose { background: #fae8ee; color: #8a3652; }
+.calendar-shell .fc .calendar-event-orange { background: #f9eadf; color: #864521; }
+.calendar-shell .fc .calendar-event-default { background: #eeedf7; color: #38366c; }
+.calendar-shell .fc .calendar-event-proposed {
+  border: 1px dashed #b7791f;
+  background: #fff8df;
+  color: #805516;
+}
+@media (max-width: 767px) {
+  .calendar-shell .fc .fc-daygrid-day-frame { min-height: 5.5rem; }
+  .calendar-shell .fc .fc-col-header-cell-cushion { font-size: 0.62rem; }
+  .calendar-shell .fc .calendar-event-time { display: none; }
+}
+
 @theme {
   /* Compatibility names now resolve to the same semantic palette. */
   --color-ink: var(--foreground);

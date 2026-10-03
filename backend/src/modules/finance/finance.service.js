@@ -334,6 +334,7 @@ export function createFinanceService({ prisma, files }) {
       amountPaise: Number(c.amountPaise),
       description: c.description,
       status: c.status,
+      createdAt: c.createdAt,
       link: c.event ? c.event.title : 'General Volunteer Expense',
       ageDays: Math.floor((Date.now() - new Date(c.createdAt).getTime()) / (24 * 3600 * 1000)),
       receiptUrls: [],
@@ -352,17 +353,20 @@ export function createFinanceService({ prisma, files }) {
         cat = 'PURCHASE';
       }
     }
-    const amountPaise = BigInt(Math.round(Number(input.amountPaise || 10000)));
+    const amountPaise = BigInt(Math.max(1, Math.round(Number(input.amountPaise || 10000))));
     const route = amountPaise > 200000n ? 'HIGH_VALUE' : 'STANDARD';
+    const spentAt = input.dateSpent && !isNaN(new Date(input.dateSpent).getTime())
+      ? new Date(input.dateSpent)
+      : new Date();
 
     const row = await prisma.expenseClaim.create({
       data: {
-        submittedById: user.id,
+        submittedById: user.id || user.sub,
         amountPaise,
         category: cat,
         route,
         description: input.description || 'Expense claim',
-        spentAt: input.dateSpent ? new Date(input.dateSpent) : new Date(),
+        spentAt,
         status: 'SUBMITTED',
       },
     });

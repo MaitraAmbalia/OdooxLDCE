@@ -94,34 +94,34 @@ export default function AccountHome() {
           )}
         </Link>
 
-        {/* Tickets Tile */}
-        <Link to="/me/tickets" className="block rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
-          <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"><Ticket className="size-3.5" /> Event passes</p>
+        {/* Tickets Tile – Primary action (blue): volunteers need fast access to event QR codes */}
+        <Link to="/me/tickets" className="block rounded-2xl bg-primary p-6 text-primary-foreground transition hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20">
+          <p className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary-foreground/80"><Ticket className="size-3.5" /> My event passes</p>
           {nextTicket ? (
             <div>
-              <p className="font-bold text-slate-900 truncate" title={nextTicket.event?.title || "Event"}>
+              <p className="font-bold truncate" title={nextTicket.event?.title || "Event"}>
                 {nextTicket.event?.title || "Upcoming Event"}
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-primary-foreground/75 mt-2">
                 {nextTicket.event?.startAt ? new Date(nextTicket.event.startAt).toLocaleDateString() : 'Pass ready'}
               </p>
             </div>
           ) : (
             <div>
-              <p className="font-bold text-slate-900 text-lg">0 Tickets</p>
-              <p className="text-xs text-primary mt-2 font-medium">Browse events &rarr;</p>
+              <p className="font-bold text-lg">0 Tickets</p>
+              <p className="text-xs text-primary-foreground/80 mt-2 font-medium">Browse events &rarr;</p>
             </div>
           )}
         </Link>
 
-        {/* Orders Tile */}
-        <Link to="/me/orders" className="block rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
-          <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"><ShoppingBag className="size-3.5" /> Merch orders</p>
+        {/* Orders Tile – Secondary action (white/outline): browse-oriented, lower urgency */}
+        <Link to="/shop" className="block rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
+          <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"><ShoppingBag className="size-3.5" /> Shop</p>
           <div className="flex items-end gap-2">
             <span className="text-3xl font-display font-bold text-slate-900 leading-none">{activeOrdersCount}</span>
-            <span className="text-xs text-muted-foreground mb-1">active</span>
+            <span className="text-xs text-muted-foreground mb-1">active orders</span>
           </div>
-          <p className="text-xs text-primary mt-2 font-medium">View shop catalog &rarr;</p>
+          <p className="text-xs text-primary mt-2 font-medium">Browse merch &rarr;</p>
         </Link>
 
         {/* Volunteer/Tasks Tile */}

@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 const navigation = [
   ["/", "Home"],
   ["/events", "Events"],
+  ["/calendar", "Calendar"],
   ["/shop", "Shop"],
   ["/announcements", "Updates"],
   ["/selection", "Leadership"],
@@ -49,6 +50,7 @@ const navigation = [
 
 const manageNavigation = [
   ["/manage", "Overview"],
+  ["/calendar", "Calendar"],
   ["/manage/events/new", "Propose event"],
   ["/manage/meetings", "Meetings"],
   ["/manage/claims", "Claims"],

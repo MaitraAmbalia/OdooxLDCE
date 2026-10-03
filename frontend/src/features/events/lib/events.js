@@ -30,12 +30,10 @@ export function formatEventDate(
     : "Date to be announced";
 }
 
-// A listing cannot assume membership eligibility. Only advertise tickets open to everyone.
 export function eventPrice(event) {
   const prices = (event.ticketTypes || [])
     .filter(
       (ticket) =>
-        ticket.audience === "ALL" &&
         ticket.pricePaise !== null &&
         ticket.pricePaise !== undefined,
     )

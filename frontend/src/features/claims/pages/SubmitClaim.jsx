@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Info, ReceiptIndianRupee, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 export default function SubmitClaim() {
   usePageTitle("Submit expense claim");
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [receipts, setReceipts] = useState([]);
   
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm({
@@ -48,7 +49,8 @@ export default function SubmitClaim() {
       if (!response.ok) throw new Error(json.error?.message || "Could not submit claim");
       return json.data;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['claims'] });
       toast.success("Expense claim submitted.");
       navigate("/volunteer");
     },

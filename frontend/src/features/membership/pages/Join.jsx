@@ -78,16 +78,16 @@ export default function Join() {
       a: "Absolutely! Over 40% of our members are first-year students. Joining gives you instant mentorship, access to hackathon teams, and networking with senior engineers."
     },
     {
-      q: "How does the digital wallet pass work at the door?",
-      a: "Once enrolled, your digital membership card features a dynamic QR code. When attending events or the annual Gala, show it to the door scanner for instant 1.2s check-in."
+      q: "How does the digital membership pass work?",
+      a: "Once enrolled, your membership pass is immediately active in your account (/me/membership) with a secure verification QR code. Show it at events for discounted entry, priority lane access, and member verification."
     },
     {
-      q: "Are membership dues refundable?",
-      a: "We offer a 100% money-back guarantee within 14 days of enrollment if you are not satisfied with club activities or member benefits."
+      q: "What leadership opportunities are available to members?",
+      a: "Verified members are eligible to apply and run for Executive Board and Leadership roles during club selection cycles—including President, Vice-President, Treasurer, Secretary, and Committee Leads."
     },
     {
       q: "Can non-members still attend Skyline events?",
-      a: "Yes, non-members can purchase tickets at standard guest rates. However, members receive priority seating, 40% discount, and free access to internal technical workshops."
+      a: "Yes, non-members can purchase tickets at standard guest rates. However, members receive priority seating, up to 40% discount, and free access to internal technical workshops."
     }
   ];
 
@@ -201,7 +201,7 @@ export default function Join() {
 
                     <div className="mt-2 text-[11px] text-emerald-600 font-bold flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      Saves approx. ₹4,500+ across all 2026 campus events
+                      Save on events, merchandise, and workshop admissions
                     </div>
 
                     <div className="h-px bg-slate-100 my-6"></div>
@@ -212,35 +212,29 @@ export default function Join() {
                         <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 font-bold text-[11px]">
                           ✓
                         </div>
-                        <span>40% Discount on Annual Gala & Tech Summit tickets</span>
+                        <span>Eligible to apply & run for Club Leadership & Executive posts</span>
                       </div>
 
                       <div className="flex items-center gap-2.5 font-medium">
                         <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 font-bold text-[11px]">
                           ✓
                         </div>
-                        <span>Digital Apple/Google Wallet pass with holographic QR</span>
+                        <span>Up to 40% discount on event tickets and technical workshops</span>
                       </div>
 
                       <div className="flex items-center gap-2.5 font-medium">
                         <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 font-bold text-[11px]">
                           ✓
                         </div>
-                        <span>Automatic ₹200 OFF on all official hoodies & merchandise</span>
+                        <span>Exclusive member pricing on official club merchandise</span>
                       </div>
+
 
                       <div className="flex items-center gap-2.5 font-medium">
                         <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 font-bold text-[11px]">
                           ✓
                         </div>
-                        <span>Eligible to run for Executive Leadership & Board posts</span>
-                      </div>
-
-                      <div className="flex items-center gap-2.5 font-medium">
-                        <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 font-bold text-[11px]">
-                          ✓
-                        </div>
-                        <span>Priority access to volunteer registries and certificates</span>
+                        <span>In-app digital membership pass with instant QR verification</span>
                       </div>
                     </div>
                   </div>
@@ -267,7 +261,7 @@ export default function Join() {
                       )}
                     </Button>
                     <p className="mt-2 text-[10px] text-center text-slate-400">
-                      Instant wallet activation • 14-day money-back guarantee
+                      Instant pass activation upon payment confirmation
                     </p>
                   </div>
                 </div>
@@ -287,38 +281,38 @@ export default function Join() {
           <div className="divide-y divide-slate-100 text-xs sm:text-sm">
             <div className="grid grid-cols-12 py-3 font-bold text-slate-400 uppercase text-[10px] tracking-wider">
               <div className="col-span-6">Benefit / Capability</div>
-              <div className="col-span-3 text-center">Guest</div>
+              <div className="col-span-3 text-center">Guest Student</div>
               <div className="col-span-3 text-center text-blue-600">Skyline Member</div>
             </div>
 
             <div className="grid grid-cols-12 py-3.5 items-center">
-              <div className="col-span-6 font-medium text-slate-800">Event Admission</div>
-              <div className="col-span-3 text-center text-slate-500">Full Standard Price</div>
-              <div className="col-span-3 text-center font-bold text-emerald-600">Up to 40% Off</div>
-            </div>
-
-            <div className="grid grid-cols-12 py-3.5 items-center bg-slate-50/50">
-              <div className="col-span-6 font-medium text-slate-800">Door Queue Access</div>
-              <div className="col-span-3 text-center text-slate-500">General Line</div>
-              <div className="col-span-3 text-center font-bold text-blue-600">1.2s Fast Track QR</div>
-            </div>
-
-            <div className="grid grid-cols-12 py-3.5 items-center">
-              <div className="col-span-6 font-medium text-slate-800">Official Club Merch</div>
-              <div className="col-span-3 text-center text-slate-500">Retail Price</div>
-              <div className="col-span-3 text-center font-bold text-emerald-600">₹200 Instant Off</div>
-            </div>
-
-            <div className="grid grid-cols-12 py-3.5 items-center bg-slate-50/50">
-              <div className="col-span-6 font-medium text-slate-800">Executive Election Candidacy</div>
+              <div className="col-span-6 font-medium text-slate-800">Club Leadership & Executive Candidacy</div>
               <div className="col-span-3 text-center text-red-500">✕ Ineligible</div>
               <div className="col-span-3 text-center font-bold text-emerald-600">✓ Fully Eligible</div>
             </div>
 
+            <div className="grid grid-cols-12 py-3.5 items-center bg-slate-50/50">
+              <div className="col-span-6 font-medium text-slate-800">Event Ticket Pricing</div>
+              <div className="col-span-3 text-center text-slate-500">Full Standard Price</div>
+              <div className="col-span-3 text-center font-bold text-emerald-600">Up to 40% Off</div>
+            </div>
+
             <div className="grid grid-cols-12 py-3.5 items-center">
-              <div className="col-span-6 font-medium text-slate-800">Official Letter of Experience</div>
-              <div className="col-span-3 text-center text-slate-400">—</div>
-              <div className="col-span-3 text-center font-bold text-blue-600">Included on request</div>
+              <div className="col-span-6 font-medium text-slate-800">Venue Entry & Check-in</div>
+              <div className="col-span-3 text-center text-slate-500">General QR Line</div>
+              <div className="col-span-3 text-center font-bold text-blue-600">Priority Member QR Lane</div>
+            </div>
+
+            <div className="grid grid-cols-12 py-3.5 items-center bg-slate-50/50">
+              <div className="col-span-6 font-medium text-slate-800">Official Club Merch</div>
+              <div className="col-span-3 text-center text-slate-500">Standard Retail Price</div>
+              <div className="col-span-3 text-center font-bold text-emerald-600">Exclusive Member Pricing</div>
+            </div>
+
+            <div className="grid grid-cols-12 py-3.5 items-center">
+              <div className="col-span-6 font-medium text-slate-800">Hands-on Workshops & Masterclasses</div>
+              <div className="col-span-3 text-center text-slate-500">Subject to availability</div>
+              <div className="col-span-3 text-center font-bold text-emerald-600">Priority Seating & Free Access</div>
             </div>
           </div>
         </div>
@@ -360,7 +354,7 @@ export default function Join() {
                 <Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" />
               </div>
               <p className="text-xs text-slate-600 italic leading-relaxed">
-                "Having the digital wallet pass on my phone made check-in at the tech symposium effortless. No paper tickets, no line holdups."
+                "Having the digital membership pass on my phone made check-in at the tech symposium effortless. No paper tickets, no line holdups."
               </p>
               <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-800 font-bold flex items-center justify-center text-xs">

@@ -37,6 +37,9 @@ import AnnouncementDetail from "./features/announcements/pages/AnnouncementDetai
 import AnnouncementComposer from "./features/announcements/pages/manage/AnnouncementComposer";
 import NotificationList from "./features/notifications/pages/NotificationList";
 import NewsletterDashboard from "./features/newsletter/pages/manage/NewsletterDashboard";
+import CampaignComposer from "./features/newsletter/pages/manage/CampaignComposer";
+import NewsletterConfirm from "./features/newsletter/pages/NewsletterConfirm";
+import NewsletterUnsubscribe from "./features/newsletter/pages/NewsletterUnsubscribe";
 import MeetingList from "./features/meetings/pages/manage/MeetingList";
 import MeetingBuilder from "./features/meetings/pages/manage/MeetingBuilder";
 import MeetingDetail from "./features/meetings/pages/manage/MeetingDetail";
@@ -50,6 +53,8 @@ import AccountHome from "./features/dashboard/pages/AccountHome";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
+const EventCalendar = React.lazy(() => import("./features/events/pages/EventCalendar"));
+
 function App() {
   return (
     <Routes>
@@ -59,6 +64,7 @@ function App() {
       <Route element={<DiscoveryLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/events" element={<EventList />} />
+        <Route path="/calendar" element={<React.Suspense fallback={<div className="page-container py-16 text-sm text-muted-foreground">Opening the calendar…</div>}><EventCalendar /></React.Suspense>} />
         {/* Public Routes */}
         <Route path="join" element={<Join />} />
 
@@ -120,6 +126,10 @@ function App() {
 
         <Route path="manage/announcements/new" element={<AnnouncementComposer />} />
         <Route path="manage/newsletter" element={<NewsletterDashboard />} />
+        <Route path="manage/newsletter/campaigns/new" element={<CampaignComposer />} />
+
+        <Route path="newsletter/confirm" element={<NewsletterConfirm />} />
+        <Route path="newsletter/unsubscribe" element={<NewsletterUnsubscribe />} />
 
         <Route path="manage/meetings" element={<MeetingList />} />
         <Route path="manage/meetings/new" element={<MeetingBuilder />} />

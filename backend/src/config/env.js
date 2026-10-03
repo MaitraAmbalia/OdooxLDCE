@@ -17,6 +17,12 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(16).default('default_jwt_refresh_secret_key_12345_67890'),
   COLLEGE_EMAIL_DOMAIN: z.string().default('nirmauni.ac.in'),
   FILE_STORAGE_PATH: z.string().default('./storage'),
+  SMTP_HOST: z.string().default('smtp.ethereal.email'),
+  SMTP_PORT: z.coerce.number().int().default(587),
+  SMTP_USER: z.string().default(''),
+  SMTP_PASS: z.string().default(''),
+  SMTP_FROM: z.string().default('Skyline Club <noreply@skyline.nirmauni.ac.in>'),
+  SMTP_SECURE: z.enum(['true', 'false']).default('false'),
 });
 
 let cachedConfig;
@@ -43,6 +49,12 @@ export function loadConfig(source = process.env) {
     razorpayKeyId: env.RAZORPAY_KEY_ID,
     razorpayKeySecret: env.RAZORPAY_KEY_SECRET,
     paymentWebhookSecret: env.PAYMENT_WEBHOOK_SECRET,
+    smtpHost: env.SMTP_HOST,
+    smtpPort: env.SMTP_PORT,
+    smtpUser: env.SMTP_USER,
+    smtpPass: env.SMTP_PASS,
+    smtpFrom: env.SMTP_FROM,
+    smtpSecure: env.SMTP_SECURE === 'true',
     cardQrSecret: env.CARD_QR_SECRET,
   });
 }

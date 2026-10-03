@@ -41,6 +41,8 @@ import { createApprovalsService } from './modules/approvals/approvals.service.js
 import { createApprovalsRouter } from './modules/approvals/approvals.routes.js';
 import { createDashboardsService } from './modules/dashboards/dashboards.service.js';
 import { createDashboardsRouter } from './modules/dashboards/dashboards.routes.js';
+import { createNewsletterService } from './modules/newsletter/newsletter.service.js';
+import { createNewsletterRouter } from './modules/newsletter/newsletter.routes.js';
 
 export function createApp({
   config = getConfig(),
@@ -90,6 +92,14 @@ export function createApp({
   app.use('/api/v1', createApprovalsRouter({ service: createApprovalsService({ prisma }), authenticate: auth, requirePermission: authorize }));
   app.use('/api/v1', createDashboardsRouter({ service: createDashboardsService({ prisma }), authenticate: auth }));
   app.use('/api/v1', createGovernanceRouter({ prisma, authenticate: auth }));
+  app.use(
+    '/api/v1',
+    createNewsletterRouter({
+      service: createNewsletterService({ prisma, config }),
+      authenticate: auth,
+      authorize,
+    })
+  );
 
   app.get('/', (req, res) => res.json({ message: 'Skyline API Server Running' }));
 

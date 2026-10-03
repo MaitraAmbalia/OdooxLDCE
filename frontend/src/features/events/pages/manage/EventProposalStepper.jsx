@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useFieldArray, useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
@@ -14,12 +14,16 @@ export default function EventProposalStepper() {
   usePageTitle("Create event");
   const [currentStep, setCurrentStep] = useState(1);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const suggestedDate = searchParams.get("date");
   const queryClient = useQueryClient();
   const { register, handleSubmit, watch, control, formState: { errors } } = useForm({
     defaultValues: {
       category: "Social",
       visibility: "PUBLIC",
       capacity: 100,
+      startAt: suggestedDate ? `${suggestedDate.slice(0, 10)}T10:00` : "",
+      endAt: suggestedDate ? `${suggestedDate.slice(0, 10)}T11:00` : "",
       ticketTypes: [{ name: "General admission", audience: "ALL", price: 0, quota: 100, maxPerUser: 5 }],
     },
   });

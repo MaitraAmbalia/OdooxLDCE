@@ -205,7 +205,22 @@ export function createProjectsService({ prisma }) {
           skip: page.skip,
           take: page.take,
           include: {
-            project: { select: { id: true, name: true } },
+            project: {
+              select: {
+                id: true,
+                name: true,
+                eventId: true,
+                event: {
+                  select: {
+                    id: true,
+                    title: true,
+                    startAt: true,
+                    endAt: true,
+                    venue: true,
+                  },
+                },
+              },
+            },
           },
         }),
         prisma.task.count({ where }),
