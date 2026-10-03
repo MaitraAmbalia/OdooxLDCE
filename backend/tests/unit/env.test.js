@@ -26,4 +26,12 @@ describe('loadConfig', () => {
       loadConfig({ ...validEnvironment, DATABASE_URL: 'mysql://localhost/example' }),
     ).toThrow(/DATABASE_URL must be a PostgreSQL connection URL/);
   });
+
+  it('defaults to MOCK payments and requires all Razorpay keys when RAZORPAY is chosen', () => {
+    expect(loadConfig(validEnvironment).paymentProvider).toBe('MOCK');
+    expect(() => loadConfig({ ...validEnvironment, PAYMENT_PROVIDER: 'RAZORPAY' })).toThrow(/RAZORPAY_KEY_ID is required/);
+    expect(
+      loadConfig({ ...validEnvironment, PAYMENT_PROVIDER: 'RAZORPAY', RAZORPAY_KEY_ID: 'k', RAZORPAY_KEY_SECRET: 's', PAYMENT_WEBHOOK_SECRET: 'w' }).paymentProvider,
+    ).toBe('RAZORPAY');
+  });
 });
