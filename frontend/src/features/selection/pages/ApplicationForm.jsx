@@ -1,6 +1,12 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { ArrowLeft, Clock3, LockKeyhole, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { ContentState } from "@/components/common/ContentState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function ApplicationForm() {
   const { postId } = useParams();
@@ -9,7 +15,7 @@ export default function ApplicationForm() {
   const [errorMsg, setErrorMsg] = useState("");
 
   // Check auth and membership status
-  const { data: authData } = useQuery({
+  const { data: authData, isPending: authPending } = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: async () => {
       const res = await fetch("/api/v1/auth/me", { credentials: "include" });
@@ -23,7 +29,7 @@ export default function ApplicationForm() {
   const isMember = user?.membership?.status === 'ACTIVE';
 
   // Fetch post details from selection cycles
-  const { data: cyclesData, isLoading } = useQuery({
+  const { data: cyclesData, isPending, isError, refetch } = useQuery({
     queryKey: ['selection', 'cycles'],
     queryFn: async () => {
       const res = await fetch("/api/v1/selection/cycles");
@@ -45,15 +51,11 @@ export default function ApplicationForm() {
     }
   }
 
-  // Fallback defaults if post is not found
-  if (!post && cycles.length > 0 && cycles[0].posts?.[0]) {
-    post = cycles[0].posts[0];
-    cycle = cycles[0];
-  }
+  usePageTitle(post ? `Apply for ${post.title}` : "Leadership application");
 
   const submitMutation = useMutation({
     mutationFn: async (payload) => {
-      const res = await fetch(`/api/v1/selection/posts/${postId || '00000000-0000-0000-0000-000000000020'}/applications`, {
+      const res = await fetch(`/api/v1/selection/posts/${postId}/applications`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -66,7 +68,7 @@ export default function ApplicationForm() {
       return json.data;
     },
     onSuccess: () => {
-      alert("Application submitted successfully to the Faculty Mentor!");
+      toast.success("Application submitted successfully.");
       navigate("/selection");
     },
     onError: (err) => {
@@ -81,6 +83,10 @@ export default function ApplicationForm() {
   const handleSubmit = (e) => {
     e.preventDefault();
     setErrorMsg("");
+    if (!post) {
+      setErrorMsg("This leadership position is no longer available.");
+      return;
+    }
     if (!isMember) {
       setErrorMsg("Only verified active members can apply for leadership roles. Please join first.");
       return;
@@ -88,7 +94,9 @@ export default function ApplicationForm() {
     submitMutation.mutate({ answers });
   };
 
-  if (isLoading) return <div className="p-12 text-center text-[var(--color-muted)]">Loading application form...</div>;
+  if (isPending || authPending) return <div className="page-container max-w-3xl py-12" role="status" aria-label="Loading application form"><Skeleton className="h-5 w-40" /><Skeleton className="mt-7 h-12 w-4/5" /><Skeleton className="mt-8 h-96 rounded-2xl" /></div>;
+  if (isError) return <div className="page-container py-16"><ContentState error title="The application form isn’t available." description="We couldn’t load this role. Try again in a moment." action={refetch} /></div>;
+  if (!post) return <div className="page-container py-16"><ContentState title="This position is no longer available." description="Return to leadership opportunities to see what is currently open." actionLabel="View opportunities" action={() => navigate("/selection")} /></div>;
 
   const questions = post?.questions || [
     { id: '1', prompt: 'Why do you wish to serve in this executive position?', type: 'LONG_TEXT', isRequired: true },
@@ -96,41 +104,41 @@ export default function ApplicationForm() {
   ];
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+    <div className="page-container max-w-3xl py-12 sm:py-16">
       <div className="mb-8">
-        <Link to="/selection" className="text-sm font-medium text-[var(--color-dusk)] hover:underline inline-block mb-4">
-          &larr; Back to Open Leadership Posts
+        <Link to="/selection" className="mb-5 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary hover:underline">
+          <ArrowLeft className="size-4" /> Leadership opportunities
         </Link>
-        <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">
-            Apply for {post?.title || "Executive Position"}
+        <div className="mb-2 flex flex-wrap items-center gap-3">
+          <h1 className="font-display text-4xl font-semibold tracking-tight">
+            Apply for {post.title}
           </h1>
-          <span className="bg-blue-50 text-[var(--color-dusk)] border border-blue-200 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded">
-            Term: 2026–2027
+          <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-primary">
+            {cycle?.termStart && cycle?.termEnd ? `${cycle.termStart}–${cycle.termEnd}` : "Current term"}
           </span>
         </div>
-        <p className="text-sm text-[var(--color-muted)]">
-          {cycle?.name || "Executive Board Selection"} • Evaluated by Faculty Mentor & Advisory Council
+        <p className="text-sm text-muted-foreground">
+          {cycle?.name || "Executive board selection"} · Reviewed by the selection team
         </p>
       </div>
 
       {/* Member Gating Guard Alert */}
       {!isMember && (
-        <div className="mb-8 p-6 bg-amber-50 border-l-4 border-[var(--color-lamp)] rounded-r-xl shadow-sm">
+        <div className="mb-8 rounded-2xl border border-[#ead2c4] bg-[#f6e8df] p-6">
           <div className="flex items-start gap-4">
-            <span className="text-3xl">🔒</span>
+            <LockKeyhole className="mt-0.5 size-6 shrink-0 text-[#86533d]" />
             <div>
-              <h3 className="text-base font-bold text-[var(--color-ink)]">
-                Active Membership Required to Apply
-              </h3>
-              <p className="text-sm text-slate-700 mt-1 mb-4 leading-relaxed">
-                By constitution, only verified students holding an active paid membership can submit applications for leadership roles. Non-members cannot apply or vote.
+              <h2 className="font-display text-lg font-semibold">
+                Active membership required
+              </h2>
+              <p className="mb-4 mt-1 text-sm leading-6 text-muted-foreground">
+                Leadership applications are available to verified active members. Explore membership before continuing.
               </p>
               <Link
                 to="/join"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--color-lamp)] text-[var(--color-ink)] font-bold text-xs shadow-sm hover:brightness-105 transition-all"
+                className="inline-flex min-h-10 items-center rounded-md bg-[#86533d] px-4 text-sm font-medium text-white hover:bg-[#744531]"
               >
-                Join Membership Now &rarr;
+                Explore membership
               </Link>
             </div>
           </div>
@@ -138,72 +146,67 @@ export default function ApplicationForm() {
       )}
 
       {errorMsg && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-[var(--color-stop)] text-sm rounded-lg">
+        <div className="mb-6 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">
           {errorMsg}
         </div>
       )}
 
-      <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 sm:p-10 shadow-sm">
-        <div className="bg-[var(--color-paper)] p-5 rounded-lg border border-[var(--color-line)] mb-8">
-          <h3 className="text-sm font-bold text-[var(--color-ink)] mb-2">Role Scope & Eligibility:</h3>
-          <p className="text-xs text-[var(--color-muted)] leading-relaxed mb-3">
+      <div className="rounded-2xl border border-border bg-card p-6 sm:p-10">
+        <div className="mb-8 rounded-xl border border-border bg-secondary/40 p-5">
+          <h2 className="mb-2 font-display text-lg font-semibold">About the role</h2>
+          <p className="mb-3 text-sm leading-6 text-muted-foreground">
             {post?.description || "Lead student initiatives, coordinate with university faculty, and represent the student body."}
           </p>
-          <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-[var(--color-ink)]">
-            <span>⏱️ Tenure: {post?.tenure || "1 Year"}</span>
-            <span>✅ Status: Active Members Only</span>
-            <span>📝 Voting: Appointed by Faculty Mentor review</span>
+          <div className="flex flex-wrap items-center gap-4 text-xs font-medium">
+            <span className="flex items-center gap-1.5"><Clock3 className="size-3.5 text-primary" /> {post.tenure || "One-year tenure"}</span>
+            <span className="flex items-center gap-1.5"><ShieldCheck className="size-3.5 text-primary" /> Active members only</span>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {questions.map((q, idx) => (
             <div key={q.id} className="space-y-2">
-              <label className="block text-sm font-bold text-[var(--color-ink)]">
-                {idx + 1}. {q.prompt} {q.isRequired && <span className="text-[var(--color-stop)]">*</span>}
+              <label htmlFor={`question-${q.id}`} className="block text-sm font-medium">
+                {idx + 1}. {q.prompt} {q.isRequired && <span className="text-destructive">*</span>}
               </label>
               {q.type === 'LONG_TEXT' ? (
                 <div>
                   <textarea
+                    id={`question-${q.id}`}
                     required={q.isRequired}
                     disabled={!isMember}
                     rows={4}
                     value={answers[q.id] || ""}
                     onChange={e => handleInputChange(q.id, e.target.value)}
-                    placeholder="Type your detailed response here..."
-                    className="w-full px-3 py-2 border border-[var(--color-line)] rounded-lg text-sm focus:border-[var(--color-dusk)] focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    placeholder="Write your response…"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm leading-6 outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:bg-muted"
                   />
-                  <div className="text-right text-[10px] text-[var(--color-muted)] mt-1 font-mono">
+                  <div className="mt-1 text-right text-[10px] text-muted-foreground">
                     {(answers[q.id] || "").split(/\s+/).filter(Boolean).length} words
                   </div>
                 </div>
               ) : (
                 <input
+                  id={`question-${q.id}`}
                   type="text"
                   required={q.isRequired}
                   disabled={!isMember}
                   value={answers[q.id] || ""}
                   onChange={e => handleInputChange(q.id, e.target.value)}
-                  className="w-full px-3 py-2 border border-[var(--color-line)] rounded-lg text-sm focus:border-[var(--color-dusk)] focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:bg-muted"
                 />
               )}
             </div>
           ))}
 
-          <div className="border-t border-[var(--color-line)] pt-6 flex justify-end gap-3">
-            <Link
-              to="/selection"
-              className="px-5 py-2.5 border border-[var(--color-line)] rounded-lg text-sm font-semibold text-[var(--color-ink)] hover:bg-[var(--color-paper)]"
-            >
-              Cancel
-            </Link>
-            <button
+          <div className="flex flex-col-reverse justify-end gap-3 border-t border-border pt-6 sm:flex-row">
+            <Button asChild variant="outline"><Link to="/selection">Cancel</Link></Button>
+            <Button
               type="submit"
               disabled={!isMember || submitMutation.isPending}
-              className="px-6 py-2.5 rounded-lg bg-[var(--color-dusk)] text-white font-bold text-sm hover:bg-opacity-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitMutation.isPending ? "Submitting..." : "Submit Application &rarr;"}
-            </button>
+              {submitMutation.isPending ? "Submitting…" : "Submit application"}
+            </Button>
           </div>
         </form>
       </div>

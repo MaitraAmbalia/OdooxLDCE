@@ -1,6 +1,13 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, CalendarDays, LockKeyhole, MessageSquareText, ReceiptIndianRupee } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { ContentState } from "@/components/common/ContentState";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function TaskDetail() {
   const { id } = useParams();
@@ -21,15 +28,10 @@ export default function TaskDetail() {
 
   const user = authData?.data;
 
-  // Initial messages keyed by task id
-  const [messages, setMessages] = useState([
-    { id: 1, sender: "System", content: "Task channel provisioned. Assigned volunteers connected.", timestamp: new Date(Date.now() - 3600000).toISOString(), isSystem: true },
-    { id: 2, sender: "Aarav Patel (President)", content: "Please ensure all ingredients and packaging supplies are verified before tomorrow.", timestamp: new Date(Date.now() - 1800000).toISOString(), isSystem: false },
-    { id: 3, sender: "Ananya Joshi (Volunteer)", content: "Got it! Supermarket supplies have been purchased. Snapping receipt for reimbursement now.", timestamp: new Date(Date.now() - 600000).toISOString(), isSystem: false },
-  ]);
+  const [messages, setMessages] = useState([]);
 
   // Fetch Task Details
-  const { data: taskData, isLoading: taskLoading } = useQuery({
+  const { data: taskData, isPending: taskLoading, isError: taskError, refetch } = useQuery({
     queryKey: ['tasks', id],
     queryFn: async () => {
       const res = await fetch(`/api/v1/projects`);
@@ -41,29 +43,12 @@ export default function TaskDetail() {
           if (found) return { data: { ...found, project: p } };
         }
       }
-      return {
-        data: {
-          id,
-          title: "Bake cookies and brownies",
-          description: "Prepare 100 packages of assorted baked goods for the campus bake sale fundraiser.",
-          status: "IN_PROGRESS",
-          priority: "HIGH",
-          dueAt: new Date(Date.now() + 5 * 24 * 3600000).toISOString(),
-          project: { name: "Campus Bake Sale Fundraiser" },
-        }
-      };
+      throw new Error("Task not found");
     }
   });
 
-  const task = taskData?.data || {
-    id,
-    title: "Bake cookies and brownies",
-    description: "Prepare 100 packages of assorted baked goods for the campus bake sale fundraiser.",
-    status: "IN_PROGRESS",
-    priority: "HIGH",
-    dueAt: new Date(Date.now() + 5 * 24 * 3600000).toISOString(),
-    project: { name: "Campus Bake Sale Fundraiser" },
-  };
+  const task = taskData?.data;
+  usePageTitle(task?.title || "Volunteer task");
 
   const updateStatusMutation = useMutation({
     mutationFn: async (status) => {
@@ -73,21 +58,16 @@ export default function TaskDetail() {
         credentials: "include",
         body: JSON.stringify({ status }),
       });
-      if (!res.ok) {
-        // Fallback for mock preview
-        return { data: { ...task, status } };
-      }
+      if (!res.ok) throw new Error("Could not update task status");
       return res.json();
     },
     onSuccess: (data, newStatus) => {
       queryClient.setQueryData(['tasks', id], {
         data: { ...task, status: newStatus }
       });
-      setMessages(prev => [
-        ...prev,
-        { id: Date.now(), sender: "System", content: `Task marked as ${newStatus.replace('_', ' ')} by ${user?.name || 'Volunteer'}.`, timestamp: new Date().toISOString(), isSystem: true }
-      ]);
-    }
+      toast.success(`Task marked ${newStatus.replace('_', ' ').toLowerCase()}.`);
+    },
+    onError: () => toast.error("Could not update the task status."),
   });
 
   useEffect(() => {
@@ -110,18 +90,19 @@ export default function TaskDetail() {
     setChatMessage("");
   };
 
-  if (taskLoading) return <div className="p-12 text-center text-[var(--color-muted)]">Loading task coordination workspace...</div>;
+  if (taskLoading) return <div className="page-container py-12" role="status" aria-label="Loading task"><Skeleton className="h-8 w-60" /><div className="mt-6 grid gap-6 lg:grid-cols-3"><Skeleton className="h-96 rounded-2xl" /><Skeleton className="h-96 rounded-2xl lg:col-span-2" /></div></div>;
+  if (taskError || !task) return <div className="page-container py-16"><ContentState error title="We couldn’t load this task." description="It may have moved or is no longer assigned to you." action={refetch} /></div>;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 h-[calc(100vh-120px)] flex flex-col">
+    <div className="page-container flex min-h-[calc(100vh-11rem)] flex-col py-8">
       {/* Top Breadcrumb & Task Header */}
       <div className="mb-4 flex items-center justify-between">
-        <Link to="/volunteer" className="text-sm font-semibold text-[var(--color-dusk)] hover:underline inline-flex items-center gap-1">
-          &larr; Back to Volunteer Portal
+        <Link to="/volunteer" className="inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary hover:underline">
+          <ArrowLeft className="size-4" /> Volunteer space
         </Link>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-[var(--color-muted)] font-medium">Project:</span>
-          <span className="text-xs font-bold text-[var(--color-ink)] bg-[var(--color-paper)] border border-[var(--color-line)] px-2.5 py-1 rounded">
+          <span className="text-xs text-muted-foreground">Project</span>
+          <span className="rounded-full border border-border bg-secondary px-2.5 py-1 text-xs font-medium">
             {task.project?.name}
           </span>
         </div>
@@ -131,7 +112,7 @@ export default function TaskDetail() {
 
         {/* Left Pane: Task Details & Status Controls */}
         <div className="lg:w-1/3 flex flex-col gap-5 overflow-y-auto">
-          <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm">
+          <div className="rounded-2xl border border-border bg-card p-6">
             <div className="flex items-center justify-between gap-2 mb-3">
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                 task.priority === 'HIGH' ? 'bg-red-50 text-[var(--color-stop)] border border-red-200' : 'bg-blue-50 text-[var(--color-dusk)] border border-blue-200'
@@ -143,27 +124,27 @@ export default function TaskDetail() {
               </span>
             </div>
 
-            <h1 className="text-2xl font-display font-extrabold text-[var(--color-ink)] mb-3 leading-snug">
+            <h1 className="mb-3 font-display text-3xl font-semibold leading-snug tracking-tight">
               {task.title}
             </h1>
 
-            <p className="text-sm text-[var(--color-muted)] whitespace-pre-wrap mb-6 leading-relaxed">
+            <p className="mb-6 whitespace-pre-wrap text-sm leading-7 text-muted-foreground">
               {task.description}
             </p>
 
             <div className="space-y-4 pt-4 border-t border-[var(--color-line)]">
               <div>
-                <p className="text-xs font-bold text-[var(--color-muted)] uppercase tracking-wider mb-1">
-                  Due Deadline
+                <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Due date
                 </p>
-                <p className="text-sm font-semibold text-[var(--color-ink)]">
-                  🗓️ {new Date(task.dueAt || task.dueDate || Date.now()).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                <p className="flex items-center gap-2 text-sm font-semibold">
+                  <CalendarDays className="size-4 text-primary" /> {task.dueAt || task.dueDate ? new Date(task.dueAt || task.dueDate).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : "No due date"}
                 </p>
               </div>
 
               <div>
-                <p className="text-xs font-bold text-[var(--color-muted)] uppercase tracking-wider mb-2">
-                  Update Task Status
+                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Update status
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   {['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE'].map(status => (
@@ -174,8 +155,8 @@ export default function TaskDetail() {
                       disabled={task.status === status}
                       className={`py-2 px-3 text-xs font-bold uppercase rounded-lg border transition-all ${
                         task.status === status
-                          ? 'bg-[var(--color-dusk)] text-white border-[var(--color-dusk)] shadow-sm'
-                          : 'bg-white text-[var(--color-ink)] border-[var(--color-line)] hover:bg-[var(--color-paper)]'
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border bg-card text-foreground hover:bg-secondary'
                       }`}
                     >
                       {status.replace('_', ' ')}
@@ -185,43 +166,38 @@ export default function TaskDetail() {
               </div>
 
               <div className="pt-2">
-                <Link
-                  to="/volunteer/claims/new"
-                  className="block text-center p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold hover:bg-emerald-100 transition-colors"
-                >
-                  📸 Submit Receipt Reimbursement for this Task &rarr;
-                </Link>
+                <Button asChild variant="outline" className="w-full"><Link to="/volunteer/claims/new"><ReceiptIndianRupee aria-hidden="true" /> Submit expense claim</Link></Button>
               </div>
             </div>
           </div>
         </div>
 
         {/* Right Pane: Strict Task-Scoped Team Chat */}
-        <div className="lg:w-2/3 bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl shadow-sm flex flex-col min-h-0">
+        <div className="flex min-h-0 flex-col rounded-2xl border border-border bg-card lg:w-2/3">
           
           {/* Channel Header with Security Isolation Badge */}
-          <div className="p-4 border-b border-[var(--color-line)] bg-[var(--color-paper)] rounded-t-xl">
+          <div className="rounded-t-2xl border-b border-border bg-secondary/40 p-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
-                <h2 className="font-bold text-[var(--color-ink)] text-sm flex items-center gap-2">
-                  <span>💬 Task Team Coordination Channel</span>
-                  <span className="w-2 h-2 rounded-full bg-[var(--color-ok)] animate-pulse"></span>
+                <h2 className="flex items-center gap-2 text-sm font-semibold">
+                  <MessageSquareText className="size-4 text-primary" /><span>Session notes</span>
                 </h2>
-                <p className="text-xs text-[var(--color-muted)] mt-0.5">
-                  Private communication between assignees of: <span className="font-semibold text-[var(--color-ink)]">{task.title}</span>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Notes for <span className="font-semibold text-foreground">{task.title}</span>
                 </p>
               </div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-50 border border-amber-200 text-[11px] font-semibold text-amber-900">
-                <span>🔒</span> Task-Scoped Channel
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-primary">
+                <LockKeyhole className="size-3" /> This browser session
               </div>
             </div>
-            <div className="mt-2 text-[11px] text-slate-500 bg-white/60 px-3 py-1.5 rounded border border-[var(--color-line)]">
-              ℹ️ <strong>Access Boundary:</strong> Only volunteers assigned to this specific task can participate. Volunteers of different tasks cannot view or post to this channel.
+            <div className="mt-2 rounded border border-border bg-card/70 px-3 py-1.5 text-[11px] text-muted-foreground">
+              These notes are temporary and are not sent to other volunteers.
             </div>
           </div>
 
           {/* Chat Messages Log */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {messages.length === 0 ? <div className="flex min-h-48 flex-col items-center justify-center text-center text-sm text-muted-foreground"><MessageSquareText className="mb-3 size-8 text-primary/40" /><p>No session notes yet.</p></div> : null}
             {messages.map(msg => (
               <div key={msg.id} className={`flex flex-col ${msg.isSystem ? 'items-center my-3' : msg.sender.includes(user?.name || '---') ? 'items-end' : 'items-start'}`}>
                 {msg.isSystem ? (
@@ -253,20 +229,19 @@ export default function TaskDetail() {
           {/* Message Composer */}
           <div className="p-4 border-t border-[var(--color-line)] bg-white rounded-b-xl">
             <form onSubmit={handleSend} className="flex gap-2">
-              <input
+              <Input
                 type="text"
                 value={chatMessage}
                 onChange={(e) => setChatMessage(e.target.value)}
-                placeholder="Message your task teammates..."
-                className="flex-1 px-4 py-2.5 border border-[var(--color-line)] rounded-xl text-sm focus:outline-none focus:border-[var(--color-dusk)]"
+                placeholder="Add a temporary note…"
+                className="flex-1"
               />
-              <button
+              <Button
                 type="submit"
                 disabled={!chatMessage.trim()}
-                className="bg-[var(--color-dusk)] text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-opacity-95 disabled:opacity-50 transition-all shadow-sm"
               >
-                Send
-              </button>
+                Add note
+              </Button>
             </form>
           </div>
 

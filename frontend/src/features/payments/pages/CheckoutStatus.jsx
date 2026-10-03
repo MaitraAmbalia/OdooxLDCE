@@ -1,14 +1,20 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { Check, CircleAlert, Clock3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { toast } from "sonner";
 
 export default function CheckoutStatus() {
+  usePageTitle("Payment status");
   const { paymentId } = useParams();
   const navigate = useNavigate();
   const [shouldPoll, setShouldPoll] = useState(true);
 
   // Poll GET /payments/:id every 2 seconds until status is PAID or FAILED
-  const { data, isLoading, error, refetch } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ['payments', paymentId],
     queryFn: async () => {
       const res = await fetch(`/api/v1/payments/${paymentId}`, { credentials: "include" });
@@ -21,13 +27,14 @@ export default function CheckoutStatus() {
 
   const handleSimulatePayment = async () => {
     try {
-      await fetch(`/api/v1/payments/${paymentId}/mock-complete`, {
+      const response = await fetch(`/api/v1/payments/${paymentId}/mock-complete`, {
         method: "POST",
         credentials: "include",
       });
-      refetch();
-    } catch (e) {
-      console.error(e);
+      if (!response.ok) throw new Error("Could not complete demo payment");
+      await refetch();
+    } catch {
+      toast.error("Could not complete the demo payment.");
     }
   };
 
@@ -38,83 +45,79 @@ export default function CheckoutStatus() {
       
       // If paid, redirect to membership or tickets after a short display
       if (status === "PAID") {
-        setTimeout(() => {
+        const redirectTimer = window.setTimeout(() => {
           navigate("/me/membership");
         }, 2000);
+        return () => window.clearTimeout(redirectTimer);
       }
     }
   }, [data, navigate]);
 
   return (
-    <div className="flex-1 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md bg-[var(--color-surface)] py-12 px-4 shadow sm:rounded-[10px] sm:px-10 border border-[var(--color-line)] text-center">
+    <section className="page-container flex min-h-[66vh] flex-col justify-center py-12">
+      <div className="mx-auto w-full max-w-md rounded-2xl border border-border bg-card px-6 py-12 text-center sm:px-10">
         
-        {isLoading && (
+        {isPending && (
           <div>
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-dusk)] mx-auto mb-4"></div>
-            <h2 className="text-xl font-display font-bold text-[var(--color-ink)]">Waiting for payment confirmation</h2>
-            <p className="mt-2 text-sm text-[var(--color-muted)]">Please do not close this window...</p>
+            <Skeleton className="mx-auto size-12 rounded-full" />
+            <Skeleton className="mx-auto mt-5 h-7 w-72" />
+            <p className="mt-3 text-sm text-muted-foreground">Checking payment status…</p>
           </div>
         )}
 
-        {error && (
+        {isError && (
           <div>
-            <div className="h-12 w-12 rounded-full bg-[#FEF2F2] flex items-center justify-center mx-auto mb-4">
-              <span className="text-[#DC2626] text-xl">!</span>
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <CircleAlert className="size-6" />
             </div>
-            <h2 className="text-xl font-display font-bold text-[var(--color-ink)]">Status Check Failed</h2>
-            <p className="mt-2 text-sm text-[var(--color-muted)]">We couldn't check your payment status. Your money might still be safe.</p>
-            <Link to="/me" className="mt-6 inline-block text-sm font-medium text-[var(--color-dusk)] hover:underline">
-              Go to Dashboard
-            </Link>
+            <h1 className="font-display text-2xl font-semibold">We couldn’t confirm the payment.</h1>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">No new charge will be attempted. Retry the status check or return to your account.</p>
+            <div className="mt-6 flex justify-center gap-3"><Button onClick={() => refetch()}>Check again</Button><Button asChild variant="outline"><Link to="/me">My account</Link></Button></div>
           </div>
         )}
 
         {data && data.data?.status === "PAID" && (
           <div>
-            <div className="h-12 w-12 rounded-full bg-[#ECFDF5] flex items-center justify-center mx-auto mb-4">
-              <span className="text-[#059669] text-2xl font-bold">✓</span>
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-[#e4eee8] text-[#345d4a]">
+              <Check className="size-6" />
             </div>
-            <h2 className="text-2xl font-display font-bold text-[var(--color-ink)] mb-2">Payment Successful!</h2>
-            <p className="text-sm text-[var(--color-muted)] mb-6">
+            <h1 className="mb-2 font-display text-3xl font-semibold">Payment complete.</h1>
+            <p className="mb-6 text-sm text-muted-foreground">
               Amount paid: ₹{(data.data.amountPaise / 100).toFixed(2)}
             </p>
-            <p className="text-sm text-[var(--color-muted)]">Redirecting you automatically...</p>
-            <Link to="/me" className="mt-6 inline-block px-4 py-2 bg-[var(--color-dusk)] text-white text-sm font-medium rounded-[6px] hover:bg-opacity-90">
-              Go to Dashboard Now
-            </Link>
+            <p className="text-sm text-muted-foreground">Taking you to your membership…</p>
+            <Button asChild className="mt-6"><Link to="/me/membership">View membership</Link></Button>
           </div>
         )}
 
         {data && data.data?.status === "FAILED" && (
           <div>
-            <div className="h-12 w-12 rounded-full bg-[#FEF2F2] flex items-center justify-center mx-auto mb-4">
-              <span className="text-[#DC2626] text-2xl font-bold">✗</span>
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <CircleAlert className="size-6" />
             </div>
-            <h2 className="text-2xl font-display font-bold text-[var(--color-ink)] mb-2">Payment Failed</h2>
-            <p className="text-sm text-[var(--color-muted)] mb-6">
+            <h1 className="mb-2 font-display text-3xl font-semibold">Payment didn’t go through.</h1>
+            <p className="mb-6 text-sm text-muted-foreground">
               Reason: {data.data.failureReason || "Unknown error"}
             </p>
-            <Link to="/join" className="mt-6 inline-block px-4 py-2 border border-[var(--color-dusk)] text-[var(--color-dusk)] text-sm font-medium rounded-[6px] hover:bg-[var(--color-paper)]">
-              Try Again
-            </Link>
+            <Button asChild variant="outline"><Link to="/join">Try again</Link></Button>
           </div>
         )}
 
         {data && (data.data?.status === "PENDING" || data.data?.status === "CREATED") && (
           <div>
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-wait)] mx-auto mb-4"></div>
-            <h2 className="text-xl font-display font-bold text-[var(--color-ink)]">Payment Pending</h2>
-            <p className="mt-2 text-sm text-[var(--color-muted)]">Awaiting transaction confirmation from payment gateway.</p>
-            <button
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-secondary text-primary"><Clock3 className="size-6" /></div>
+            <h1 className="font-display text-2xl font-semibold">Payment pending</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Waiting for confirmation from the payment provider. This page updates automatically.</p>
+            {import.meta.env.DEV ? <Button
               onClick={handleSimulatePayment}
-              className="mt-6 px-4 py-2 bg-[var(--color-ok)] text-white text-sm font-semibold rounded-[6px] hover:bg-opacity-90 shadow-sm"
+              variant="outline"
+              className="mt-6"
             >
-              Simulate Payment Success (Demo)
-            </button>
+              Complete demo payment
+            </Button> : null}
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }

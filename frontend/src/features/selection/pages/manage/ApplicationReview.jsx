@@ -1,13 +1,19 @@
-import React, { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState } from "react";
+import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { FileSearch, X } from "lucide-react";
+import { ContentState } from "@/components/common/ContentState";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function ApplicationReview() {
+  usePageTitle("Application review");
   const { id } = useParams();
   const [selectedPost, setSelectedPost] = useState("ALL");
   const [selectedApp, setSelectedApp] = useState(null); // Used to open a detail drawer
 
-  const { data: appsData, isLoading } = useQuery({
+  const { data: appsData, isPending, isError, refetch } = useQuery({
     queryKey: ['selection', 'cycles', id, 'applications'],
     queryFn: async () => {
       // API endpoint: GET /selection/cycles/:id/applications
@@ -27,53 +33,61 @@ export default function ApplicationReview() {
     : applications.filter(app => app.post.title === selectedPost);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 relative">
-      <div className="mb-8 flex justify-between items-end">
+    <div className="page-container relative py-12 sm:py-16">
+      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">Application Review</h1>
-          <p className="text-sm text-[var(--color-muted)] mt-1">Review candidates and manage appointments.</p>
+          <p className="mb-2 text-sm font-medium text-primary">Selection workspace</p>
+          <h1 className="font-display text-4xl font-semibold tracking-tight">Application review</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Compare candidates and review their responses.</p>
         </div>
+        <label className="text-sm font-medium"><span className="sr-only">Filter by position</span>
         <select
           value={selectedPost}
           onChange={e => setSelectedPost(e.target.value)}
-          className="px-4 py-2 border border-[var(--color-line)] rounded-[6px] text-sm font-medium bg-white focus:outline-none focus:border-[var(--color-dusk)]"
+          className="h-10 rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <option value="ALL">All Positions</option>
+          <option value="ALL">All positions</option>
           {uniquePosts.map(post => (
             <option key={post} value={post}>{post}</option>
           ))}
         </select>
+        </label>
       </div>
 
-      <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] overflow-hidden shadow-sm min-h-[500px]">
-        <table className="min-w-full divide-y divide-[var(--color-line)]">
-          <thead className="bg-[var(--color-paper)]">
+      {isPending ? (
+        <div className="space-y-3" role="status" aria-label="Loading applications"><Skeleton className="h-14 rounded-xl" /><Skeleton className="h-20 rounded-xl" /><Skeleton className="h-20 rounded-xl" /></div>
+      ) : isError ? (
+        <ContentState error title="Applications aren’t available right now." description="The review queue couldn’t be loaded." action={refetch} />
+      ) : filteredApps.length === 0 ? (
+        <ContentState title="No applications match this view." description="Try another position or return when candidates have submitted applications." />
+      ) : (
+      <div className="min-h-[420px] overflow-x-auto rounded-2xl border border-border bg-card">
+        <table className="min-w-full divide-y divide-border">
+          <thead className="bg-secondary/40">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Applicant</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Position</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Submitted</th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Applicant</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Position</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Submitted</th>
+              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--color-line)] bg-white">
-            {isLoading ? (
-              <tr><td colSpan="4" className="p-8 text-center text-[var(--color-muted)]">Loading applications...</td></tr>
-            ) : filteredApps.length === 0 ? (
-              <tr><td colSpan="4" className="p-12 text-center text-[var(--color-muted)]">No applications match your criteria.</td></tr>
-            ) : filteredApps.map(app => (
+          <tbody className="divide-y divide-border bg-card">
+            {filteredApps.map(app => (
               <tr
                 key={app.id}
                 onClick={() => setSelectedApp(app)}
-                className="hover:bg-gray-50 cursor-pointer transition-colors"
+                tabIndex={0}
+                onKeyDown={(event) => { if (event.key === "Enter") setSelectedApp(app); }}
+                className="cursor-pointer transition-colors hover:bg-secondary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
               >
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <p className="text-sm font-bold text-[var(--color-ink)]">{app.user?.name}</p>
-                  <p className="text-xs text-[var(--color-muted)] mt-1 font-mono">{app.user?.studentId}</p>
+                  <p className="text-sm font-semibold">{app.user?.name || "Unnamed applicant"}</p>
+                  <p className="mt-1 font-mono text-xs text-muted-foreground">{app.user?.studentId}</p>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <p className="text-sm font-medium text-[var(--color-ink)]">{app.post.title}</p>
+                  <p className="text-sm font-medium">{app.post?.title || "Leadership role"}</p>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-muted)]">
+                <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
                   {new Date(app.submittedAt).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -91,43 +105,37 @@ export default function ApplicationReview() {
           </tbody>
         </table>
       </div>
+      )}
 
       {/* Detail Drawer overlay */}
       {selectedApp && (
         <div className="fixed inset-0 z-50 overflow-hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
-          <div className="absolute inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setSelectedApp(null)}></div>
+          <div className="absolute inset-0 bg-[#20243b]/55 backdrop-blur-sm" onClick={() => setSelectedApp(null)}></div>
           <div className="fixed inset-y-0 right-0 max-w-full flex">
-            <div className="w-screen max-w-md bg-white shadow-xl h-full flex flex-col">
-              <div className="p-6 border-b border-[var(--color-line)] flex justify-between items-start bg-[var(--color-paper)]">
+            <div className="flex h-full w-screen max-w-md flex-col bg-card shadow-xl">
+              <div className="flex items-start justify-between border-b border-border bg-secondary/40 p-6">
                 <div>
-                  <h2 className="text-xl font-display font-bold text-[var(--color-ink)]">{selectedApp.user?.name}</h2>
-                  <p className="text-sm text-[var(--color-muted)] mt-1">Applying for: <strong>{selectedApp.post.title}</strong></p>
+                  <h2 id="slide-over-title" className="font-display text-2xl font-semibold">{selectedApp.user?.name || "Applicant"}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Applying for <strong className="text-foreground">{selectedApp.post?.title}</strong></p>
                 </div>
-                <button onClick={() => setSelectedApp(null)} className="text-gray-400 hover:text-gray-500">
-                  <span className="text-2xl">&times;</span>
-                </button>
+                <Button variant="ghost" size="icon" onClick={() => setSelectedApp(null)} aria-label="Close application"><X aria-hidden="true" /></Button>
               </div>
               <div className="p-6 flex-1 overflow-y-auto">
-                <h3 className="font-bold text-[var(--color-ink)] mb-4">Application Answers</h3>
+                <h3 className="mb-4 font-display text-lg font-semibold">Application answers</h3>
                 <div className="space-y-6">
                   {selectedApp.answers && Object.entries(selectedApp.answers).map(([qId, ans], idx) => (
-                    <div key={qId} className="bg-gray-50 p-4 rounded-[6px] border border-[var(--color-line)]">
-                      <p className="text-xs font-bold text-[var(--color-muted)] uppercase mb-2">Q{idx + 1}: {qId}</p>
-                      <p className="text-sm text-[var(--color-ink)] whitespace-pre-wrap">{ans}</p>
+                    <div key={qId} className="rounded-xl border border-border bg-secondary/30 p-4">
+                      <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Question {idx + 1}</p>
+                      <p className="whitespace-pre-wrap text-sm leading-6">{String(ans)}</p>
                     </div>
                   ))}
                   {(!selectedApp.answers || Object.keys(selectedApp.answers).length === 0) && (
-                    <p className="text-sm text-[var(--color-muted)]">No answers provided.</p>
+                    <div className="py-10 text-center text-sm text-muted-foreground"><FileSearch className="mx-auto mb-3 size-8 text-primary/50" />No answers provided.</div>
                   )}
                 </div>
               </div>
-              <div className="p-6 border-t border-[var(--color-line)] bg-[var(--color-paper)] flex flex-col gap-3">
-                <p className="text-xs font-bold text-[var(--color-muted)] uppercase mb-1">Update Status</p>
-                <div className="flex gap-2">
-                  <button className="flex-1 py-2 text-xs font-bold uppercase rounded border border-[var(--color-info)] text-[var(--color-info)] hover:bg-blue-50">Interview</button>
-                  <button className="flex-1 py-2 text-xs font-bold uppercase rounded border border-[var(--color-ok)] text-[var(--color-ok)] hover:bg-green-50">Appoint</button>
-                  <button className="flex-1 py-2 text-xs font-bold uppercase rounded border border-[var(--color-stop)] text-[var(--color-stop)] hover:bg-red-50">Reject</button>
-                </div>
+              <div className="border-t border-border bg-secondary/30 p-6">
+                <p className="text-xs leading-5 text-muted-foreground">Decision controls will appear here when the review workflow is enabled. No action is taken from this preview.</p>
               </div>
             </div>
           </div>
