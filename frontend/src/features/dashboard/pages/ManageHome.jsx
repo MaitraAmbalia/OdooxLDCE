@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { formatINR } from "@/lib/utils";
 
 const MODULES = [
   { title: "Events", perms: ["event.propose", "event.approve", "event.report.read"], description: "Proposals, reviews, door staff, and post-event analytics.", icon: CalendarDays, links: [{ label: "Event console", to: "/manage/events" }, { label: "Propose an event", to: "/manage/events/new" }, { label: "Browse events", to: "/events" }] },
@@ -53,9 +54,14 @@ export default function ManageHome() {
   const counts = countsData?.data;
   const firstProposal = proposalsData?.data?.[0];
 
+  const isMentor = user?.permissions?.includes("event.approve");
   const queues = counts ? [
-    { perms: ["claim.review", "claim.review.high", "claim.review.treasurer", "claim.pay"], title: "Expense claims", count: counts.claimsPending || 0, description: "Awaiting finance review", to: "/manage/claims", icon: ReceiptIndianRupee },
-    { perms: ["event.approve", "event.propose"], title: "Event proposals", count: counts.proposalsToReview || 0, description: "Awaiting mentor review", to: firstProposal ? "/manage/events/" + firstProposal.id + "/review" : "/manage/events", icon: CalendarDays },
+    { perms: ["claim.review", "claim.review.high", "claim.review.treasurer", "claim.pay"], title: "Expense claims", count: counts.claimsPending || 0, description: "Awaiting review or payout", to: "/manage/claims", icon: ReceiptIndianRupee },
+    { perms: ["cash.verify"], title: "Cash to verify", count: counts.cashPending || 0, description: counts.cashPending ? `${formatINR(counts.cashPendingPaise, true)} awaiting handover` : "Nothing waiting", to: "/manage/cash", icon: Banknote },
+    { perms: ["member.read.any"], title: "Unpaid dues", count: counts.duesPending || 0, description: "Signed up, not yet paid", to: "/manage/memberships", icon: UsersRound },
+    isMentor
+      ? { perms: ["event.approve"], title: "Event proposals", count: counts.proposalsToReview || 0, description: "Awaiting your review", to: firstProposal ? "/manage/events/" + firstProposal.id + "/review" : "/manage/events", icon: CalendarDays }
+      : { perms: ["event.propose"], title: "My proposals", count: (counts.myProposalsPending || 0) + (counts.myProposalsChangesRequested || 0), description: counts.myProposalsChangesRequested ? `${counts.myProposalsChangesRequested} need your changes` : "Waiting for mentor review", to: "/manage/events", icon: CalendarDays },
     { perms: ["project.manage", "volunteer.manage"], title: "Active tasks", count: counts.activeTasks || 0, description: "Across current projects", to: "/manage/projects", icon: UsersRound },
     { perms: ["order.fulfil"], title: "Orders to pack", count: counts.ordersToPack || 0, description: "Paid merchandise orders", to: "/manage/orders", icon: PackageCheck },
   ].filter((q) => can(q.perms)) : [];
@@ -77,7 +83,7 @@ export default function ManageHome() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {queues.map((queue) => {
               const Icon = queue.icon;
-              const content = <><div className="flex items-start justify-between"><span className="rounded-xl bg-primary/10 p-2 text-primary"><Icon className="size-5" aria-hidden="true" /></span>{queue.to && <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden="true" />}</div><p className="mt-6 font-display text-4xl font-semibold tabular-nums">{queue.count}</p><h3 className="mt-2 font-semibold">{queue.title}</h3><p className="mt-1 text-xs text-muted-foreground">{queue.description}</p>{!queue.to && queue.count > 0 && <p className="mt-3 text-xs text-amber-700">No review record is currently visible.</p>}</>;
+              const content = <><div className="flex items-start justify-between"><span className="rounded-xl bg-primary/10 p-2 text-primary"><Icon className="size-5" aria-hidden="true" /></span>{queue.to && <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden="true" />}</div><p className="mt-6 font-display text-4xl font-semibold tabular-nums">{queue.count}</p><h3 className="mt-2 font-semibold">{queue.title}</h3><p className="mt-1 text-xs text-muted-foreground">{queue.description}</p>{!queue.to && queue.count > 0 && <p className="mt-3 text-xs text-warning">No review record is currently visible.</p>}</>;
               return queue.to ? <Link key={queue.title} to={queue.to} className="group rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{content}</Link> : <div key={queue.title} className="rounded-2xl border border-border bg-card p-5">{content}</div>;
             })}
           </div>

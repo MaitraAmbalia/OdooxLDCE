@@ -93,7 +93,7 @@ export default function ClaimDetail() {
 
         <div className="space-y-8">
           {budget && isManagerView && (
-            <section className={"rounded-2xl border p-5 text-sm " + (overBudget ? "border-red-300 bg-red-50" : "border-border bg-card")}>
+            <section className={"rounded-2xl border p-5 text-sm " + (overBudget ? "border-destructive/30 bg-destructive/10" : "border-border bg-card")}>
               <h2 className="font-display text-lg font-semibold">Event budget</h2>
               <dl className="mt-3 space-y-1.5">
                 <div className="flex justify-between"><dt>Approved</dt><dd className="font-mono">{inr(budget.approvedPaise)}</dd></div>
@@ -101,7 +101,7 @@ export default function ClaimDetail() {
                 <div className="flex justify-between"><dt>Other approved claims</dt><dd className="font-mono">{inr(budget.committedPaise)}</dd></div>
                 <div className="flex justify-between border-t border-border pt-1.5 font-semibold"><dt>Remaining</dt><dd className="font-mono">{inr(budget.remainingPaise)}</dd></div>
               </dl>
-              {overBudget && <p className="mt-3 text-red-800">This claim is larger than the remaining budget, so it can't be approved. Reject it, or ask the Mentor to raise the event budget.</p>}
+              {overBudget && <p className="mt-3 text-destructive">This claim is larger than the remaining budget, so it can't be approved. Reject it, or ask the Mentor to raise the event budget.</p>}
             </section>
           )}
 
@@ -110,9 +110,9 @@ export default function ClaimDetail() {
             <ol className="space-y-4 text-sm">
               <li><p className="font-medium">Submitted</p><p className="text-xs text-muted-foreground">{new Date(claim.createdAt).toLocaleString("en-IN")}</p></li>
               {claim.decisions.map((d) => (
-                <li key={d.at}><p className={"font-medium " + (d.decision === "REJECT" ? "text-red-700" : "text-emerald-700")}>{d.decision === "REJECT" ? "Rejected" : d.level === "L2" ? "Approved by President" : "Approved"} · {d.decider}</p><p className="text-xs text-muted-foreground">{new Date(d.at).toLocaleString("en-IN")}</p>{d.reason && <p className="mt-1 text-muted-foreground">{d.reason}</p>}</li>
+                <li key={d.at}><p className={"font-medium " + (d.decision === "REJECT" ? "text-destructive" : "text-success")}>{d.decision === "REJECT" ? "Rejected" : d.level === "L2" ? "Approved by President" : "Approved"} · {d.decider}</p><p className="text-xs text-muted-foreground">{new Date(d.at).toLocaleString("en-IN")}</p>{d.reason && <p className="mt-1 text-muted-foreground">{d.reason}</p>}</li>
               ))}
-              {claim.paidAt && <li><p className="font-medium text-emerald-700">Paid out</p><p className="text-xs text-muted-foreground">{new Date(claim.paidAt).toLocaleString("en-IN")}</p></li>}
+              {claim.paidAt && <li><p className="font-medium text-success">Paid out</p><p className="text-xs text-muted-foreground">{new Date(claim.paidAt).toLocaleString("en-IN")}</p></li>}
             </ol>
           </section>
 

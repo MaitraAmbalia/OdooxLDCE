@@ -90,7 +90,7 @@ export default function FulfilmentQueue() {
 }
 
 function OrderAction({ order, mutation, compact = false }) {
-  if (order.status === "COLLECTED") return <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700"><CheckCircle2 className="size-4" aria-hidden="true" /> Complete</span>;
+  if (order.status === "COLLECTED") return <span className="inline-flex items-center gap-1.5 text-sm font-medium text-success"><CheckCircle2 className="size-4" aria-hidden="true" /> Complete</span>;
   const nextStatus = order.status === "PAID" ? "READY" : "COLLECTED";
   return <Button size={compact ? "sm" : "default"} className={compact ? "" : "mt-5 w-full"} disabled={mutation.isPending} onClick={() => mutation.mutate({ orderId: order.id, status: nextStatus })}><PackageCheck aria-hidden="true" />{nextStatus === "READY" ? "Mark ready" : "Confirm handover"}</Button>;
 }

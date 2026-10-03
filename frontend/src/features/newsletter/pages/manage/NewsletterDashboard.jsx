@@ -124,18 +124,18 @@ export default function NewsletterDashboard() {
       </div>
 
       {/* Connected Status Banner */}
-      <div className="mt-8 flex items-start gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 text-emerald-950">
-        <div className="rounded-full bg-emerald-100 p-2 text-emerald-700">
+      <div className="mt-8 flex items-start gap-4 rounded-2xl border border-success/30 bg-success-soft/70 p-5 text-emerald-950">
+        <div className="rounded-full bg-success-soft p-2 text-success">
           <MailCheck className="size-5" aria-hidden="true" />
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="font-semibold text-emerald-900">Email transport connected & active</h2>
-            <Badge variant="outline" className="border-emerald-300 bg-emerald-100 text-emerald-800 text-[11px]">
+            <h2 className="font-semibold text-success">Email transport connected & active</h2>
+            <Badge variant="outline" className="border-success/30 bg-success-soft text-success text-[11px]">
               Nodemailer Worker Running
             </Badge>
           </div>
-          <p className="mt-1 text-sm leading-6 text-emerald-800/80">
+          <p className="mt-1 text-sm leading-6 text-success/80">
             Outbox queue processor is operational. Broadcast campaigns, membership expiry reminders, and subscription confirmations are sent automatically.
           </p>
         </div>
@@ -155,18 +155,18 @@ export default function NewsletterDashboard() {
         <div className="rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-semibold uppercase tracking-wider">Active Confirmed</span>
-            <CheckCircle className="size-4 text-emerald-600" />
+            <CheckCircle className="size-4 text-success" />
           </div>
-          <p className="mt-3 font-display text-3xl font-semibold text-emerald-600">{stats.subscribers.subscribed}</p>
+          <p className="mt-3 font-display text-3xl font-semibold text-success">{stats.subscribers.subscribed}</p>
           <p className="mt-1 text-xs text-muted-foreground">Ready to receive emails</p>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-semibold uppercase tracking-wider">Pending Opt-In</span>
-            <Clock className="size-4 text-amber-600" />
+            <Clock className="size-4 text-warning" />
           </div>
-          <p className="mt-3 font-display text-3xl font-semibold text-amber-600">{stats.subscribers.pending}</p>
+          <p className="mt-3 font-display text-3xl font-semibold text-warning">{stats.subscribers.pending}</p>
           <p className="mt-1 text-xs text-muted-foreground">Double opt-in sent</p>
         </div>
 
@@ -255,7 +255,7 @@ export default function NewsletterDashboard() {
                           variant={camp.status === "SENT" ? "default" : "secondary"}
                           className={
                             camp.status === "SENT"
-                              ? "bg-emerald-600 hover:bg-emerald-600"
+                              ? "bg-success hover:bg-success"
                               : camp.status === "SENDING"
                               ? "bg-primary text-white"
                               : "bg-muted text-foreground"
@@ -339,9 +339,9 @@ export default function NewsletterDashboard() {
                           variant="outline"
                           className={
                             sub.status === "SUBSCRIBED"
-                              ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                              ? "border-success/30 bg-success-soft text-success"
                               : sub.status === "PENDING_CONFIRMATION"
-                              ? "border-amber-300 bg-amber-50 text-amber-700"
+                              ? "border-warning/30 bg-warning-soft text-warning"
                               : "border-border bg-muted text-muted-foreground"
                           }
                         >

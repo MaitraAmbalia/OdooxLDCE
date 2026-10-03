@@ -42,7 +42,7 @@ export default function ForgotPassword() {
         <div className="mt-8 rounded-2xl border border-border bg-card p-6 sm:p-8">
           {submittedEmail ? (
             <div className="text-center" role="status">
-              <CheckCircle2 className="mx-auto size-10 text-emerald-600" aria-hidden="true" />
+              <CheckCircle2 className="mx-auto size-10 text-success" aria-hidden="true" />
               <h2 className="mt-4 font-display text-xl font-semibold">Check your inbox</h2>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">If an account exists for <span className="font-medium text-foreground">{submittedEmail}</span>, reset instructions have been sent.</p>
               <Button asChild className="mt-6 w-full"><Link to="/login">Return to login</Link></Button>

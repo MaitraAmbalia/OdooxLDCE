@@ -61,7 +61,7 @@ export default function ResetPassword() {
             <label htmlFor="new-password" className="mb-2 block text-sm font-medium">New password</label>
             <Input id="new-password" type="password" autoComplete="new-password" aria-invalid={!!errors.password} {...register("password", { required: "Password is required", minLength: { value: 8, message: "Use at least 8 characters" }, maxLength: { value: 128, message: "Use no more than 128 characters" } })} />
             <div className="mt-3 flex items-center gap-3">
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary"><div className={"h-full rounded-full transition-all " + (password.length >= 8 ? "w-full bg-emerald-600" : password.length >= 4 ? "w-1/2 bg-amber-500" : "w-1/4 bg-muted-foreground/30")} /></div>
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary"><div className={"h-full rounded-full transition-all " + (password.length >= 8 ? "w-full bg-success" : password.length >= 4 ? "w-1/2 bg-warning" : "w-1/4 bg-muted-foreground/30")} /></div>
               <span className="text-xs tabular-nums text-muted-foreground">{Math.min(password.length, 8)}/8 minimum</span>
             </div>
             {errors.password && <p className="mt-2 text-sm text-destructive" role="alert">{errors.password.message}</p>}

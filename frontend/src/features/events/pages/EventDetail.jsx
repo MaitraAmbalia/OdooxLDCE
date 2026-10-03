@@ -282,7 +282,7 @@ export default function EventDetail() {
                             {price === 0 ? "Free" : formatINR(price)}
                           </div>
                           {ticket.audience === "MEMBER" && (
-                            <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1 rounded">
+                            <span className="text-[10px] text-warning font-bold bg-warning-soft px-1 rounded">
                               Member rate
                             </span>
                           )}
@@ -300,8 +300,8 @@ export default function EventDetail() {
 
               {/* Member Discount Incentive Callout */}
               {!isMember && memberTier && (
-                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/90 text-amber-950 flex items-start gap-2.5">
-                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border border-warning/30/90 text-warning flex items-start gap-2.5">
+                  <Sparkles className="w-4 h-4 text-warning shrink-0 mt-0.5" />
                   <div className="text-xs">
                     <span className="font-bold">Are you a Skyline Member?</span>
                     <p className="text-muted-foreground mt-0.5 text-[11px]">
@@ -314,7 +314,7 @@ export default function EventDetail() {
                 </div>
               )}
               {isMember && memberTier && (
-                <p className="rounded-xl bg-emerald-50 p-3 text-xs text-emerald-800">Your member price is applied automatically.</p>
+                <p className="rounded-xl bg-success-soft p-3 text-xs text-success">Your member price is applied automatically.</p>
               )}
 
               {/* Price Summary */}
@@ -349,7 +349,7 @@ export default function EventDetail() {
               </Button>
 
               <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground font-medium">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <ShieldCheck className="w-3.5 h-3.5 text-success" />
                 <span>Instant QR pass generated • Valid for single scan entry</span>
               </div>
 

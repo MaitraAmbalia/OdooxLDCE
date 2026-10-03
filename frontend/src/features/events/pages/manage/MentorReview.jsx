@@ -90,9 +90,9 @@ export default function MentorReview() {
   return (
     <div className="page-container py-12 sm:py-16">
       <Button asChild variant="ghost" className="mb-6 -ml-3"><Link to="/manage/events"><ArrowLeft aria-hidden="true" /> Event console</Link></Button>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="mb-2 text-sm font-medium text-primary">Mentor authorization</p><h1 className="font-display text-4xl font-semibold tracking-tight">Review event proposal</h1></div><span className="w-fit rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800">{event.status.replaceAll("_", " ")}</span></div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="mb-2 text-sm font-medium text-primary">Mentor authorization</p><h1 className="font-display text-4xl font-semibold tracking-tight">Review event proposal</h1></div><span className="w-fit rounded-full bg-warning-soft px-3 py-1.5 text-xs font-semibold text-warning">{event.status.replaceAll("_", " ")}</span></div>
 
-      {!isMentor && <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950" role="alert"><strong>Mentor access required.</strong> {user ? "You are signed in without the Mentor role, so this proposal is read-only." : "Sign in with an authorized Mentor account to record a decision."} {!user && <Link to="/login" className="ml-1 font-semibold underline">Go to login</Link>}</div>}
+      {!isMentor && <div className="mt-6 rounded-xl border border-warning/30 bg-warning-soft p-4 text-sm leading-6 text-warning" role="alert"><strong>Mentor access required.</strong> {user ? "You are signed in without the Mentor role, so this proposal is read-only." : "Sign in with an authorized Mentor account to record a decision."} {!user && <Link to="/login" className="ml-1 font-semibold underline">Go to login</Link>}</div>}
       {!canReview && <div className="mt-6 rounded-xl border border-border bg-secondary/40 p-4 text-sm text-muted-foreground" role="status">This proposal is already {event.status.toLowerCase().replaceAll("_", " ")} and is available as a read-only record.</div>}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">

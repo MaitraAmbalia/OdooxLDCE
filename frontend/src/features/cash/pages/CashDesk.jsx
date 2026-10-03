@@ -97,7 +97,7 @@ export default function CashDesk() {
               {errors.amount && <p className="mt-2 text-sm text-destructive" role="alert">{errors.amount.message}</p>}
             </div>
 
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"><strong>Confirm before recording:</strong> this entry is linked to your account and remains pending until the Treasurer verifies the handover.</div>
+            <div className="rounded-xl border border-warning/30 bg-warning-soft p-4 text-sm leading-6 text-warning"><strong>Confirm before recording:</strong> this entry is linked to your account and remains pending until the Treasurer verifies the handover.</div>
             <Button type="submit" size="lg" className="w-full" disabled={recordCash.isPending}>{recordCash.isPending ? "Recording…" : "Record cash receipt"}</Button>
           </form>
         </section>
@@ -114,7 +114,7 @@ export default function CashDesk() {
             <ContentState icon={BanknoteIcon} title="No cash has been recorded." description="Completed receipts will appear here after the first collection." />
           ) : (
             <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-              {collections.map((collection) => <div key={collection.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-medium">{PURPOSE_LABEL[collection.purpose] ?? collection.purpose}</p><StatusBadge status={collection.status} />{collection.rejectReason && <span className="text-xs text-red-700">{collection.rejectReason}</span>}</div><p className="mt-2 text-xs text-muted-foreground">{collection.operator} · {new Date(collection.recordedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</p></div><p className="font-mono text-lg font-semibold tabular-nums">{money.format(Number(collection.amountPaise || 0) / 100)}</p></div>)}
+              {collections.map((collection) => <div key={collection.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-medium">{PURPOSE_LABEL[collection.purpose] ?? collection.purpose}</p><StatusBadge status={collection.status} />{collection.rejectReason && <span className="text-xs text-destructive">{collection.rejectReason}</span>}</div><p className="mt-2 text-xs text-muted-foreground">{collection.operator} · {new Date(collection.recordedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</p></div><p className="font-mono text-lg font-semibold tabular-nums">{money.format(Number(collection.amountPaise || 0) / 100)}</p></div>)}
             </div>
           )}
         </section>

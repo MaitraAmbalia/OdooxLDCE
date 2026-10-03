@@ -129,11 +129,11 @@ export default function MyOrders() {
                     </h4>
 
                     {order.status === "PENDING_PAYMENT" ? (
-                      <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-xs text-amber-900">
+                      <div className="space-y-3 rounded-xl border border-warning/30 bg-warning-soft/70 p-4 text-xs text-warning">
                         <div className="flex items-center gap-1.5 font-semibold">
-                          <Clock className="size-4 text-amber-600" /> Payment pending
+                          <Clock className="size-4 text-warning" /> Payment pending
                         </div>
-                        <p className="text-[11px] text-amber-800/90 leading-relaxed">
+                        <p className="text-[11px] text-warning/90 leading-relaxed">
                           Complete payment to confirm your pickup reservation.
                         </p>
                         {order.paymentId && (
@@ -147,7 +147,7 @@ export default function MyOrders() {
                         <div className="flex items-center gap-1.5 font-semibold">
                           <CheckCircle2 className="size-4" /> Ready for pickup
                         </div>
-                        <p className="text-[11px] text-emerald-900/80 leading-relaxed">
+                        <p className="text-[11px] text-success/80 leading-relaxed">
                           Show this Order ID at Student Center Desk B between 10:00 AM – 04:30 PM.
                         </p>
                       </div>

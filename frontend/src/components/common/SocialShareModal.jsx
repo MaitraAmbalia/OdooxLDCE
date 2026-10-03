@@ -145,13 +145,13 @@ export function SocialShareModal({
             <div className="space-y-4">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span className="font-medium text-foreground">Message Preview</span>
-                <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="bg-emerald-500/10 text-success dark:text-emerald-400 font-medium px-2 py-0.5 rounded-full border border-emerald-500/20">
                   Formatted for WhatsApp Markdown
                 </span>
               </div>
 
               {/* Chat Bubble Preview */}
-              <div className="relative rounded-2xl border border-emerald-600/20 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 font-sans text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap select-all shadow-inner">
+              <div className="relative rounded-2xl border border-emerald-600/20 bg-success-soft/50 dark:bg-emerald-950/20 p-4 font-sans text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap select-all shadow-inner">
                 <div className="absolute top-2 right-2.5 text-[10px] text-muted-foreground flex items-center gap-1 opacity-70">
                   <span>LDCE Portal</span>
                   <span>✓✓</span>
@@ -180,7 +180,7 @@ export function SocialShareModal({
                   {copiedKey === "wa_text" ? (
                     <>
                       <Check className="w-4 h-4 text-emerald-500" />
-                      <span className="text-emerald-600 dark:text-emerald-400">Copied Text!</span>
+                      <span className="text-success dark:text-emerald-400">Copied Text!</span>
                     </>
                   ) : (
                     <>
@@ -237,7 +237,7 @@ export function SocialShareModal({
               </div>
 
               {/* Pro Tip */}
-              <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3.5 py-2 text-xs text-amber-800 dark:text-amber-300">
+              <div className="rounded-xl bg-warning/10 border border-amber-500/20 px-3.5 py-2 text-xs text-warning dark:text-amber-300">
                 <p>
                   💡 <strong>How to post:</strong> Click <em>Copy Instagram Caption</em>, then add a photo/poster to your Instagram Story or Post. In Stories, use the <strong>"Link" sticker</strong> with the portal link!
                 </p>
@@ -298,7 +298,7 @@ export function SocialShareModal({
             {copiedKey === "direct_url" ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-emerald-600 dark:text-emerald-400">Copied!</span>
+                <span className="text-success dark:text-emerald-400">Copied!</span>
               </>
             ) : (
               <>

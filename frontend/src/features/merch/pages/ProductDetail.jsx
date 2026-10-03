@@ -188,7 +188,7 @@ export default function ProductDetail() {
                 <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider">
                   Skyline Signature Line
                 </Badge>
-                <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                <span className="text-xs font-semibold text-success flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5" /> In Stock for Campus Delivery
                 </span>
               </div>
@@ -207,7 +207,7 @@ export default function ProductDetail() {
                     <span className="text-lg text-muted-foreground line-through tabular-nums">
                       {formatINR(regularPrice)}
                     </span>
-                    <span className="text-xs font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-bold text-warning bg-warning-soft/90 border border-warning/30 px-2 py-0.5 rounded-full">
                       Member Price
                     </span>
                   </>
@@ -281,8 +281,8 @@ export default function ProductDetail() {
 
             {/* Preorder Note if applicable */}
             {product.isPreorder && (
-              <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-amber-950 text-xs flex items-start gap-3">
-                <Package className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="p-4 rounded-2xl bg-warning-soft/70 border border-warning/30 text-warning text-xs flex items-start gap-3">
+                <Package className="w-5 h-5 text-warning shrink-0 mt-0.5" />
                 <div>
                   <div className="font-bold">Pre-Order Production Window</div>
                   <div className="text-muted-foreground mt-0.5 text-[11px]">
@@ -313,7 +313,7 @@ export default function ProductDetail() {
 
               <div className="grid grid-cols-2 gap-3 text-center text-xs text-muted-foreground pt-2">
                 <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-muted">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <ShieldCheck className="w-4 h-4 text-success" />
                   <span>Free Size Exchange</span>
                 </div>
                 <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-muted">

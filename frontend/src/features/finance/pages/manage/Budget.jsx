@@ -68,7 +68,7 @@ export default function Budget() {
         : <>
           <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
             {[["Allocated", inr(allocated)], ["Spent", inr(spent)], ["Remaining", inr(allocated - spent)]].map(([label, value]) => (
-              <div key={label} className="rounded-2xl border border-border bg-card p-6"><p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p><p className={"font-mono text-3xl font-bold tabular-nums " + (label === "Remaining" && allocated - spent < 0 ? "text-red-700" : "")}>{value}</p></div>
+              <div key={label} className="rounded-2xl border border-border bg-card p-6"><p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p><p className={"font-mono text-3xl font-bold tabular-nums " + (label === "Remaining" && allocated - spent < 0 ? "text-destructive" : "")}>{value}</p></div>
             ))}
           </div>
 
@@ -108,8 +108,8 @@ export default function Budget() {
                   return (
                     <li key={c.category}>
                       <div className="mb-1.5 flex justify-between text-sm"><span className="font-medium">{c.category.charAt(0) + c.category.slice(1).toLowerCase()}</span><span className="font-mono text-xs">{inr(c.spentPaise)} / {c.limitPaise == null ? "no limit" : inr(c.limitPaise)}</span></div>
-                      {c.limitPaise != null && <div className="h-2 overflow-hidden rounded-full bg-secondary" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100} aria-label={`${c.category} used`}><div className={"h-full " + (c.remainingPaise < 0 ? "bg-red-600" : pct > 80 ? "bg-amber-500" : "bg-emerald-600")} style={{ width: `${pct}%` }} /></div>}
-                      {c.remainingPaise != null && c.remainingPaise < 0 && <p className="mt-1 text-xs text-red-700">Over by {inr(-c.remainingPaise)}</p>}
+                      {c.limitPaise != null && <div className="h-2 overflow-hidden rounded-full bg-secondary" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100} aria-label={`${c.category} used`}><div className={"h-full " + (c.remainingPaise < 0 ? "bg-destructive" : pct > 80 ? "bg-warning" : "bg-success")} style={{ width: `${pct}%` }} /></div>}
+                      {c.remainingPaise != null && c.remainingPaise < 0 && <p className="mt-1 text-xs text-destructive">Over by {inr(-c.remainingPaise)}</p>}
                     </li>
                   );
                 })}</ul>

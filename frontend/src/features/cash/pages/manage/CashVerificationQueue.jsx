@@ -78,7 +78,7 @@ export default function CashVerificationQueue() {
               <article key={collection.id} className="p-5">
                 <div className="flex items-start justify-between gap-4"><div><p className="font-medium">{PURPOSE_LABEL[collection.purpose] ?? collection.purpose}</p><p className="mt-1 text-xs text-muted-foreground">{collection.payerInfo || "Linked receipt"}</p></div><p className="font-mono text-lg font-semibold tabular-nums">{money.format(Number(collection.amountPaise || 0) / 100)}</p></div>
                 <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"><Banknote className="size-4" aria-hidden="true" />{collection.operator || "Cash operator"} · {new Date(collection.recordedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</div>
-                <div className="mt-5 flex gap-2"><Button className="flex-1 bg-emerald-700 hover:bg-emerald-800" disabled={verifyMutation.isPending} onClick={() => verifyMutation.mutate(collection.id)}><CheckCircle2 aria-hidden="true" /> Verify received</Button>{rejectButton(collection.id)}</div>{rejectForm(collection.id)}
+                <div className="mt-5 flex gap-2"><Button className="flex-1 bg-success hover:bg-success/90" disabled={verifyMutation.isPending} onClick={() => verifyMutation.mutate(collection.id)}><CheckCircle2 aria-hidden="true" /> Verify received</Button>{rejectButton(collection.id)}</div>{rejectForm(collection.id)}
               </article>
             ))}
           </div>
@@ -93,7 +93,7 @@ export default function CashVerificationQueue() {
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">{collection.operator || "Cash operator"}</td>
                     <td className="px-6 py-4 text-sm"><p className="font-medium">{PURPOSE_LABEL[collection.purpose] ?? collection.purpose}</p><p className="mt-1 text-xs text-muted-foreground">{collection.payerInfo || "Linked receipt"}</p></td>
                     <td className="whitespace-nowrap px-6 py-4 text-right font-mono text-sm font-semibold tabular-nums">{money.format(Number(collection.amountPaise || 0) / 100)}</td>
-                    <td className="px-6 py-4 text-right"><div className="flex justify-end gap-2"><Button size="sm" className="bg-emerald-700 hover:bg-emerald-800" disabled={verifyMutation.isPending} onClick={() => verifyMutation.mutate(collection.id)}><CheckCircle2 aria-hidden="true" /> Verify</Button>{rejectButton(collection.id)}</div>{rejectForm(collection.id)}</td>
+                    <td className="px-6 py-4 text-right"><div className="flex justify-end gap-2"><Button size="sm" className="bg-success hover:bg-success/90" disabled={verifyMutation.isPending} onClick={() => verifyMutation.mutate(collection.id)}><CheckCircle2 aria-hidden="true" /> Verify</Button>{rejectButton(collection.id)}</div>{rejectForm(collection.id)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -107,14 +107,18 @@ export function createNotificationsRouter({ service, authenticate, prisma }) {
   });
 
   // 3. Dynamic Executive Dashboard Aggregate Counts
-  router.get('/dashboard/counts', authenticate, async (_req, res) => {
+  router.get('/dashboard/counts', authenticate, async (req, res) => {
     try {
-      const [claimsCount, tasksCount, proposalsCount, ordersCount] = await Promise.all([
-        prisma.expenseClaim.count({ where: { status: 'SUBMITTED' } }).catch(() => 0),
-        prisma.task.count({ where: { status: { in: ['TODO', 'IN_PROGRESS'] } } }).catch(() => 0),
-        prisma.event.count({ where: { status: 'PENDING_APPROVAL' } }).catch(() => 0),
-        prisma.order.count({ where: { status: 'PAID' } }).catch(() => 0),
+      const [claimsCount, tasksCount, proposalsCount, ordersCount, cash, duesPending, myProposals] = await Promise.all([
+        prisma.expenseClaim.count({ where: { status: { in: ['SUBMITTED', 'APPROVED_L1', 'APPROVED'] } } }),
+        prisma.task.count({ where: { status: { in: ['TODO', 'IN_PROGRESS'] } } }),
+        prisma.event.count({ where: { status: 'PENDING_APPROVAL' } }),
+        prisma.order.count({ where: { status: 'PAID' } }),
+        prisma.cashCollection.aggregate({ where: { status: 'PENDING_VERIFICATION' }, _count: { _all: true }, _sum: { amountPaise: true } }),
+        prisma.membership.count({ where: { status: 'PENDING' } }),
+        prisma.event.groupBy({ by: ['status'], where: { proposedById: req.user.id, status: { in: ['PENDING_APPROVAL', 'CHANGES_REQUESTED'] } }, _count: { _all: true } }),
       ]);
+      const mine = (status) => myProposals.find((g) => g.status === status)?._count._all ?? 0;
 
       return res.json({
         data: {
@@ -122,9 +126,15 @@ export function createNotificationsRouter({ service, authenticate, prisma }) {
           ordersToPack: ordersCount,
           proposalsToReview: proposalsCount,
           activeTasks: tasksCount,
+          cashPending: cash._count._all,
+          cashPendingPaise: Number(cash._sum.amountPaise ?? 0),
+          duesPending,
+          myProposalsPending: mine('PENDING_APPROVAL'),
+          myProposalsChangesRequested: mine('CHANGES_REQUESTED'),
         },
       });
     } catch (e) {
+      req.log?.error({ err: e }, 'dashboard counts failed');
       return res.status(500).json({ error: { message: 'Failed to calculate dashboard counts' } });
     }
   });

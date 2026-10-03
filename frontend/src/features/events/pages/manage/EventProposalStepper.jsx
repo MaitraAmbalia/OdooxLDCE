@@ -116,7 +116,7 @@ export default function EventProposalStepper() {
     <div className="page-container max-w-4xl py-12 sm:py-16">
       <Button asChild variant="ghost" className="mb-6 -ml-3"><Link to="/manage/events"><ArrowLeft aria-hidden="true" /> Event console</Link></Button>
       <div><p className="mb-2 text-sm font-medium text-primary">Event operations</p><h1 className="font-display text-4xl font-semibold tracking-tight">{isEdit ? "Edit and resubmit" : "Propose an event"}</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Add the details, schedule, member and non-member pricing, and the budget you need. A mentor authorizes the proposal before tickets go on sale.</p></div>
-      {latestFeedback && event?.status === "CHANGES_REQUESTED" && <div className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900" role="status"><p className="font-semibold">Mentor feedback from {latestFeedback.reviewer?.name}</p><p className="mt-1">{latestFeedback.comment}</p></div>}
+      {latestFeedback && event?.status === "CHANGES_REQUESTED" && <div className="mt-6 rounded-xl border border-warning/30 bg-warning-soft p-4 text-sm text-warning" role="status"><p className="font-semibold">Mentor feedback from {latestFeedback.reviewer?.name}</p><p className="mt-1">{latestFeedback.comment}</p></div>}
 
       <div className="mt-8" aria-label={"Step " + currentStep + " of " + STEPS.length + ": " + STEPS[currentStep - 1]}>
         <div className="flex gap-2">{STEPS.map((step, index) => <div key={step} className={"h-1.5 flex-1 rounded-full " + (index < currentStep ? "bg-primary" : "bg-secondary")} />)}</div>

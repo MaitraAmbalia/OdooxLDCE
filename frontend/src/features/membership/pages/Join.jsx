@@ -74,11 +74,11 @@ export default function Join() {
   const faqs = [
     {
       q: "Can first-year students join Skyline?",
-      a: "Absolutely! Over 40% of our members are first-year students. Joining gives you instant mentorship, access to hackathon teams, and networking with senior engineers."
+      a: "Yes. Membership is open to every enrolled student, in any year."
     },
     {
       q: "How does the digital membership pass work?",
-      a: "Once enrolled, your membership pass is immediately active in your account (/me/membership) with a secure verification QR code. Show it at events for discounted entry, priority lane access, and member verification."
+      a: "Once enrolled, your membership pass is immediately active in your account (/me/membership) with a secure verification QR code. Door staff scan it at events to confirm your membership."
     },
     {
       q: "What leadership opportunities are available to members?",
@@ -86,7 +86,7 @@ export default function Join() {
     },
     {
       q: "Can non-members still attend Skyline events?",
-      a: "Yes, non-members can purchase tickets at standard guest rates. However, members receive priority seating, up to 40% discount, and free access to internal technical workshops."
+      a: "Yes. Non-members buy the standard ticket. Members pay the member price wherever an event offers one, and can also register for members-only events."
     }
   ];
 
@@ -198,7 +198,7 @@ export default function Join() {
                       </span>
                     </div>
 
-                    <div className="mt-2 text-[11px] text-emerald-600 font-bold flex items-center gap-1">
+                    <div className="mt-2 text-[11px] text-success font-bold flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       Save on events, merchandise, and workshop admissions
                     </div>
@@ -218,7 +218,7 @@ export default function Join() {
                         <div className="w-5 h-5 rounded-full bg-secondary text-primary flex items-center justify-center shrink-0 font-bold text-[11px]">
                           ✓
                         </div>
-                        <span>Up to 40% discount on event tickets and technical workshops</span>
+                        <span>Member prices on event tickets wherever an event offers them</span>
                       </div>
 
                       <div className="flex items-center gap-2.5 font-medium">
@@ -233,7 +233,7 @@ export default function Join() {
                         <div className="w-5 h-5 rounded-full bg-secondary text-primary flex items-center justify-center shrink-0 font-bold text-[11px]">
                           ✓
                         </div>
-                        <span>In-app digital membership pass with instant QR verification</span>
+                        <span>Digital membership pass, verified by QR at the door</span>
                       </div>
                     </div>
                   </div>
@@ -286,106 +286,28 @@ export default function Join() {
 
             <div className="grid grid-cols-12 py-3.5 items-center">
               <div className="col-span-6 font-medium text-foreground">Club Leadership & Executive Candidacy</div>
-              <div className="col-span-3 text-center text-red-500">✕ Ineligible</div>
-              <div className="col-span-3 text-center font-bold text-emerald-600">✓ Fully Eligible</div>
+              <div className="col-span-3 text-center text-destructive">✕ Ineligible</div>
+              <div className="col-span-3 text-center font-bold text-success">✓ Fully Eligible</div>
             </div>
 
             <div className="grid grid-cols-12 py-3.5 items-center bg-muted/50">
               <div className="col-span-6 font-medium text-foreground">Event Ticket Pricing</div>
               <div className="col-span-3 text-center text-muted-foreground">Full Standard Price</div>
-              <div className="col-span-3 text-center font-bold text-emerald-600">Up to 40% Off</div>
+              <div className="col-span-3 text-center font-bold text-success">Member price</div>
             </div>
 
             <div className="grid grid-cols-12 py-3.5 items-center">
-              <div className="col-span-6 font-medium text-foreground">Venue Entry & Check-in</div>
-              <div className="col-span-3 text-center text-muted-foreground">General QR Line</div>
-              <div className="col-span-3 text-center font-bold text-primary">Priority Member QR Lane</div>
+              <div className="col-span-6 font-medium text-foreground">Members-only events</div>
+              <div className="col-span-3 text-center text-destructive">✕ Not eligible</div>
+              <div className="col-span-3 text-center font-bold text-success">✓ Eligible</div>
             </div>
 
             <div className="grid grid-cols-12 py-3.5 items-center bg-muted/50">
               <div className="col-span-6 font-medium text-foreground">Official Club Merch</div>
               <div className="col-span-3 text-center text-muted-foreground">Standard Retail Price</div>
-              <div className="col-span-3 text-center font-bold text-emerald-600">Exclusive Member Pricing</div>
-            </div>
-
-            <div className="grid grid-cols-12 py-3.5 items-center">
-              <div className="col-span-6 font-medium text-foreground">Hands-on Workshops & Masterclasses</div>
-              <div className="col-span-3 text-center text-muted-foreground">Subject to availability</div>
-              <div className="col-span-3 text-center font-bold text-emerald-600">Priority Seating & Free Access</div>
+              <div className="col-span-3 text-center font-bold text-success">Exclusive Member Pricing</div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Student Testimonials */}
-      <section className="max-w-5xl mx-auto px-4 py-12 sm:px-6">
-        <div className="text-center mb-10">
-          <Badge variant="secondary" className="mb-2">Student Voices</Badge>
-          <h3 className="text-2xl font-display font-extrabold text-foreground tracking-tight">
-            Hear From Our Community
-          </h3>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="rounded-2xl border-border/80 shadow-xs">
-            <CardContent className="pt-6">
-              <div className="flex text-amber-400 gap-1 mb-3">
-                <Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" />
-              </div>
-              <p className="text-xs text-muted-foreground italic leading-relaxed">
-                "The member discount on Gala alone paid for my entire year's pass. Plus, getting to lead the robotics exhibition was the highlight of my resume."
-              </p>
-              <div className="mt-4 pt-3 border-t border-border flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-secondary text-primary font-bold flex items-center justify-center text-xs">
-                  PP
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-foreground">Priya Patel</div>
-                  <div className="text-[10px] text-muted-foreground">Computer Eng, 3rd Year</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl border-border/80 shadow-xs">
-            <CardContent className="pt-6">
-              <div className="flex text-amber-400 gap-1 mb-3">
-                <Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" />
-              </div>
-              <p className="text-xs text-muted-foreground italic leading-relaxed">
-                "Having the digital membership pass on my phone made check-in at the tech symposium effortless. No paper tickets, no line holdups."
-              </p>
-              <div className="mt-4 pt-3 border-t border-border flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-800 font-bold flex items-center justify-center text-xs">
-                  RS
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-foreground">Rohan Shah</div>
-                  <div className="text-[10px] text-muted-foreground">Mechanical Eng, 2nd Year</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl border-border/80 shadow-xs">
-            <CardContent className="pt-6">
-              <div className="flex text-amber-400 gap-1 mb-3">
-                <Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" />
-              </div>
-              <p className="text-xs text-muted-foreground italic leading-relaxed">
-                "I joined as a volunteer, got promoted to Event Head, and managed a ₹2.5 Lakh budget with real faculty oversight. Invaluable experience."
-              </p>
-              <div className="mt-4 pt-3 border-t border-border flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs">
-                  AJ
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-foreground">Aarav Joshi</div>
-                  <div className="text-[10px] text-muted-foreground">Civil Eng, 4th Year</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </section>
 

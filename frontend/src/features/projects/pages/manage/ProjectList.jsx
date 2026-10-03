@@ -50,14 +50,14 @@ export default function ProjectList() {
               <Link key={project.id} to={"/manage/projects/" + project.id} className="group flex min-h-64 flex-col rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-6">
                 <div className="flex items-start justify-between gap-4">
                   <div><p className="text-xs font-semibold uppercase tracking-wider text-primary">{project.type ? project.type.replaceAll("_", " ") : "Project"}</p><h2 className="mt-2 font-display text-xl font-semibold">{project.name}</h2></div>
-                  <span className={"rounded-full px-2.5 py-1 text-xs font-semibold " + (project.status === "CLOSED" || project.status === "DONE" ? "bg-emerald-100 text-emerald-800" : "bg-secondary text-primary")}>{project.status === "CLOSED" ? "Closed" : project.status === "DONE" ? "Done" : "Active"}</span>
+                  <span className={"rounded-full px-2.5 py-1 text-xs font-semibold " + (project.status === "CLOSED" || project.status === "DONE" ? "bg-success-soft text-success" : "bg-secondary text-primary")}>{project.status === "CLOSED" ? "Closed" : project.status === "DONE" ? "Done" : "Active"}</span>
                 </div>
 
                 <p className="mt-4 line-clamp-3 flex-1 text-sm leading-6 text-muted-foreground">{project.description || "No project description has been added."}</p>
 
                 <div className="mt-5">
                   <div className="flex items-center justify-between text-xs"><span className="flex items-center gap-1.5 text-muted-foreground"><ListTodo className="size-4" aria-hidden="true" />Task progress</span><span className="font-semibold tabular-nums">{done}/{tasks.length}</span></div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary"><div className={"h-full rounded-full " + (progress === 100 ? "bg-emerald-600" : "bg-primary")} style={{ width: progress + "%" }} /></div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary"><div className={"h-full rounded-full " + (progress === 100 ? "bg-success" : "bg-primary")} style={{ width: progress + "%" }} /></div>
                 </div>
 
                 <div className="mt-5 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">

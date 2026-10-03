@@ -48,7 +48,7 @@ export default function NewsletterConfirm() {
 
         {status === "success" && (
           <div className="flex flex-col items-center gap-4">
-            <div className="flex size-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+            <div className="flex size-14 items-center justify-center rounded-full bg-success-soft text-success">
               <CheckCircle2 className="size-8" />
             </div>
             <h1 className="font-display text-2xl font-semibold">You're Subscribed!</h1>

@@ -63,7 +63,7 @@ export default function Reports() {
           ) : isError ? <ContentState error title="The report isn’t available." description="We couldn’t generate this financial summary." action={refetch} /> : (
             <div className="space-y-8">
               <div className="grid gap-4 sm:grid-cols-3">
-                <div className="rounded-xl border border-border p-5"><p className="text-xs uppercase tracking-wider text-muted-foreground">Total income</p><p className="mt-1 font-mono text-2xl font-semibold text-emerald-700">{money(report.totalIncomePaise)}</p></div>
+                <div className="rounded-xl border border-border p-5"><p className="text-xs uppercase tracking-wider text-muted-foreground">Total income</p><p className="mt-1 font-mono text-2xl font-semibold text-success">{money(report.totalIncomePaise)}</p></div>
                 <div className="rounded-xl border border-border p-5"><p className="text-xs uppercase tracking-wider text-muted-foreground">Total expense</p><p className="mt-1 font-mono text-2xl font-semibold">{money(report.totalExpensePaise)}</p></div>
                 <div className="rounded-xl border border-border p-5"><p className="text-xs uppercase tracking-wider text-muted-foreground">Net</p><p className="mt-1 font-mono text-2xl font-semibold">{money(report.balancePaise)}</p><p className="text-xs text-muted-foreground">{report.rowCount} ledger rows</p></div>
               </div>
@@ -72,7 +72,7 @@ export default function Reports() {
                 {report.byCategory.length === 0 ? <p className="text-sm text-muted-foreground">No ledger entries for this view yet.</p> : (
                   <table className="min-w-full divide-y divide-border rounded-xl border border-border text-sm">
                     <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider"><tr><th className="px-4 py-2">Category</th><th className="px-4 py-2 text-right">In</th><th className="px-4 py-2 text-right">Out</th></tr></thead>
-                    <tbody className="divide-y divide-border">{report.byCategory.map((c) => <tr key={c.category}><td className="px-4 py-2">{CATEGORY_LABEL[c.category] ?? c.category}</td><td className="px-4 py-2 text-right font-mono text-emerald-700">{c.inPaise ? money(c.inPaise) : "—"}</td><td className="px-4 py-2 text-right font-mono">{c.outPaise ? money(c.outPaise) : "—"}</td></tr>)}</tbody>
+                    <tbody className="divide-y divide-border">{report.byCategory.map((c) => <tr key={c.category}><td className="px-4 py-2">{CATEGORY_LABEL[c.category] ?? c.category}</td><td className="px-4 py-2 text-right font-mono text-success">{c.inPaise ? money(c.inPaise) : "—"}</td><td className="px-4 py-2 text-right font-mono">{c.outPaise ? money(c.outPaise) : "—"}</td></tr>)}</tbody>
                   </table>
                 )}
               </div>
@@ -81,7 +81,7 @@ export default function Reports() {
                   <h2 className="mb-3 font-display text-xl font-semibold">By event</h2>
                   <table className="min-w-full divide-y divide-border rounded-xl border border-border text-sm">
                     <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider"><tr><th className="px-4 py-2">Event</th><th className="px-4 py-2 text-right">Revenue</th><th className="px-4 py-2 text-right">Spent</th><th className="px-4 py-2 text-right">Approved budget</th></tr></thead>
-                    <tbody className="divide-y divide-border">{report.byEvent.map((e) => <tr key={e.eventId}><td className="px-4 py-2">{e.title}</td><td className="px-4 py-2 text-right font-mono">{money(e.inPaise)}</td><td className={"px-4 py-2 text-right font-mono " + (e.approvedBudgetPaise != null && e.outPaise > e.approvedBudgetPaise ? "text-red-700" : "")}>{money(e.outPaise)}</td><td className="px-4 py-2 text-right font-mono">{e.approvedBudgetPaise == null ? "—" : money(e.approvedBudgetPaise)}</td></tr>)}</tbody>
+                    <tbody className="divide-y divide-border">{report.byEvent.map((e) => <tr key={e.eventId}><td className="px-4 py-2">{e.title}</td><td className="px-4 py-2 text-right font-mono">{money(e.inPaise)}</td><td className={"px-4 py-2 text-right font-mono " + (e.approvedBudgetPaise != null && e.outPaise > e.approvedBudgetPaise ? "text-destructive" : "")}>{money(e.outPaise)}</td><td className="px-4 py-2 text-right font-mono">{e.approvedBudgetPaise == null ? "—" : money(e.approvedBudgetPaise)}</td></tr>)}</tbody>
                   </table>
                 </div>
               )}
@@ -97,11 +97,11 @@ export default function Reports() {
         </div>
         {payments.isPending ? <Skeleton className="mt-4 h-40 rounded-xl" /> : payments.isError ? <ContentState error title="Payments aren’t available." description="We couldn’t load the payment list." action={payments.refetch} /> : (
           <>
-            <p className={"mt-4 rounded-lg p-3 text-sm " + (payments.data.meta.unreconciledCount ? "bg-red-50 text-red-800" : "bg-emerald-50 text-emerald-800")}>{payments.data.meta.unreconciledCount ? `${payments.data.meta.unreconciledCount} paid payment(s) have no ledger entry.` : "All paid payments are in the ledger."}</p>
+            <p className={"mt-4 rounded-lg p-3 text-sm " + (payments.data.meta.unreconciledCount ? "bg-destructive/10 text-destructive" : "bg-success-soft text-success")}>{payments.data.meta.unreconciledCount ? `${payments.data.meta.unreconciledCount} paid payment(s) have no ledger entry.` : "All paid payments are in the ledger."}</p>
             <div className="mt-4 overflow-x-auto">
               <table className="min-w-full divide-y divide-border text-sm">
                 <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground"><tr><th className="px-3 py-2">Date</th><th className="px-3 py-2">Payer</th><th className="px-3 py-2">Purpose</th><th className="px-3 py-2">Status</th><th className="px-3 py-2 text-right">Amount</th><th className="px-3 py-2">Ledger</th></tr></thead>
-                <tbody className="divide-y divide-border">{payments.data.data.map((p) => <tr key={p.id}><td className="whitespace-nowrap px-3 py-2">{new Date(p.paidAt || p.createdAt).toLocaleDateString("en-IN")}</td><td className="px-3 py-2">{p.payer}</td><td className="px-3 py-2">{p.purpose.replace("_ORDER", "").toLowerCase()}</td><td className="px-3 py-2">{p.status.toLowerCase()}</td><td className="px-3 py-2 text-right font-mono">{money(p.amountPaise)}</td><td className="px-3 py-2">{p.reconciled ? <span className="text-emerald-700">{p.ledgerEntryId ? "Matched" : "—"}</span> : <span className="font-semibold text-red-700">Missing</span>}</td></tr>)}</tbody>
+                <tbody className="divide-y divide-border">{payments.data.data.map((p) => <tr key={p.id}><td className="whitespace-nowrap px-3 py-2">{new Date(p.paidAt || p.createdAt).toLocaleDateString("en-IN")}</td><td className="px-3 py-2">{p.payer}</td><td className="px-3 py-2">{p.purpose.replace("_ORDER", "").toLowerCase()}</td><td className="px-3 py-2">{p.status.toLowerCase()}</td><td className="px-3 py-2 text-right font-mono">{money(p.amountPaise)}</td><td className="px-3 py-2">{p.reconciled ? <span className="text-success">{p.ledgerEntryId ? "Matched" : "—"}</span> : <span className="font-semibold text-destructive">Missing</span>}</td></tr>)}</tbody>
               </table>
             </div>
           </>
