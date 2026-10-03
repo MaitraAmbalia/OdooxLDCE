@@ -2,15 +2,22 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
-import { ArrowLeft, Check, Copy } from "lucide-react";
+import { ArrowLeft, Check, Copy, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import {
+  SocialShareModal,
+  WhatsAppIcon,
+  InstagramIcon,
+} from "@/components/common/SocialShareModal";
+import { buildWhatsAppTemplate } from "@/utils/shareTemplates";
 
 export default function AnnouncementDetail() {
   const { id } = useParams();
   const [copied, setCopied] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const { data: announcementData, isPending, isError, refetch } = useQuery({
     queryKey: ['announcements', id],
@@ -32,6 +39,16 @@ export default function AnnouncementDetail() {
 
   if (isPending) return <div className="page-container max-w-3xl py-12" role="status" aria-label="Loading update"><Skeleton className="h-5 w-32" /><Skeleton className="mt-8 h-12 w-4/5" /><Skeleton className="mt-4 h-5 w-52" /><Skeleton className="mt-10 h-80 w-full rounded-2xl" /></div>;
   if (isError || !announcement) return <div className="page-container py-16"><ContentState error title="We couldn’t find that update." description="It may have moved or is temporarily unavailable." action={refetch} /></div>;
+
+  const waTemplate = buildWhatsAppTemplate({
+    type: 'announcement',
+    title: announcement.title,
+    description: announcement.body,
+    date: announcement.publishedAt,
+    audience: announcement.audience,
+    author: announcement.author?.name,
+    url: typeof window !== "undefined" ? window.location.href : "",
+  });
 
   return (
     <article className="page-container max-w-3xl py-12 sm:py-16">
@@ -74,15 +91,57 @@ export default function AnnouncementDetail() {
         )}
       </div>
 
-      <div className="mt-8 flex gap-3 border-t border-border pt-6">
-        <Button asChild variant="outline">
-          <a href={`https://wa.me/?text=${encodeURIComponent(`${announcement.title} ${window.location.href}`)}`} target="_blank" rel="noreferrer">Share on WhatsApp</a>
+      {/* Social Share & Action Bar */}
+      <div className="mt-8 flex flex-wrap items-center gap-2.5 border-t border-border pt-6">
+        {/* Full Share Center Modal trigger */}
+        <Button
+          variant="default"
+          onClick={() => setIsShareModalOpen(true)}
+          className="gap-2 font-medium"
+        >
+          <Share2 className="size-4" aria-hidden="true" />
+          Share Update
         </Button>
-        <Button variant="outline" onClick={copyLink} aria-live="polite">
-          {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+
+        {/* 1-Click WhatsApp Direct Share */}
+        <Button asChild variant="outline" className="gap-2 border-[#25D366]/40 hover:bg-[#25D366]/10 text-foreground">
+          <a href={waTemplate.shareUrl} target="_blank" rel="noreferrer">
+            <WhatsAppIcon className="size-4 text-[#25D366]" />
+            <span>WhatsApp</span>
+          </a>
+        </Button>
+
+        {/* 1-Click Instagram Modal view */}
+        <Button
+          variant="outline"
+          onClick={() => setIsShareModalOpen(true)}
+          className="gap-2 border-pink-500/30 hover:bg-pink-500/10 text-foreground"
+        >
+          <InstagramIcon className="size-4 text-pink-600" />
+          <span>Instagram Template</span>
+        </Button>
+
+        {/* Copy Link */}
+        <Button variant="outline" onClick={copyLink} aria-live="polite" className="gap-2">
+          {copied ? <Check className="size-4 text-emerald-500" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
           {copied ? "Link copied" : "Copy link"}
         </Button>
       </div>
+
+      {/* Social Share Modal */}
+      <SocialShareModal
+        open={isShareModalOpen}
+        onOpenChange={setIsShareModalOpen}
+        shareData={{
+          type: "announcement",
+          title: announcement.title,
+          description: announcement.body,
+          date: announcement.publishedAt,
+          audience: announcement.audience,
+          author: announcement.author,
+          url: typeof window !== "undefined" ? window.location.href : "",
+        }}
+      />
     </article>
   );
 }

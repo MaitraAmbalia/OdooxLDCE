@@ -12,6 +12,7 @@ import { formatINR } from "../../../lib/utils";
 import { toast } from "sonner";
 import { ContentState } from "../../../components/common/ContentState";
 import { usePageTitle } from "../../../hooks/usePageTitle";
+import { SocialShareModal } from "../../../components/common/SocialShareModal";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -19,6 +20,7 @@ export default function ProductDetail() {
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const { data: productData, isPending, isError, refetch } = useQuery({
     queryKey: ['products', id],
@@ -104,13 +106,8 @@ export default function ProductDetail() {
     }
   };
 
-  const handleShare = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      toast.success("Product link copied.");
-    } catch {
-      toast.error("Could not copy the link.");
-    }
+  const handleShare = () => {
+    setIsShareModalOpen(true);
   };
 
   return (
@@ -320,6 +317,22 @@ export default function ProductDetail() {
           </div>
 
         </div>
+
+        {/* Social Share Modal */}
+        {product && (
+          <SocialShareModal
+            open={isShareModalOpen}
+            onOpenChange={setIsShareModalOpen}
+            shareData={{
+              type: "merch",
+              title: product.name,
+              description: product.description,
+              price: formatINR(product.basePricePaise / 100),
+              venue: "Skyline Merch Desk (Counter B)",
+              url: typeof window !== "undefined" ? window.location.href : "",
+            }}
+          />
+        )}
 
     </div>
   );
