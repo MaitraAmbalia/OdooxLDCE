@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { validate } from '../../middleware/validate.js';
 import { rateLimit } from '../../middleware/rateLimit.js';
 import { requireJson } from '../../middleware/requireJson.js';
-import { registerSchema, loginSchema, emailSchema, resetSchema } from './auth.schemas.js';
+import { registerSchema, loginSchema, emailSchema, resetSchema, verifySchema } from './auth.schemas.js';
 
 function clearSessionCookies(res, config) {
   const options = {

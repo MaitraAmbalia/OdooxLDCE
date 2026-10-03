@@ -163,15 +163,17 @@ async function main() {
     create: {
       id: '00000000-0000-0000-0000-000000000002',
       name: 'Skyline Club Signature Hoodie',
-      description: 'Heavyweight fleece navy hoodie with embroidered golden Skyline crest.',
+      description: 'Navy hoodie with golden Skyline crest.',
       status: 'ACTIVE',
       category: 'APPAREL',
+      memberPricePaise: BigInt(89900),
+      nonMemberPricePaise: BigInt(119900),
       variants: {
         create: [
-          { sku: 'HD-NAVY-S', size: 'S', color: 'Navy', stockOnHand: 30, reservedStock: 0 },
-          { sku: 'HD-NAVY-M', size: 'M', color: 'Navy', stockOnHand: 50, reservedStock: 0 },
-          { sku: 'HD-NAVY-L', size: 'L', color: 'Navy', stockOnHand: 50, reservedStock: 0 },
-          { sku: 'HD-NAVY-XL', size: 'XL', color: 'Navy', stockOnHand: 25, reservedStock: 0 },
+          { sku: 'HD-NAVY-S', size: 'S', color: 'Navy', stock: 30, reserved: 0 },
+          { sku: 'HD-NAVY-M', size: 'M', color: 'Navy', stock: 50, reserved: 0 },
+          { sku: 'HD-NAVY-L', size: 'L', color: 'Navy', stock: 50, reserved: 0 },
+          { sku: 'HD-NAVY-XL', size: 'XL', color: 'Navy', stock: 25, reserved: 0 },
         ],
       },
     },
@@ -187,6 +189,8 @@ async function main() {
       description: 'Raise funds for the club by selling homemade pastries and drinks on campus.',
       type: 'FUNDRAISER',
       status: 'ACTIVE',
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 30 * 24 * 3600000),
       ownerId: createdUsers['president@nirmauni.ac.in'].id,
       tasks: {
         create: [
@@ -195,6 +199,7 @@ async function main() {
             description: 'Prepare 100 packages of assorted baked goods.',
             priority: 'HIGH',
             status: 'IN_PROGRESS',
+            dueAt: new Date(Date.now() + 5 * 24 * 3600000),
             createdById: createdUsers['president@nirmauni.ac.in'].id,
           },
           {
@@ -202,6 +207,7 @@ async function main() {
             description: 'Purchase supplies from supermarket and retain receipt.',
             priority: 'MEDIUM',
             status: 'TODO',
+            dueAt: new Date(Date.now() + 3 * 24 * 3600000),
             createdById: createdUsers['president@nirmauni.ac.in'].id,
           },
           {
@@ -209,6 +215,7 @@ async function main() {
             description: 'Staff the table from 11:00 AM to 3:00 PM.',
             priority: 'HIGH',
             status: 'TODO',
+            dueAt: new Date(Date.now() + 7 * 24 * 3600000),
             createdById: createdUsers['president@nirmauni.ac.in'].id,
           },
         ],
