@@ -1,0 +1,310 @@
+import { useEffect, useState } from "react";
+import {
+  Link,
+  NavLink,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  ArrowUpRight,
+  ChevronDown,
+  LogOut,
+  Menu,
+  Mountain,
+  UserRound,
+} from "lucide-react";
+import { Toaster, toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useSession } from "@/hooks/useSession";
+import { cn } from "@/lib/utils";
+
+const navigation = [
+  ["/", "Home"],
+  ["/events", "Events"],
+  ["/shop", "Shop"],
+  ["/announcements", "Updates"],
+  ["/selection", "Leadership"],
+];
+
+export function Brand() {
+  return (
+    <Link
+      to="/"
+      aria-label="Skyline home"
+      className="inline-flex shrink-0 items-center gap-2.5"
+    >
+      <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+        <Mountain className="size-5" strokeWidth={1.7} aria-hidden="true" />
+      </span>
+      <span className="font-display text-2xl font-bold tracking-tight">
+        skyline<span className="text-primary">.</span>
+      </span>
+    </Link>
+  );
+}
+
+export default function DiscoveryLayout() {
+  const [open, setOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const { data, isPending, isError, refetch } = useSession();
+  const user = data?.data;
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    setOpen(false);
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+  const accountLinks = [
+    ["/me", "My account"],
+    ["/me/membership", "Membership card"],
+    ["/me/tickets", "My tickets"],
+    ["/me/orders", "My orders"],
+    ["/me/notifications", "Notifications"],
+  ];
+  if (user?.isVolunteer || user?.roles?.length)
+    accountLinks.push(["/volunteer", "Volunteer portal"]);
+  if (
+    user?.roles?.some((role) =>
+      [
+        "PRESIDENT",
+        "TREASURER",
+        "EVENT_HEAD",
+        "VOLUNTEER_HEAD",
+        "MARKETING_HEAD",
+        "MENTOR",
+      ].includes(role),
+    )
+  )
+    accountLinks.push(["/manage", "Manage Skyline"]);
+
+  async function logout() {
+    setLoggingOut(true);
+    try {
+      const response = await fetch("/api/v1/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Logout failed");
+      queryClient.clear();
+      queryClient.setQueryData(["auth", "me"], { data: null });
+      setOpen(false);
+      navigate("/");
+      toast.success("You have been logged out.");
+    } catch {
+      toast.error("Could not log out. Please try again.");
+    } finally {
+      setLoggingOut(false);
+    }
+  }
+
+  const sessionActions = isPending ? (
+    <span
+      className="h-10 w-24 animate-pulse rounded-md bg-secondary"
+      aria-label="Loading account"
+    />
+  ) : isError ? (
+    <Button variant="outline" onClick={() => refetch()}>
+      Retry account
+    </Button>
+  ) : user ? (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="h-10 max-w-48">
+          <UserRound aria-hidden="true" />
+          <span className="truncate">
+            {user.name?.split(" ")[0] || "Account"}
+          </span>
+          <ChevronDown aria-hidden="true" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="truncate">
+          {user.name || "Your account"}
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {accountLinks.map(([to, label]) => (
+          <DropdownMenuItem key={to} asChild>
+            <Link to={to}>{label}</Link>
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem disabled={loggingOut} onSelect={logout}>
+          <LogOut aria-hidden="true" />
+          {loggingOut ? "Logging out…" : "Log out"}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  ) : (
+    <>
+      <Button asChild variant="ghost" className="h-10">
+        <Link to="/login">Log in</Link>
+      </Button>
+      <Button asChild className="h-10">
+        <Link to="/join">
+          Join Skyline <ArrowUpRight aria-hidden="true" />
+        </Link>
+      </Button>
+    </>
+  );
+
+  return (
+    <div className="discovery-shell flex min-h-screen flex-col bg-background text-foreground">
+      <a
+        href="#main-content"
+        className="sr-only fixed left-4 top-4 z-[100] rounded-md bg-primary p-3 text-primary-foreground focus:not-sr-only"
+      >
+        Skip to content
+      </a>
+      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-md">
+        <div className="page-container flex h-20 items-center justify-between gap-6">
+          <Brand />
+          <nav
+            aria-label="Main navigation"
+            className="hidden items-center gap-1 lg:flex"
+          >
+            {navigation.map(([to, label]) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === "/"}
+                className={({ isActive }) =>
+                  cn(
+                    "rounded-md px-3.5 py-2 text-sm font-medium transition-colors hover:text-primary",
+                    isActive
+                      ? "bg-secondary text-primary"
+                      : "text-muted-foreground",
+                  )
+                }
+              >
+                {label}
+              </NavLink>
+            ))}
+          </nav>
+          <div className="hidden items-center gap-2 lg:flex">
+            {sessionActions}
+          </div>
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-11 lg:hidden"
+                aria-label="Open navigation"
+              >
+                <Menu aria-hidden="true" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="w-[min(88vw,360px)] overflow-y-auto">
+              <SheetHeader className="px-6 pt-7">
+                <SheetTitle className="text-xl">Explore Skyline</SheetTitle>
+                <SheetDescription>Your campus, connected.</SheetDescription>
+              </SheetHeader>
+              <nav
+                aria-label="Mobile navigation"
+                className="flex flex-col gap-1 px-4"
+              >
+                {navigation.map(([to, label]) => (
+                  <NavLink
+                    end={to === "/"}
+                    key={to}
+                    to={to}
+                    onClick={() => setOpen(false)}
+                    className={({ isActive }) =>
+                      cn(
+                        "rounded-md px-3 py-3 text-base font-medium",
+                        isActive
+                          ? "bg-secondary text-primary"
+                          : "hover:bg-secondary",
+                      )
+                    }
+                  >
+                    {label}
+                  </NavLink>
+                ))}
+              </nav>
+              <div className="mx-6 border-t border-border" />
+              <div className="flex flex-col gap-2 px-6 pb-6">
+                {user ? (
+                  <>
+                    <p className="mb-2 text-sm text-muted-foreground">
+                      {user.name}
+                    </p>
+                    {accountLinks.map(([to, label]) => (
+                      <Link
+                        key={to}
+                        to={to}
+                        className="rounded-md py-2.5 text-sm font-medium"
+                        onClick={() => setOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ))}
+                    <Button
+                      variant="outline"
+                      disabled={loggingOut}
+                      onClick={logout}
+                    >
+                      {loggingOut ? "Logging out…" : "Log out"}
+                    </Button>
+                  </>
+                ) : (
+                  sessionActions
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </header>
+      <main id="main-content" tabIndex={-1} className="flex-1 outline-none">
+        <Outlet />
+      </main>
+      <footer className="border-t border-border bg-card">
+        <div className="page-container flex flex-col justify-between gap-6 py-9 sm:flex-row sm:items-center">
+          <div>
+            <Brand />
+            <p className="mt-3 text-sm text-muted-foreground">
+              A little more campus. A lot more possibility.
+            </p>
+          </div>
+          <nav
+            aria-label="Footer navigation"
+            className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted-foreground"
+          >
+            <Link to="/events" className="hover:text-primary">
+              Explore events
+            </Link>
+            <Link to="/join" className="hover:text-primary">
+              Membership
+            </Link>
+            <Link to="/announcements" className="hover:text-primary">
+              Latest updates
+            </Link>
+          </nav>
+        </div>
+        <div className="page-container border-t border-border py-5 text-xs text-muted-foreground">
+          © {new Date().getFullYear()} Skyline Student Association
+        </div>
+      </footer>
+      <Toaster richColors position="bottom-right" />
+    </div>
+  );
+}

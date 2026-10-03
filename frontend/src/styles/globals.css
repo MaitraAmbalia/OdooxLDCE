@@ -1,22 +1,166 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource/bricolage-grotesque/latin-500.css";
+@import "@fontsource/bricolage-grotesque/latin-600.css";
+@import "@fontsource/bricolage-grotesque/latin-700.css";
+@import "@fontsource/bricolage-grotesque/latin-800.css";
+@import "@fontsource/ibm-plex-sans/latin-400.css";
+@import "@fontsource/ibm-plex-sans/latin-500.css";
+@import "@fontsource/ibm-plex-sans/latin-600.css";
+@import "@fontsource/ibm-plex-sans/latin-700.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Semantic shadcn tokens. Legacy tokens remain during the page-by-page migration. */
+:root {
+  --background: #f8f9fc;
+  --foreground: #20243b;
+  --card: #ffffff;
+  --card-foreground: #20243b;
+  --popover: #ffffff;
+  --popover-foreground: #20243b;
+  --primary: #4544a8;
+  --primary-foreground: #ffffff;
+  --secondary: #eeedf7;
+  --secondary-foreground: #38366c;
+  --muted: #f0f1f5;
+  --muted-foreground: #616779;
+  --accent: #eeedf7;
+  --accent-foreground: #38366c;
+  --destructive: #b8322a;
+  --border: #e0e3ec;
+  --input: #cbd0de;
+  --ring: #4544a8;
+  --radius: 0.625rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  :where(a, button, input, select, textarea):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 4px;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
+.discovery-shell {
+  --color-muted: #f0f1f5;
+}
+.page-container {
+  width: min(100% - 3rem, 1200px);
+  margin-inline: auto;
+}
+.poster-indigo {
+  background: #e7e4f6;
+  color: #45417f;
+}
+.poster-blue {
+  background: #dce9f6;
+  color: #285778;
+}
+.poster-sage {
+  background: #deebe3;
+  color: #345d4a;
+}
+.poster-peach {
+  background: #f5e4db;
+  color: #86533d;
+}
+.poster-orbit {
+  position: absolute;
+  width: 70%;
+  aspect-ratio: 1;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  right: -15%;
+  top: 5%;
+  opacity: 0.22;
+}
+.poster-orbit::before,
+.poster-orbit::after {
+  content: "";
+  position: absolute;
+  inset: 15%;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+.poster-orbit::after {
+  inset: 30%;
+}
+.home-hero-art .poster-orbit {
+  width: 85%;
+  right: -12%;
+  top: 4%;
+}
+.home-hero-art {
+  min-height: 300px;
+}
+@media (max-width: 639px) {
+  .page-container {
+    width: calc(100% - 2rem);
+  }
+  .home-hero-art {
+    min-height: 240px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 @theme {
-  --color-ink: #0F172A;
-  --color-paper: #F8FAFC;
-  --color-surface: #FFFFFF;
-  --color-dusk: #2563EB;
-  --color-dusk-hover: #1D4ED8;
-  --color-lamp: #F59E0B;
-  --color-muted: #64748B;
-  --color-line: #E2E8F0;
+  --color-ink: #0f172a;
+  --color-paper: #f8fafc;
+  --color-surface: #ffffff;
+  --color-dusk: #2563eb;
+  --color-dusk-hover: #1d4ed8;
+  --color-lamp: #f59e0b;
+  --color-muted: #64748b;
+  --color-line: #e2e8f0;
 
-  --color-ok: #10B981;
-  --color-wait: #F59E0B;
-  --color-stop: #EF4444;
-  --color-info: #3B82F6;
-  --color-neutral: #64748B;
+  --color-ok: #10b981;
+  --color-wait: #f59e0b;
+  --color-stop: #ef4444;
+  --color-info: #3b82f6;
+  --color-neutral: #64748b;
 
-  --font-display: "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display:
+    "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 }
@@ -28,7 +172,12 @@
   letter-spacing: -0.01em;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-display);
   letter-spacing: -0.025em;
 }
@@ -42,11 +191,11 @@ h1, h2, h3, h4, h5, h6 {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: #cbd5e1;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: #94a3b8;
 }
 
 /* Glassmorphism helpers */
@@ -74,7 +223,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 .animate-shimmer::after {
   position: absolute;
-  top: 0; right: 0; bottom: 0; left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   transform: translateX(-100%);
   background-image: linear-gradient(
     90deg,
@@ -84,5 +236,5 @@ h1, h2, h3, h4, h5, h6 {
     rgba(255, 255, 255, 0)
   );
   animation: shimmer 2s infinite;
-  content: '';
+  content: "";
 }

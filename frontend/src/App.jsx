@@ -1,6 +1,7 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import PublicLayout from "./app/layouts/PublicLayout";
+import DiscoveryLayout from "./app/layouts/DiscoveryLayout";
 import Login from "./features/auth/pages/Login";
 import Register from "./features/auth/pages/Register";
 import VerifyEmail from "./features/auth/pages/VerifyEmail";
@@ -55,9 +56,13 @@ function App() {
       <Route path="/door/:eventId" element={<DoorScanner />} />
       <Route path="/cash-desk" element={<CashDesk />} />
 
+      <Route element={<DiscoveryLayout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/events" element={<EventList />} />
+      </Route>
+
       <Route path="/" element={<PublicLayout />}>
         {/* Public Routes */}
-        <Route index element={<Home />} />
         <Route path="join" element={<Join />} />
 
         {/* Auth Routes */}
@@ -76,7 +81,6 @@ function App() {
         <Route path="checkout/status/:paymentId" element={<CheckoutStatus />} />
 
         {/* Phase 3: Events & Ticketing */}
-        <Route path="events" element={<EventList />} />
         <Route path="events/:id" element={<EventDetail />} />
         <Route path="me/tickets" element={<MyTickets />} />
         <Route path="me/tickets/:id" element={<TicketPass />} />
