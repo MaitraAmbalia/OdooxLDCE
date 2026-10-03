@@ -1,4 +1,5 @@
 import { AppError } from '../../lib/AppError.js';
+import { parsePagination, createPageMeta } from '../../lib/pagination.js';
 
 export function createProjectsService({ prisma }) {
   return {
@@ -15,21 +16,30 @@ export function createProjectsService({ prisma }) {
       });
     },
 
-    async listProjects() {
-      return prisma.project.findMany({
-        orderBy: { createdAt: 'desc' },
-        include: {
-          tasks: {
-            include: {
-              assignees: {
-                include: {
-                  user: { select: { id: true, name: true, email: true } },
+    async listProjects(query = {}) {
+      const page = parsePagination(query, { defaultLimit: 50 });
+
+      const [data, total] = await Promise.all([
+        prisma.project.findMany({
+          orderBy: { createdAt: 'desc' },
+          skip: page.skip,
+          take: page.take,
+          include: {
+            tasks: {
+              include: {
+                assignees: {
+                  include: {
+                    user: { select: { id: true, name: true, email: true } },
+                  },
                 },
               },
             },
           },
-        },
-      });
+        }),
+        prisma.project.count(),
+      ]);
+
+      return { data, meta: createPageMeta(page, total) };
     },
 
     async getProject(id) {
@@ -100,6 +110,33 @@ export function createProjectsService({ prisma }) {
           },
         },
       });
+    },
+
+    async getUserTasks(userId, query = {}) {
+      const page = parsePagination(query, { defaultLimit: 20 });
+      const where = {
+        assignees: {
+          some: {
+            userId,
+            removedAt: null,
+          },
+        },
+      };
+
+      const [tasks, total] = await Promise.all([
+        prisma.task.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: page.skip,
+          take: page.take,
+          include: {
+            project: { select: { id: true, name: true } },
+          },
+        }),
+        prisma.task.count({ where }),
+      ]);
+
+      return { data: tasks, meta: createPageMeta(page, total) };
     },
   };
 }

@@ -1,149 +1,139 @@
-import React, { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, CalendarDays, MapPin, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ContentState } from "@/components/common/ContentState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
+
+function normalizeAgenda(agenda) {
+  if (Array.isArray(agenda)) return agenda;
+  if (typeof agenda !== "string") return [];
+  return agenda.split("\n").map((topic, index) => ({ id: String(index), topic: topic.trim() })).filter((item) => item.topic);
+}
+
+function responseStatus(invite) {
+  return invite.rsvp || invite.status || "PENDING";
+}
+
+function responseClasses(status) {
+  if (status === "YES") return "bg-emerald-100 text-emerald-800";
+  if (status === "NO") return "bg-red-100 text-red-800";
+  return "bg-amber-100 text-amber-800";
+}
 
 export default function MeetingDetail() {
   const { id } = useParams();
-  const [activeTab, setActiveTab] = useState("AGENDA"); // AGENDA, RSVPS, ATTENDANCE, MINUTES
+  const [activeTab, setActiveTab] = useState("AGENDA");
 
-  const { data: meetingData, isLoading } = useQuery({
-    queryKey: ['meetings', id],
+  const { data: meetingsData, isPending, isError, refetch } = useQuery({
+    queryKey: ["meetings"],
     queryFn: async () => {
-      // API endpoint: GET /meetings/:id
-      const res = await fetch(`/api/v1/meetings/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch meeting");
-      return res.json();
-    }
+      const response = await fetch("/api/v1/meetings", { credentials: "include" });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message || "Failed to fetch meetings");
+      return json;
+    },
   });
 
-  if (isLoading) return <div className="p-12 text-center text-[var(--color-muted)]">Loading meeting details...</div>;
-  if (!meetingData?.data) return <div className="p-12 text-center text-[var(--color-stop)]">Meeting not found.</div>;
+  const meeting = meetingsData?.data?.find((entry) => entry.id === id);
+  usePageTitle(meeting?.title || "Meeting details");
 
-  const meeting = meetingData.data;
+  if (isPending) {
+    return <div className="page-container max-w-5xl py-12" role="status" aria-label="Loading meeting"><Skeleton className="h-8 w-44" /><Skeleton className="mt-7 h-32 rounded-2xl" /><Skeleton className="mt-6 h-80 rounded-2xl" /></div>;
+  }
 
-  // Fallback defaults for missing nested data structure if needed
-  const agenda = meeting.agenda || [];
-  const rsvps = meeting.rsvps || [];
+  if (isError) {
+    return <div className="page-container py-16"><ContentState error title="This meeting isn’t available right now." description="We couldn’t load the meeting schedule." action={refetch} /></div>;
+  }
+
+  if (!meeting) {
+    return <div className="page-container py-16"><ContentState title="Meeting not found." description="It may have been removed or is no longer visible to your account." actionLabel="Back to meetings" action={() => window.location.assign("/manage/meetings")} /></div>;
+  }
+
+  const scheduledAt = meeting.date || meeting.scheduledAt;
+  const agenda = normalizeAgenda(meeting.agenda);
+  const invites = meeting.rsvps || meeting.invites || [];
+  const counts = {
+    yes: invites.filter((invite) => responseStatus(invite) === "YES").length,
+    no: invites.filter((invite) => responseStatus(invite) === "NO").length,
+    pending: invites.filter((invite) => responseStatus(invite) === "PENDING").length,
+  };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <Link to="/manage/meetings" className="text-sm font-medium text-[var(--color-dusk)] hover:underline inline-block mb-4">
-          &larr; Back to Meetings
-        </Link>
+    <div className="page-container max-w-5xl py-12 sm:py-16">
+      <Button asChild variant="ghost" className="mb-6 -ml-3">
+        <Link to="/manage/meetings"><ArrowLeft aria-hidden="true" /> Back to meetings</Link>
+      </Button>
 
-        <div className="flex justify-between items-start">
+      <div className="rounded-2xl border border-border bg-card p-5 sm:p-7">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)] mb-2">{meeting.title}</h1>
-            <p className="text-sm text-[var(--color-muted)] flex items-center gap-4">
-              <span>📅 {new Date(meeting.scheduledAt).toLocaleString(undefined, { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-              <span>📍 {meeting.location}</span>
-            </p>
+            <p className="mb-2 text-sm font-medium text-primary">Meeting brief</p>
+            <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">{meeting.title}</h1>
           </div>
-          {meeting.isRequired && (
-            <span className="bg-[var(--color-stop)] text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-[6px]">
-              Mandatory
-            </span>
-          )}
+          <span className="w-fit rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold">{meeting.audience || meeting.audienceType || "BOTH"}</span>
+        </div>
+        <div className="mt-6 grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
+          <p className="flex items-center gap-2"><CalendarDays className="size-4 text-primary" aria-hidden="true" />{scheduledAt ? new Date(scheduledAt).toLocaleString(undefined, { dateStyle: "long", timeStyle: "short" }) : "Date to be confirmed"}</p>
+          <p className="flex items-center gap-2"><MapPin className="size-4 text-primary" aria-hidden="true" />{meeting.venue || meeting.location || "Venue to be confirmed"}</p>
         </div>
       </div>
 
-      <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] shadow-sm flex flex-col min-h-[500px]">
-        {/* Tabs */}
-        <div className="flex border-b border-[var(--color-line)] overflow-x-auto bg-[var(--color-paper)] rounded-t-[10px]">
-          {['AGENDA', 'RSVPS', 'ATTENDANCE', 'MINUTES'].map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-4 text-sm font-semibold whitespace-nowrap transition-colors ${activeTab === tab ? 'text-[var(--color-dusk)] border-b-2 border-[var(--color-dusk)] bg-white' : 'text-[var(--color-muted)] hover:text-[var(--color-ink)] hover:bg-gray-50'}`}
-            >
-              {tab.charAt(0) + tab.slice(1).toLowerCase()}
-            </button>
-          ))}
+      <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="flex border-b border-border bg-secondary/30" role="tablist" aria-label="Meeting information">
+          <button type="button" role="tab" aria-selected={activeTab === "AGENDA"} onClick={() => setActiveTab("AGENDA")} className={"border-b-2 px-5 py-4 text-sm font-semibold transition-colors " + (activeTab === "AGENDA" ? "border-primary bg-card text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>Agenda</button>
+          <button type="button" role="tab" aria-selected={activeTab === "INVITES"} onClick={() => setActiveTab("INVITES")} className={"border-b-2 px-5 py-4 text-sm font-semibold transition-colors " + (activeTab === "INVITES" ? "border-primary bg-card text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>Invite responses</button>
         </div>
 
-        {/* Tab Content */}
-        <div className="p-6 flex-1 bg-white">
-
-          {activeTab === 'AGENDA' && (
-            <div>
-              <h2 className="text-lg font-bold text-[var(--color-ink)] mb-4">Meeting Agenda</h2>
+        <div className="p-5 sm:p-7">
+          {activeTab === "AGENDA" && (
+            <div role="tabpanel">
+              <h2 className="font-display text-xl font-semibold">Meeting agenda</h2>
+              <p className="mt-1 text-sm text-muted-foreground">The planned talking points for this session.</p>
               {agenda.length === 0 ? (
-                <p className="text-[var(--color-muted)] text-sm">No agenda provided for this meeting.</p>
+                <div className="mt-6 rounded-xl border border-dashed border-border px-5 py-10 text-center text-sm text-muted-foreground">No agenda has been added.</div>
               ) : (
-                <div className="space-y-4 max-w-3xl">
-                  {agenda.map((item, i) => (
-                    <div key={item.id || i} className="flex gap-4 p-4 rounded-[6px] border border-[var(--color-line)] bg-gray-50 items-center">
-                      <div className="w-8 h-8 rounded-full bg-[var(--color-dusk)] text-white flex items-center justify-center font-bold font-mono text-sm">
-                        {i + 1}
+                <ol className="mt-6 space-y-3">
+                  {agenda.map((item, index) => (
+                    <li key={item.id || index} className="flex items-start gap-4 rounded-xl border border-border bg-secondary/20 p-4">
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">{index + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium">{item.topic || item.title || String(item)}</p>
+                        {(item.owner || item.minutes) && <p className="mt-1 text-xs text-muted-foreground">{item.owner || "Shared discussion"}{item.minutes ? " · " + item.minutes + " minutes" : ""}</p>}
                       </div>
-                      <div className="flex-1">
-                        <p className="font-semibold text-[var(--color-ink)]">{item.topic}</p>
-                        <p className="text-xs text-[var(--color-muted)] mt-1">{item.owner || "No owner assigned"}</p>
-                      </div>
-                      <div className="font-mono text-sm text-[var(--color-ink)] font-bold bg-white px-3 py-1 rounded border border-[var(--color-line)]">
-                        {item.minutes} min
-                      </div>
-                    </div>
+                    </li>
                   ))}
-                </div>
+                </ol>
               )}
             </div>
           )}
 
-          {activeTab === 'RSVPS' && (
-            <div>
-              <div className="flex justify-between items-center mb-6 max-w-4xl">
-                <h2 className="text-lg font-bold text-[var(--color-ink)]">RSVP Status</h2>
-                <div className="flex gap-4 text-sm font-mono">
-                  <span className="text-[var(--color-ok)]">{rsvps.filter(r => r.status === 'YES').length} Yes</span>
-                  <span className="text-[var(--color-stop)]">{rsvps.filter(r => r.status === 'NO').length} No</span>
-                  <span className="text-[var(--color-wait)]">{rsvps.filter(r => r.status === 'PENDING').length} Pending</span>
+          {activeTab === "INVITES" && (
+            <div role="tabpanel">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div><h2 className="font-display text-xl font-semibold">Invite responses</h2><p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground"><Users className="size-4" aria-hidden="true" />{invites.length} invited</p></div>
+                <div className="flex flex-wrap gap-2 text-xs font-medium"><span className="rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-800">{counts.yes} attending</span><span className="rounded-full bg-red-100 px-2.5 py-1 text-red-800">{counts.no} declined</span><span className="rounded-full bg-amber-100 px-2.5 py-1 text-amber-800">{counts.pending} pending</span></div>
+              </div>
+
+              {invites.length === 0 ? (
+                <div className="mt-6 rounded-xl border border-dashed border-border px-5 py-10 text-center text-sm text-muted-foreground">No invite responses are available yet.</div>
+              ) : (
+                <div className="mt-6 overflow-x-auto rounded-xl border border-border">
+                  <table className="min-w-full divide-y divide-border">
+                    <thead className="bg-secondary/40"><tr><th scope="col" className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider">Invitee</th><th scope="col" className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider">Role</th><th scope="col" className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider">Response</th></tr></thead>
+                    <tbody className="divide-y divide-border">
+                      {invites.map((invite, index) => {
+                        const status = responseStatus(invite);
+                        return <tr key={invite.id || index}><td className="px-5 py-4 text-sm font-medium">{invite.user?.name || invite.name || invite.role || "Invitee"}</td><td className="px-5 py-4 text-sm text-muted-foreground">{invite.role || "Member"}</td><td className="px-5 py-4 text-right"><span className={"inline-flex rounded-full px-2.5 py-1 text-xs font-semibold " + responseClasses(status)}>{status === "YES" ? "Attending" : status === "NO" ? "Declined" : "Pending"}</span></td></tr>;
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-              </div>
-
-              <div className="max-w-4xl border border-[var(--color-line)] rounded-[6px] overflow-hidden">
-                <table className="min-w-full divide-y divide-[var(--color-line)]">
-                  <thead className="bg-[var(--color-paper)]">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase">Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase">Role</th>
-                      <th className="px-6 py-3 text-right text-xs font-semibold text-[var(--color-ink)] uppercase">Response</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--color-line)]">
-                    {rsvps.length === 0 ? (
-                      <tr><td colSpan="3" className="p-8 text-center text-sm text-[var(--color-muted)]">No invites sent.</td></tr>
-                    ) : rsvps.map((rsvp, i) => (
-                      <tr key={i} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm font-medium text-[var(--color-ink)]">{rsvp.user.name}</td>
-                        <td className="px-6 py-4 text-sm text-[var(--color-muted)]">{rsvp.role}</td>
-                        <td className="px-6 py-4 text-right">
-                          <span className={`inline-flex px-2 py-1 text-xs font-bold uppercase rounded ${
-                            rsvp.status === 'YES' ? 'bg-[var(--color-ok)] text-white' :
-                            rsvp.status === 'NO' ? 'bg-[var(--color-stop)] text-white' :
-                            'bg-[var(--color-wait)] text-white'
-                          }`}>
-                            {rsvp.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              )}
             </div>
           )}
-
-          {(activeTab === 'ATTENDANCE' || activeTab === 'MINUTES') && (
-            <div className="text-center py-20 text-[var(--color-muted)]">
-              <p>This tab is active during and after the meeting.</p>
-              <button className="mt-4 bg-white border border-[var(--color-dusk)] text-[var(--color-dusk)] px-4 py-2 rounded-[6px] text-sm font-medium">
-                {activeTab === 'ATTENDANCE' ? 'Start taking attendance' : 'Draft minutes'}
-              </button>
-            </div>
-          )}
-
         </div>
       </div>
     </div>

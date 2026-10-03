@@ -5,7 +5,7 @@ export function createEventsRouter({ service, authenticate, authorize }) {
 
   // GET /events - List published events (Public)
   router.get('/events', async (req, res) => {
-    res.json({ data: await service.list(req.query) });
+    res.json(await service.list(req.query));
   });
 
   // GET /events/:id - Get event details

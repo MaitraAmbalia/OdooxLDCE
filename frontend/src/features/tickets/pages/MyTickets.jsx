@@ -1,17 +1,18 @@
-import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  Ticket as TicketIcon, Calendar, MapPin, ArrowRight, 
-  Sparkles, QrCode, Clock, ShieldCheck 
+import {
+  Ticket as TicketIcon, Calendar, MapPin, QrCode,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../components/ui/tabs";
+import { ContentState } from "../../../components/common/ContentState";
+import { usePageTitle } from "../../../hooks/usePageTitle";
 
 export default function MyTickets() {
-  const { data: ticketsData, isLoading, error } = useQuery({
+  usePageTitle("My tickets");
+  const { data: ticketsData, isPending, isError, refetch } = useQuery({
     queryKey: ['tickets', 'me'],
     queryFn: async () => {
       const res = await fetch("/api/v1/tickets/me", { credentials: "include" });
@@ -24,9 +25,9 @@ export default function MyTickets() {
   const activeTickets = tickets.filter(t => t.status !== "CHECKED_IN" && t.status !== "CANCELLED");
   const pastTickets = tickets.filter(t => t.status === "CHECKED_IN" || t.status === "CANCELLED");
 
-  if (isLoading) {
+  if (isPending) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-10 sm:px-6">
+      <div className="page-container max-w-4xl py-12" role="status" aria-label="Loading tickets">
         <Skeleton className="h-8 w-44 mb-6" />
         <div className="space-y-4">
           <Skeleton className="h-36 rounded-2xl" />
@@ -37,28 +38,31 @@ export default function MyTickets() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
+    <div className="page-container max-w-4xl py-12 sm:py-16">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-slate-900 tracking-tight">
-            My Event Passes
+          <p className="mb-2 text-sm font-medium text-primary">Ready when you are</p>
+          <h1 className="font-display text-4xl font-semibold tracking-tight">
+            My event passes
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Tap any pass to reveal your entrance QR code and door instructions.
+          <p className="mt-2 text-sm text-muted-foreground">
+            Open a pass for its entrance QR code and check-in details.
           </p>
         </div>
 
         <Link to="/events">
-          <Button variant="default" size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
-            <Calendar className="w-3.5 h-3.5 mr-1" /> Browse Upcoming Events
+          <Button>
+            <Calendar aria-hidden="true" /> Browse events
           </Button>
         </Link>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="active" className="w-full">
-        <TabsList className="mb-6">
+      {isError ? (
+        <ContentState error title="Your tickets aren’t available right now." description="We couldn’t load your passes. Try again in a moment." action={refetch} />
+      ) : (
+        <Tabs defaultValue="active" className="w-full">
+          <TabsList className="mb-6">
           <TabsTrigger value="active" className="gap-2">
             Active Passes
             <Badge variant="primary" className="py-0 px-1.5 text-[10px]">
@@ -76,24 +80,7 @@ export default function MyTickets() {
         {/* ACTIVE PASSES */}
         <TabsContent value="active">
           {activeTickets.length === 0 ? (
-            <div className="bg-white rounded-3xl border border-slate-200/80 p-10 text-center shadow-xs">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-4">
-                <TicketIcon className="w-7 h-7" />
-              </div>
-              <h3 className="text-lg font-display font-bold text-slate-900">
-                No active tickets right now
-              </h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-2 leading-relaxed">
-                You don't have any upcoming event passes. Grab early bird tickets for the Skyline Annual Gala and workshops before capacity fills!
-              </p>
-              <div className="mt-6">
-                <Link to="/events">
-                  <Button variant="gold" size="md">
-                    Explore Campus Events &rarr;
-                  </Button>
-                </Link>
-              </div>
-            </div>
+            <ContentState title="No active tickets right now." description="When you reserve a place at an event, your entrance pass will appear here." actionLabel="Explore events" action={() => window.location.assign("/events")} />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {activeTickets.map(ticket => {
@@ -104,15 +91,15 @@ export default function MyTickets() {
                   <Link 
                     key={ticket.id} 
                     to={`/me/tickets/${ticket.id}`}
-                    className="group block relative rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-lg hover:border-blue-400 transition-all duration-300 overflow-hidden"
+                    className="group relative block overflow-hidden rounded-2xl border border-border bg-card transition hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
                   >
                     {/* Perforation left bar */}
-                    <div className="absolute left-0 top-0 bottom-0 w-2 bg-gradient-to-b from-blue-600 to-indigo-600"></div>
+                    <div className="absolute bottom-0 left-0 top-0 w-1.5 bg-primary"></div>
 
                     <div className="p-5 pl-6 flex flex-col justify-between h-full">
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                          <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                             {ticket.ticketType?.name || "General Admission"}
                           </span>
                           <Badge variant="success" className="text-[10px] uppercase font-bold py-0.5">
@@ -120,30 +107,30 @@ export default function MyTickets() {
                           </Badge>
                         </div>
 
-                        <h3 className="text-lg font-display font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug">
+                        <h3 className="font-display text-lg font-semibold leading-snug transition-colors group-hover:text-primary">
                           {event.title || "Skyline Event"}
                         </h3>
 
-                        <div className="mt-3 space-y-1.5 text-xs text-slate-500">
+                        <div className="mt-3 space-y-1.5 text-xs text-muted-foreground">
                           <div className="flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            <Calendar className="size-3.5" />
                             <span>
                               {eventDate.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })} • {eventDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                            <MapPin className="size-3.5" />
                             <span className="truncate">{event.venue || "LDCE Auditorium"}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                        <span className="font-mono text-[11px] text-slate-400">
+                      <div className="mt-5 flex items-center justify-between border-t border-border pt-3 text-xs">
+                        <span className="font-mono text-[11px] text-muted-foreground">
                           ID: {ticket.id.slice(0, 8).toUpperCase()}
                         </span>
-                        <span className="font-bold text-blue-600 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                          <QrCode className="w-4 h-4" /> Open Pass &rarr;
+                        <span className="flex items-center gap-1 font-medium text-primary transition-transform group-hover:translate-x-0.5">
+                          <QrCode className="size-4" /> Open pass &rarr;
                         </span>
                       </div>
                     </div>
@@ -157,17 +144,15 @@ export default function MyTickets() {
         {/* PAST PASSES */}
         <TabsContent value="past">
           {pastTickets.length === 0 ? (
-            <div className="bg-white rounded-3xl border border-slate-200/80 p-8 text-center text-xs text-slate-400">
-              No attended past events found in your history.
-            </div>
+            <ContentState title="No past events yet." description="Your attended and cancelled event history will appear here." />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-80">
               {pastTickets.map(ticket => (
-                <div key={ticket.id} className="p-4 rounded-2xl bg-white border border-slate-200 text-xs">
+                <div key={ticket.id} className="rounded-xl border border-border bg-card p-4 text-xs">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-bold text-slate-800">{ticket.event?.title || "Past Event"}</h4>
-                      <p className="text-slate-400 text-[11px] mt-0.5">
+                      <h4 className="font-semibold">{ticket.event?.title || "Past Event"}</h4>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
                         {new Date(ticket.event?.startDate || Date.now()).toLocaleDateString('en-IN')}
                       </p>
                     </div>
@@ -179,6 +164,7 @@ export default function MyTickets() {
           )}
         </TabsContent>
       </Tabs>
+      )}
     </div>
   );
 }

@@ -1,98 +1,87 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Banknote, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { ContentState } from "@/components/common/ContentState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
+
+const money = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" });
 
 export default function CashVerificationQueue() {
+  usePageTitle("Cash verification");
   const queryClient = useQueryClient();
 
-  const { data: cashData, isLoading } = useQuery({
-    queryKey: ['cashCollections', 'pending'],
+  const { data: cashData, isPending, isError, refetch } = useQuery({
+    queryKey: ["cashCollections", "pending"],
     queryFn: async () => {
-      // API endpoint: GET /cash-collections?status=PENDING
-      const res = await fetch("/api/v1/cash-collections?status=PENDING");
-      if (!res.ok) throw new Error("Failed to fetch cash collections");
-      return res.json();
-    }
+      const response = await fetch("/api/v1/cash-collections?status=PENDING&limit=50", { credentials: "include" });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message || "Failed to fetch cash collections");
+      return json;
+    },
   });
 
   const verifyMutation = useMutation({
     mutationFn: async (id) => {
-      // API endpoint: PATCH /cash-collections/:id/verify
-      console.log(`Verifying cash collection ${id}`);
-      return { success: true };
+      const response = await fetch("/api/v1/cash-collections/" + id + "/verify", { method: "PATCH", credentials: "include" });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message || "Could not verify cash receipt");
+      return json.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cashCollections', 'pending'] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["cashCollections"] });
+      toast.success("Cash handover verified.");
+    },
+    onError: (error) => toast.error(error.message || "Could not verify cash receipt."),
   });
 
   const collections = cashData?.data || [];
-
-  // Mock data if empty
-  const mockCollections = collections.length > 0 ? collections : [
-    { id: '1', recordedAt: '2026-10-02T14:30:00Z', operator: 'Sarah Jenkins', amountPaise: 15000, purpose: 'MEMBERSHIP', payerInfo: 'Aarav Shah / 2026101', status: 'PENDING' },
-    { id: '2', recordedAt: '2026-10-02T15:45:00Z', operator: 'Mike Chen', amountPaise: 30000, purpose: 'EVENT_TICKET', payerInfo: 'Tech Gala Ticket x2', status: 'PENDING' }
-  ];
+  const pendingTotal = collections.reduce((total, collection) => total + Number(collection.amountPaise || 0), 0);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">Cash Verification</h1>
-        <p className="text-sm text-[var(--color-muted)] mt-1">Review and verify cash handed over by desk operators.</p>
+    <div className="page-container py-12 sm:py-16">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div><p className="mb-2 text-sm font-medium text-primary">Treasurer review</p><h1 className="font-display text-4xl font-semibold tracking-tight">Cash verification</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Match each recorded receipt to the physical handover before confirming it.</p></div>
+        {!isPending && !isError && <div className="rounded-xl border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">Pending handover</p><p className="mt-1 font-mono text-xl font-semibold tabular-nums">{money.format(pendingTotal / 100)}</p></div>}
       </div>
 
-      <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] overflow-hidden shadow-sm">
-        <div className="p-4 bg-[var(--color-paper)] border-b border-[var(--color-line)]">
-          <p className="text-sm font-semibold text-[var(--color-ink)]">Pending Verifications</p>
-        </div>
+      {isPending ? (
+        <div className="mt-8 space-y-3" role="status" aria-label="Loading verification queue"><Skeleton className="h-24 rounded-2xl" /><Skeleton className="h-24 rounded-2xl" /><Skeleton className="h-24 rounded-2xl" /></div>
+      ) : isError ? (
+        <div className="mt-8"><ContentState error title="The verification queue isn’t available." description="We couldn’t load pending cash receipts." action={refetch} /></div>
+      ) : collections.length === 0 ? (
+        <div className="mt-8"><ContentState title="The cash queue is clear." description="New handovers will appear here when desk operators record a receipt." /></div>
+      ) : (
+        <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card">
+          <div className="divide-y divide-border md:hidden">
+            {collections.map((collection) => (
+              <article key={collection.id} className="p-5">
+                <div className="flex items-start justify-between gap-4"><div><p className="font-medium">{collection.purpose === "EVENT_TICKET" ? "Event ticket" : "Membership dues"}</p><p className="mt-1 text-xs text-muted-foreground">{collection.payerInfo || "Linked receipt"}</p></div><p className="font-mono text-lg font-semibold tabular-nums">{money.format(Number(collection.amountPaise || 0) / 100)}</p></div>
+                <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"><Banknote className="size-4" aria-hidden="true" />{collection.operator || "Cash operator"} · {new Date(collection.recordedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</div>
+                <Button className="mt-5 w-full bg-emerald-700 hover:bg-emerald-800" disabled={verifyMutation.isPending} onClick={() => verifyMutation.mutate(collection.id)}><CheckCircle2 aria-hidden="true" /> Verify received</Button>
+              </article>
+            ))}
+          </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-[var(--color-line)]">
-            <thead className="bg-white">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Date/Time</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Operator</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Details</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Amount</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--color-line)] bg-white">
-              {isLoading ? (
-                <tr><td colSpan="5" className="p-8 text-center text-[var(--color-muted)]">Loading queue...</td></tr>
-              ) : mockCollections.map((col) => (
-                <tr key={col.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-muted)]">
-                    {new Date(col.recordedAt).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--color-ink)]">
-                    {col.operator}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-[var(--color-ink)]">
-                    <p className="font-medium">{col.purpose}</p>
-                    <p className="text-xs text-[var(--color-muted)]">{col.payerInfo}</p>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono font-bold text-right tabular-nums text-[var(--color-ink)]">
-                    {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(col.amountPaise / 100)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                    <button 
-                      onClick={() => verifyMutation.mutate(col.id)}
-                      disabled={verifyMutation.isPending}
-                      className="bg-[var(--color-ok)] text-white px-4 py-1.5 rounded-[6px] font-medium hover:bg-opacity-90 disabled:opacity-50"
-                    >
-                      Verify Received
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {mockCollections.length === 0 && !isLoading && (
-                <tr><td colSpan="5" className="p-8 text-center text-[var(--color-muted)]">No cash pending verification.</td></tr>
-              )}
-            </tbody>
-          </table>
+          <div className="hidden overflow-x-auto md:block">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-secondary/40"><tr><th scope="col" className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Recorded</th><th scope="col" className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Operator</th><th scope="col" className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Receipt</th><th scope="col" className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider">Amount</th><th scope="col" className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider">Action</th></tr></thead>
+              <tbody className="divide-y divide-border">
+                {collections.map((collection) => (
+                  <tr key={collection.id} className="transition-colors hover:bg-secondary/30">
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">{new Date(collection.recordedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">{collection.operator || "Cash operator"}</td>
+                    <td className="px-6 py-4 text-sm"><p className="font-medium">{collection.purpose === "EVENT_TICKET" ? "Event ticket" : "Membership dues"}</p><p className="mt-1 text-xs text-muted-foreground">{collection.payerInfo || "Linked receipt"}</p></td>
+                    <td className="whitespace-nowrap px-6 py-4 text-right font-mono text-sm font-semibold tabular-nums">{money.format(Number(collection.amountPaise || 0) / 100)}</td>
+                    <td className="whitespace-nowrap px-6 py-4 text-right"><Button size="sm" className="bg-emerald-700 hover:bg-emerald-800" disabled={verifyMutation.isPending} onClick={() => verifyMutation.mutate(collection.id)}><CheckCircle2 aria-hidden="true" /> Verify</Button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

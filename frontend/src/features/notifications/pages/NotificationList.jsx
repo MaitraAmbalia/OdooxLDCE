@@ -1,9 +1,15 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bell, CheckCheck } from "lucide-react";
+import { ContentState } from "@/components/common/ContentState";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { toast } from "sonner";
 
 export default function NotificationList() {
-  const { data: notificationsData, isLoading } = useQuery({
+  usePageTitle("Notifications");
+  const queryClient = useQueryClient();
+  const { data: notificationsData, isPending, isError, refetch } = useQuery({
     queryKey: ['notifications'],
     queryFn: async () => {
       // API endpoint: GET /notifications
@@ -14,56 +20,66 @@ export default function NotificationList() {
   });
 
   const notifications = notificationsData?.data || [];
+  const unreadCount = notifications.filter((notification) => !notification.readAt).length;
+  const markAll = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/v1/notifications/read-all", { method: "POST", credentials: "include" });
+      if (!response.ok) throw new Error("Could not update notifications");
+      return response.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+    onError: () => toast.error("Could not mark notifications as read."),
+  });
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8 flex justify-between items-end">
+    <div className="page-container max-w-3xl py-12 sm:py-16">
+      <div className="mb-8 flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">Notifications</h1>
+          <p className="mb-2 text-sm font-medium text-primary">Stay in the loop</p>
+          <h1 className="font-display text-4xl font-semibold tracking-tight">Notifications</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{unreadCount ? `${unreadCount} unread update${unreadCount === 1 ? "" : "s"}` : "You’re all caught up."}</p>
         </div>
-        <button className="text-sm text-[var(--color-dusk)] font-medium hover:underline">
-          Mark all as read
-        </button>
+        {unreadCount ? <Button variant="outline" onClick={() => markAll.mutate()} disabled={markAll.isPending}><CheckCheck aria-hidden="true" />{markAll.isPending ? "Updating…" : "Mark all read"}</Button> : null}
       </div>
 
-      <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] overflow-hidden shadow-sm">
-        {isLoading ? (
-          <div className="p-12 text-center text-[var(--color-muted)]">Loading notifications...</div>
-        ) : notifications.length === 0 ? (
-          <div className="p-12 text-center text-[var(--color-muted)]">You're all caught up!</div>
-        ) : (
+      {isPending ? (
+        <div className="space-y-3" role="status" aria-label="Loading notifications"><Skeleton className="h-24 rounded-xl" /><Skeleton className="h-24 rounded-xl" /><Skeleton className="h-24 rounded-xl" /></div>
+      ) : isError ? (
+        <ContentState error title="Notifications aren’t available right now." description="We couldn’t load your updates. Try again in a moment." action={refetch} />
+      ) : notifications.length === 0 ? (
+        <ContentState title="You’re all caught up." description="New updates about your events, tasks, and claims will appear here." />
+      ) : (
+      <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        {
           <ul className="divide-y divide-[var(--color-line)]">
             {notifications.map(notif => (
-              <li key={notif.id} className={`p-4 transition-colors ${!notif.readAt ? 'bg-[var(--color-paper)]' : 'bg-white hover:bg-gray-50'}`}>
+              <li key={notif.id} className={`p-5 transition-colors ${!notif.readAt ? 'bg-secondary/40' : 'bg-card hover:bg-secondary/20'}`}>
                 <div className="flex gap-4">
                   <div className="pt-1">
                     {/* Icon based on type */}
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs ${
-                      notif.type === 'CLAIM_DECIDED' ? 'bg-[var(--color-ok)]' :
-                      notif.type === 'TASK_ASSIGNED' ? 'bg-[var(--color-info)]' :
-                      'bg-[var(--color-dusk)]'
-                    }`}>
-                      {notif.type === 'CLAIM_DECIDED' ? '₹' : notif.type === 'TASK_ASSIGNED' ? '✓' : 'i'}
+                    <div className="flex size-9 items-center justify-center rounded-full bg-secondary text-primary">
+                      <Bell className="size-4" aria-hidden="true" />
                     </div>
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-[var(--color-ink)]">{notif.title}</p>
-                    <p className="text-sm text-[var(--color-muted)] mt-1">{notif.body}</p>
-                    <p className="text-xs text-[var(--color-muted)] mt-2 font-mono">
+                    <p className="text-sm font-semibold">{notif.title}</p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{notif.body}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">
                       {new Date(notif.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                   {!notif.readAt && (
                     <div className="flex items-center">
-                      <span className="w-2 h-2 rounded-full bg-[var(--color-dusk)]"></span>
+                      <span className="size-2 rounded-full bg-primary"><span className="sr-only">Unread</span></span>
                     </div>
                   )}
                 </div>
               </li>
             ))}
           </ul>
-        )}
+        }
       </div>
+      )}
     </div>
   );
 }

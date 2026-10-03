@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useUrlFilters } from "@/hooks/useUrlFilters";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   ArrowUpRight,
   CalendarDays,
@@ -41,6 +43,9 @@ export default function EventList() {
   const [params, setParams] = useUrlFilters();
   const events = data?.data || [];
   const search = params.get("q") || "";
+  const [searchInput, setSearchInput] = useState(search);
+  const debouncedSearch = useDebounce(searchInput, 300);
+
   const category = params.get("category") || "ALL";
   const period = Object.hasOwn(periodLabels, params.get("period"))
     ? params.get("period")
@@ -76,7 +81,19 @@ export default function EventList() {
       { replace, preventScrollReset: true },
     );
   }
+
+  // Update URL filter when debounced search value settles
+  useEffect(() => {
+    updateFilter("q", debouncedSearch, true);
+  }, [debouncedSearch]);
+
+  // Keep searchInput in sync if URL params change externally
+  useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
+
   function clearFilters() {
+    setSearchInput("");
     setParams({}, { preventScrollReset: true });
   }
 
@@ -121,18 +138,21 @@ export default function EventList() {
             <Input
               id="event-search"
               type="search"
-              value={search}
-              onChange={(event) => updateFilter("q", event.target.value, true)}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Search events, interests, or venues…"
               className="h-11 bg-card pl-10 pr-10 [&::-webkit-search-cancel-button]:appearance-none"
             />
-            {search && (
+            {searchInput && (
               <Button
                 variant="ghost"
                 size="icon"
                 className="absolute right-0 top-0 size-11"
                 aria-label="Clear search"
-                onClick={() => updateFilter("q", "", true)}
+                onClick={() => {
+                  setSearchInput("");
+                  updateFilter("q", "", true);
+                }}
               >
                 <X aria-hidden="true" />
               </Button>

@@ -1,8 +1,16 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Info } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { ContentState } from "@/components/common/ContentState";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function CycleBuilder() {
+  usePageTitle("Selection cycle");
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -15,26 +23,25 @@ export default function CycleBuilder() {
     status: "DRAFT"
   });
 
-  const { data: cycleData, isLoading } = useQuery({
-    queryKey: ['selection', 'cycles', id],
+  const { data: cyclesData, isPending, isError, refetch } = useQuery({
+    queryKey: ['selection', 'cycles'],
     queryFn: async () => {
-      // API endpoint: GET /selection/cycles/:id
-      const res = await fetch(`/api/v1/selection/cycles/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch cycle details");
+      const res = await fetch("/api/v1/selection/cycles");
+      if (!res.ok) throw new Error("Failed to fetch selection cycles");
       return res.json();
     },
-    // Don't run query if id is 'new' (in a real app we'd split creation from editing)
     enabled: id !== 'new'
   });
+  const cycleData = cyclesData?.data?.find((cycle) => cycle.id === id);
 
   useEffect(() => {
-    if (cycleData?.data) {
-      const cycle = cycleData.data;
+    if (cycleData) {
+      const cycle = cycleData;
       setFormData({
-        name: cycle.name || "",
-        termStart: cycle.termStart || "",
-        termEnd: cycle.termEnd || "",
-        deadlineAt: cycle.deadlineAt ? new Date(cycle.deadlineAt).toISOString().slice(0,16) : "",
+        name: cycle.name || cycle.title || "",
+        termStart: cycle.termStart ? String(cycle.termStart).slice(0, 7) : "",
+        termEnd: cycle.termEnd ? String(cycle.termEnd).slice(0, 7) : "",
+        deadlineAt: cycle.deadlineAt || cycle.applicationsCloseAt ? new Date(cycle.deadlineAt || cycle.applicationsCloseAt).toISOString().slice(0,16) : "",
         status: cycle.status || "DRAFT"
       });
     }
@@ -42,13 +49,11 @@ export default function CycleBuilder() {
 
   const updateMutation = useMutation({
     mutationFn: async (payload) => {
-      // API endpoint: PATCH /selection/cycles/:id
-      console.log(`Updating cycle ${id}:`, payload);
-      return { success: true };
+      return payload;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['selection', 'cycles'] });
-      alert("Cycle updated successfully.");
+      queryClient.setQueryData(['selection', 'cycle-draft', id], formData);
+      toast.info("Draft kept in this session. Publishing isn’t connected yet.");
     }
   });
 
@@ -57,68 +62,73 @@ export default function CycleBuilder() {
     updateMutation.mutate(formData);
   };
 
-  if (isLoading && id !== 'new') return <div className="p-12 text-center text-[var(--color-muted)]">Loading builder...</div>;
+  if (isPending && id !== 'new') return <div className="page-container max-w-4xl py-12" role="status" aria-label="Loading cycle editor"><Skeleton className="h-10 w-64" /><Skeleton className="mt-8 h-96 rounded-2xl" /></div>;
+  if (isError) return <div className="page-container py-16"><ContentState error title="The cycle editor isn’t available." description="We couldn’t load the selection cycle." action={refetch} /></div>;
+  if (id !== "new" && !cycleData) return <div className="page-container py-16"><ContentState title="Selection cycle not found." description="Return to the selection workspace and choose an available cycle." actionLabel="Back to selection" action={() => navigate("/selection")} /></div>;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+    <div className="page-container max-w-4xl py-12 sm:py-16">
       <div className="mb-8">
-        <Link to="/selection" className="text-sm font-medium text-[var(--color-dusk)] hover:underline inline-block mb-2">
-          &larr; Back to Selection Hub
+        <Link to="/selection" className="mb-4 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary hover:underline">
+          <ArrowLeft className="size-4" /> Selection workspace
         </Link>
-        <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">
-          {id === 'new' ? 'Create Cycle' : 'Edit Selection Cycle'}
+        <h1 className="font-display text-4xl font-semibold tracking-tight">
+          {id === 'new' ? 'Create selection cycle' : 'Edit selection cycle'}
         </h1>
+        <p className="mt-2 text-sm text-muted-foreground">Set the term and application window before adding positions.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] p-6 sm:p-10 shadow-sm">
+      <div className="mb-6 flex gap-3 rounded-xl border border-border bg-secondary/50 p-4 text-sm text-muted-foreground"><Info className="mt-0.5 size-4 shrink-0 text-primary" /><p>This editor currently keeps changes as a session draft. Publishing remains unavailable until the management API is connected.</p></div>
+      <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-card p-6 sm:p-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Cycle Name</label>
-            <input
+            <label htmlFor="cycle-name" className="mb-1.5 block text-sm font-medium">Cycle name</label>
+            <Input
+              id="cycle-name"
               type="text"
               required
               value={formData.name}
               onChange={e => setFormData({...formData, name: e.target.value})}
               placeholder="e.g., Executive Board 2026-2027"
-              className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] text-sm focus:border-[var(--color-dusk)] focus:outline-none"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Term Start</label>
-            <input
+            <label htmlFor="term-start" className="mb-1.5 block text-sm font-medium">Term start</label>
+            <Input
+              id="term-start"
               type="month"
               required
               value={formData.termStart}
               onChange={e => setFormData({...formData, termStart: e.target.value})}
-              className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] text-sm focus:border-[var(--color-dusk)] focus:outline-none"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Term End</label>
-            <input
+            <label htmlFor="term-end" className="mb-1.5 block text-sm font-medium">Term end</label>
+            <Input
+              id="term-end"
               type="month"
               required
               value={formData.termEnd}
               onChange={e => setFormData({...formData, termEnd: e.target.value})}
-              className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] text-sm focus:border-[var(--color-dusk)] focus:outline-none"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Application Deadline</label>
-            <input
+            <label htmlFor="application-deadline" className="mb-1.5 block text-sm font-medium">Application deadline</label>
+            <Input
+              id="application-deadline"
               type="datetime-local"
               required
               value={formData.deadlineAt}
               onChange={e => setFormData({...formData, deadlineAt: e.target.value})}
-              className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] text-sm focus:border-[var(--color-dusk)] focus:outline-none"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Status</label>
+            <label htmlFor="cycle-status" className="mb-1.5 block text-sm font-medium">Status</label>
             <select
+              id="cycle-status"
               value={formData.status}
               onChange={e => setFormData({...formData, status: e.target.value})}
-              className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] text-sm focus:border-[var(--color-dusk)] focus:outline-none bg-white"
+              className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <option value="DRAFT">Draft</option>
               <option value="PUBLISHED">Published (Open)</option>
@@ -127,21 +137,18 @@ export default function CycleBuilder() {
           </div>
         </div>
 
-        <div className="pt-6 border-t border-[var(--color-line)] text-center text-sm text-[var(--color-muted)] mb-8">
-          <em>Post and Question builders will be enabled after saving the initial cycle details.</em>
+        <div className="mb-8 border-t border-border pt-6 text-center text-sm text-muted-foreground">
+          Position and question builders become available after cycle persistence is connected.
         </div>
 
         <div className="flex justify-end gap-4">
-          <Link to="/selection" className="px-6 py-2 border border-[var(--color-line)] rounded-[6px] font-medium text-[var(--color-ink)] hover:bg-gray-50">
-            Cancel
-          </Link>
-          <button
+          <Button asChild variant="outline"><Link to="/selection">Cancel</Link></Button>
+          <Button
             type="submit"
             disabled={updateMutation.isPending}
-            className="bg-[var(--color-dusk)] text-white px-8 py-2 rounded-[6px] font-bold hover:bg-opacity-90 disabled:opacity-50"
           >
-            {updateMutation.isPending ? 'Saving...' : 'Save Cycle'}
-          </button>
+            {updateMutation.isPending ? 'Saving…' : 'Keep session draft'}
+          </Button>
         </div>
       </form>
     </div>

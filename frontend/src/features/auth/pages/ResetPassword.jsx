@@ -1,93 +1,79 @@
-import React from "react";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { AlertCircle, KeyRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function ResetPassword() {
+  usePageTitle("Create new password");
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") || "";
   const navigate = useNavigate();
-
+  const [errorMessage, setErrorMessage] = useState("");
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm();
-  
   const password = watch("password", "");
 
   const onSubmit = async (data) => {
-    // API endpoint: POST /auth/reset-password ({ token, newPassword })
-    console.log("Reset password data", { token, newPassword: data.password });
-    // On success, redirect to login
-    navigate("/login?reset=success");
+    setErrorMessage("");
+    try {
+      const response = await fetch("/api/v1/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ token, newPassword: data.password }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message || "Could not reset password");
+      navigate("/login?reset=success");
+    } catch (error) {
+      setErrorMessage(error.message || "Could not reset password.");
+    }
   };
 
-  if (!token) {
+  if (token.length < 20) {
     return (
-      <div className="flex-1 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-          <h2 className="mt-6 text-3xl font-display font-extrabold text-[var(--color-ink)]">
-            Invalid Link
-          </h2>
-          <p className="mt-2 text-sm text-[var(--color-muted)]">
-            The password reset link is invalid or has expired.
-          </p>
-          <div className="mt-6">
-            <Link to="/forgot-password" className="text-sm font-medium text-[var(--color-dusk)] hover:underline">
-              Request a new reset link
-            </Link>
-          </div>
+      <section className="page-container flex min-h-[72vh] items-center justify-center py-12 sm:py-16">
+        <div className="w-full max-w-md rounded-2xl border border-border bg-card p-7 text-center sm:p-9">
+          <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive"><AlertCircle className="size-6" aria-hidden="true" /></span>
+          <h1 className="mt-5 font-display text-3xl font-semibold tracking-tight">This reset link isn’t valid</h1>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">The link may be incomplete or expired. Request a new one to continue securely.</p>
+          <Button asChild className="mt-6 w-full"><Link to="/forgot-password">Request a new link</Link></Button>
+          <Button asChild variant="ghost" className="mt-2 w-full"><Link to="/login">Back to login</Link></Button>
         </div>
-      </div>
+      </section>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-display font-extrabold text-[var(--color-ink)]">
-          Create new password
-        </h2>
-        <p className="mt-2 text-center text-sm text-[var(--color-muted)]">
-          Please enter your new password below.
-        </p>
-      </div>
+    <section className="page-container flex min-h-[72vh] flex-col justify-center py-12 sm:py-16">
+      <div className="mx-auto w-full max-w-md">
+        <div className="text-center">
+          <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground"><KeyRound className="size-5" aria-hidden="true" /></span>
+          <h1 className="mt-5 font-display text-4xl font-semibold tracking-tight">Create a new password</h1>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">Choose a password you don’t use for another account.</p>
+        </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-[var(--color-surface)] py-8 px-4 shadow sm:rounded-[10px] sm:px-10 border border-[var(--color-line)]">
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[var(--color-ink)]">
-                New Password
-              </label>
-              <div className="mt-1">
-                <input
-                  id="password"
-                  type="password"
-                  {...register("password", { 
-                    required: "Password is required",
-                    minLength: { value: 10, message: "Password must be at least 10 characters" }
-                  })}
-                  className="appearance-none block w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[var(--color-dusk)] focus:border-[var(--color-dusk)] sm:text-sm"
-                />
-                {/* Length meter as per specification */}
-                <div className="mt-2 text-xs text-[var(--color-muted)] flex items-center gap-2">
-                  <div className={`h-1 flex-1 rounded-full ${password.length >= 10 ? 'bg-[var(--color-ok)]' : 'bg-[var(--color-line)]'}`}></div>
-                  <span>{Math.min(password.length, 10)}/10 characters</span>
-                </div>
-                {errors.password && <p className="mt-1 text-sm text-[var(--color-stop)]">{errors.password.message}</p>}
-              </div>
+        <div className="mt-8 rounded-2xl border border-border bg-card p-6 sm:p-8">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate>
+            {errorMessage && <div className="mb-5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">{errorMessage}</div>}
+            <label htmlFor="new-password" className="mb-2 block text-sm font-medium">New password</label>
+            <Input id="new-password" type="password" autoComplete="new-password" aria-invalid={!!errors.password} {...register("password", { required: "Password is required", minLength: { value: 8, message: "Use at least 8 characters" }, maxLength: { value: 128, message: "Use no more than 128 characters" } })} />
+            <div className="mt-3 flex items-center gap-3">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary"><div className={"h-full rounded-full transition-all " + (password.length >= 8 ? "w-full bg-emerald-600" : password.length >= 4 ? "w-1/2 bg-amber-500" : "w-1/4 bg-muted-foreground/30")} /></div>
+              <span className="text-xs tabular-nums text-muted-foreground">{Math.min(password.length, 8)}/8 minimum</span>
             </div>
+            {errors.password && <p className="mt-2 text-sm text-destructive" role="alert">{errors.password.message}</p>}
 
-            <div>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-[6px] shadow-sm text-sm font-medium text-white bg-[var(--color-dusk)] hover:bg-opacity-90 focus:outline-none disabled:opacity-50"
-              >
-                Reset password
-              </button>
-            </div>
+            <label htmlFor="confirm-password" className="mb-2 mt-5 block text-sm font-medium">Confirm new password</label>
+            <Input id="confirm-password" type="password" autoComplete="new-password" aria-invalid={!!errors.confirmPassword} {...register("confirmPassword", { required: "Confirm your new password", validate: (value) => value === password || "Passwords do not match" })} />
+            {errors.confirmPassword && <p className="mt-2 text-sm text-destructive" role="alert">{errors.confirmPassword.message}</p>}
+
+            <Button type="submit" size="lg" className="mt-6 w-full" disabled={isSubmitting}>{isSubmitting ? "Updating…" : "Update password"}</Button>
           </form>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

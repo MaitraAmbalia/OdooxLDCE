@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -10,9 +9,12 @@ import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "../../../components/ui/card";
 import { Skeleton } from "../../../components/ui/skeleton";
+import { ContentState } from "../../../components/common/ContentState";
+import { usePageTitle } from "../../../hooks/usePageTitle";
 
 export default function MyMembership() {
-  const { data: membershipData, isLoading, error } = useQuery({
+  usePageTitle("My membership");
+  const { data: membershipData, isPending, isError, refetch } = useQuery({
     queryKey: ['myMembership'],
     queryFn: async () => {
       const res = await fetch("/api/v1/memberships/me", { credentials: "include" });
@@ -24,9 +26,9 @@ export default function MyMembership() {
 
   const membership = membershipData?.data?.current || membershipData?.data;
 
-  if (isLoading) {
+  if (isPending) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 sm:px-6">
+      <div className="page-container max-w-4xl py-12" role="status" aria-label="Loading membership">
         <Skeleton className="h-8 w-48 mb-8" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <Skeleton className="h-[380px] rounded-3xl" />
@@ -40,54 +42,53 @@ export default function MyMembership() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
+    <div className="page-container max-w-5xl py-12 sm:py-16">
       {/* Header section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
-          <div className="flex items-center gap-2">
-            <Badge variant="gold" className="text-xs font-bold uppercase tracking-wider">
-              <Sparkles className="w-3 h-3 text-amber-950 mr-1" /> Verified Member
-            </Badge>
-          </div>
-          <h1 className="text-3xl font-display font-extrabold text-slate-900 tracking-tight mt-1.5">
-            Digital Membership Pass
+          <p className="mb-2 flex items-center gap-2 text-sm font-medium text-primary">
+            <Sparkles className="size-4" /> Your Skyline membership
+          </p>
+          <h1 className="font-display text-4xl font-semibold tracking-tight">
+            Digital membership pass
           </h1>
-          <p className="text-sm text-slate-600 mt-1">
-            Your official credential for campus auditorium check-in, workshop priority, and merchandise discounts.
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+            Your credential for event check-in, workshop priority, and member pricing.
           </p>
         </div>
 
         {!membership && (
           <Link to="/join">
-            <Button variant="gold" size="md">
-              <Shield className="w-4 h-4 text-amber-950" />
-              Join Membership
+            <Button>
+              <Shield aria-hidden="true" /> Explore membership
             </Button>
           </Link>
         )}
       </div>
 
-      {!membership ? (
+      {isError ? (
+        <ContentState error title="Your membership isn’t available right now." description="We couldn’t load your membership details. Try again in a moment." action={refetch} />
+      ) : !membership ? (
         /* Empty State with strong conversion hook */
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white rounded-3xl p-8 sm:p-12 shadow-xl border border-slate-700/80 text-center max-w-2xl mx-auto">
-          <div className="w-16 h-16 rounded-2xl bg-amber-400/20 text-amber-300 flex items-center justify-center mx-auto mb-6 border border-amber-400/30">
-            <Shield className="w-8 h-8" />
+        <div className="mx-auto max-w-2xl rounded-2xl bg-[#272747] p-8 text-center text-white sm:p-12">
+          <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-2xl bg-white/10 text-[#c6c3f3]">
+            <Shield className="size-8" />
           </div>
           <h2 className="text-2xl sm:text-3xl font-display font-extrabold tracking-tight">
-            Unlock the Full Campus Experience
+            Make more of campus life.
           </h2>
-          <p className="mt-3 text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
-            You don't currently have an active Skyline student pass. Members save up to ₹4,500 every semester on annual Gala tickets, tech summits, club hoodies, and gain eligibility to lead projects.
+          <p className="mx-auto mt-3 max-w-lg text-sm leading-7 text-[#d2d2e2]">
+            You don’t have an active pass yet. Join for event and shop benefits, plus more ways to take part in the community.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/join">
-              <Button variant="gold" size="lg" className="w-full sm:w-auto text-sm">
-                View Membership Tiers &rarr;
+              <Button size="lg" className="w-full bg-white text-[#272747] hover:bg-[#eeedf7] sm:w-auto">
+                View membership options
               </Button>
             </Link>
             <Link to="/events">
-              <Button variant="outline" size="lg" className="w-full sm:w-auto text-sm border-slate-600 text-white bg-slate-800/80 hover:bg-slate-700">
-                Explore Public Events
+              <Button variant="outline" size="lg" className="w-full border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white sm:w-auto">
+                Explore events
               </Button>
             </Link>
           </div>

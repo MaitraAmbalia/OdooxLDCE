@@ -1,4 +1,5 @@
 import { AppError } from '../../lib/AppError.js';
+import { parsePagination, createPageMeta } from '../../lib/pagination.js';
 
 export function createTicketsService({ prisma }) {
   return {
@@ -72,17 +73,25 @@ export function createTicketsService({ prisma }) {
       };
     },
 
-    async getUserTickets(userId) {
-      const tickets = await prisma.ticket.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        include: {
-          event: { select: { title: true, venue: true, startAt: true, endAt: true } },
-          ticketType: { select: { name: true } },
-        },
-      });
+    async getUserTickets(userId, query = {}) {
+      const page = parsePagination(query, { defaultLimit: 50 });
+      const where = { userId };
 
-      return tickets.map((t) => ({
+      const [tickets, total] = await Promise.all([
+        prisma.ticket.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: page.skip,
+          take: page.take,
+          include: {
+            event: { select: { title: true, venue: true, startAt: true, endAt: true } },
+            ticketType: { select: { name: true } },
+          },
+        }),
+        prisma.ticket.count({ where }),
+      ]);
+
+      const data = tickets.map((t) => ({
         ...t,
         pricePaidPaise: Number(t.pricePaidPaise),
         event: t.event
@@ -92,9 +101,11 @@ export function createTicketsService({ prisma }) {
             }
           : t.event,
       }));
+
+      return { data, meta: createPageMeta(page, total) };
     },
 
-    async checkIn(doorVolunteerId, ticketId) {
+    async checkIn(doorVolunteerId, ticketId, expectedEventId) {
       const ticket = await prisma.ticket.findUnique({
         where: { id: ticketId },
         include: {
@@ -104,10 +115,16 @@ export function createTicketsService({ prisma }) {
       });
 
       if (!ticket) throw new AppError('NOT_FOUND', 404, 'Ticket was not found');
+      if (expectedEventId && ticket.eventId !== expectedEventId) {
+        throw new AppError('WRONG_EVENT', 400, 'This ticket belongs to a different event');
+      }
       if (ticket.status === 'CHECKED_IN') {
         throw new AppError('ALREADY_CHECKED_IN', 409, 'Ticket was already checked in', {
           checkedInAt: ticket.checkedInAt,
         });
+      }
+      if (ticket.status !== 'ISSUED') {
+        throw new AppError('INVALID_TICKET_STATUS', 400, `Ticket cannot be checked in from ${ticket.status}`);
       }
 
       const updated = await prisma.ticket.update({

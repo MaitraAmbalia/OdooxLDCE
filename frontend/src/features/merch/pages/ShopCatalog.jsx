@@ -1,19 +1,20 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  ShoppingBag, Sparkles, Flame, ShieldCheck, Tag, 
-  ArrowRight, CheckCircle2, Filter, Layers 
+import {
+  ShoppingBag, Sparkles, Flame, Tag,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { formatINR } from "../../../lib/utils";
+import { ContentState } from "../../../components/common/ContentState";
+import { usePageTitle } from "../../../hooks/usePageTitle";
 
 export default function ShopCatalog() {
-  const [filter, setFilter] = useState("ALL");
+  usePageTitle("Shop");
 
-  const { data: productsData, isLoading, error } = useQuery({
+  const { data: productsData, isPending, isError, refetch } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
       const res = await fetch("/api/v1/products");
@@ -25,86 +26,78 @@ export default function ShopCatalog() {
   const products = productsData?.data || [];
 
   return (
-    <div className="min-h-screen bg-[var(--color-paper)] py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="page-container py-12 sm:py-16">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-slate-200/80">
+        <div className="flex flex-col justify-between gap-6 border-b border-border pb-8 md:flex-row md:items-end">
           <div>
-            <Badge variant="gold" className="text-xs uppercase font-extrabold tracking-wider px-3 py-1 mb-2">
-              <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-950" /> Official LDCE Skyline Merch Drop
-            </Badge>
-            <h1 className="text-3xl sm:text-4xl font-display font-black tracking-tight text-slate-900">
-              Apparel & Collectibles
+            <p className="mb-3 flex items-center gap-2 text-sm font-medium text-primary">
+              <Sparkles className="size-4" aria-hidden="true" /> Official Skyline merchandise
+            </p>
+            <h1 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
+              Campus favorites, made to keep.
             </h1>
-            <p className="mt-2 text-sm text-slate-600 max-w-xl">
-              Heavyweight hoodies, embroidered varsity jackets, and limited-edition tech badges. Verified members receive exclusive club discount pricing.
+            <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
+              Thoughtful staples and limited runs, with special pricing for Skyline members.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <Link to="/join">
-              <Button variant="outline" size="sm" className="bg-white border-slate-300 text-xs shadow-2xs">
-                <Tag className="w-3.5 h-3.5 text-blue-600 mr-1.5" />
-                Unlock ₹200 Member Discounts
+              <Button variant="outline" className="bg-card">
+                <Tag aria-hidden="true" /> Explore member pricing
               </Button>
             </Link>
           </div>
         </div>
 
         {/* Quality Guarantee Banner */}
-        <div className="my-8 p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+        <div className="my-8 grid gap-4 rounded-2xl border border-border bg-card p-4 text-xs sm:grid-cols-3">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-secondary font-semibold text-primary">
               ✓
             </div>
             <div>
-              <div className="font-bold text-slate-900">Premium 240+ GSM Cotton</div>
-              <div className="text-[11px] text-slate-500">Heavyweight, pre-shrunk fabric</div>
+              <div className="font-semibold">Made for repeat wear</div>
+              <div className="text-[11px] text-muted-foreground">Heavyweight, pre-shrunk fabric</div>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-[#e4eee8] font-semibold text-[#345d4a]">
               ⚡
             </div>
             <div>
-              <div className="font-bold text-slate-900">Campus Pickup Desk</div>
-              <div className="text-[11px] text-slate-500">Direct collect at Student Center Desk</div>
+              <div className="font-semibold">Easy campus pickup</div>
+              <div className="text-[11px] text-muted-foreground">Collect at the Student Center desk</div>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-[#f5e4db] font-semibold text-[#86533d]">
               ★
             </div>
             <div>
-              <div className="font-bold text-slate-900">100% Non-Profit Proceeds</div>
-              <div className="text-[11px] text-slate-500">Funds student robotics & hackathon teams</div>
+              <div className="font-semibold">Community funded</div>
+              <div className="text-[11px] text-muted-foreground">Proceeds support student projects</div>
             </div>
           </div>
         </div>
 
         {/* Products Grid */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        {isPending ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" role="status" aria-label="Loading products">
             <Skeleton className="h-96 rounded-3xl" />
             <Skeleton className="h-96 rounded-3xl" />
             <Skeleton className="h-96 rounded-3xl" />
             <Skeleton className="h-96 rounded-3xl" />
           </div>
-        ) : error ? (
-          <div className="py-16 text-center text-red-600 font-medium">
-            Failed to load catalog. Please refresh.
-          </div>
+        ) : isError ? (
+          <ContentState error title="The shop is taking a little longer." description="We couldn’t load the catalog. Try again in a moment." action={refetch} />
         ) : products.length === 0 ? (
-          <div className="py-20 text-center bg-white rounded-3xl border border-slate-200/80 p-8">
-            <ShoppingBag className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-slate-800">New batch arriving soon</h3>
-            <p className="text-xs text-slate-400 mt-1">Pre-orders for the winter drop open next Monday.</p>
-          </div>
+          <ContentState title="The next drop is on its way." description="New products and pre-orders will appear here when they’re ready." />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {products.map(product => {
               const memberPrice = product.memberPricePaise ? product.memberPricePaise / 100 : 599;
               const regularPrice = product.pricePaise ? product.pricePaise / 100 : 799;
@@ -114,11 +107,11 @@ export default function ShopCatalog() {
                 <Link 
                   key={product.id} 
                   to={`/shop/${product.id}`}
-                  className="group flex flex-col justify-between rounded-3xl bg-white border border-slate-200/90 overflow-hidden shadow-xs hover:shadow-xl hover:border-blue-400 transition-all duration-300 hover:-translate-y-1"
+                  className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
                 >
                   <div>
                     {/* Product Image */}
-                    <div className="relative aspect-[4/5] bg-slate-100 overflow-hidden">
+                    <div className="relative aspect-[4/5] overflow-hidden bg-muted">
                       {product.coverImageUrl ? (
                         <img 
                           src={product.coverImageUrl} 
@@ -126,8 +119,8 @@ export default function ShopCatalog() {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-tr from-slate-200 to-slate-100 flex items-center justify-center p-6 text-center">
-                          <ShoppingBag className="w-16 h-16 text-slate-400" />
+                        <div className="flex size-full items-center justify-center bg-secondary p-6 text-center">
+                          <ShoppingBag className="size-16 text-primary/40" />
                         </div>
                       )}
 
@@ -147,41 +140,41 @@ export default function ShopCatalog() {
 
                       {/* Stock Urgency */}
                       <div className="absolute bottom-3 left-3">
-                        <span className="text-[10px] font-bold bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full text-slate-800 shadow-2xs border border-white/60 flex items-center gap-1">
-                          <Flame className="w-3 h-3 text-amber-500 fill-amber-500" /> Limited Stock
+                        <span className="flex items-center gap-1 rounded-full border border-white/60 bg-white/90 px-2.5 py-1 text-[10px] font-medium text-foreground backdrop-blur-md">
+                          <Flame className="size-3 text-[#86533d]" /> Limited stock
                         </span>
                       </div>
                     </div>
 
                     {/* Content */}
                     <div className="p-5">
-                      <h2 className="text-base font-display font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                      <h2 className="line-clamp-1 font-display text-lg font-semibold transition-colors group-hover:text-primary">
                         {product.name}
                       </h2>
-                      <p className="mt-1 text-xs text-slate-500 line-clamp-2">
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
                         {product.description || "Official LDCE Skyline apparel. 100% combed cotton with durable screen-printed crest."}
                       </p>
                     </div>
                   </div>
 
                   {/* Pricing Anchor Footer */}
-                  <div className="p-5 pt-3 border-t border-slate-100 flex items-end justify-between bg-slate-50/40">
+                  <div className="flex items-end justify-between border-t border-border bg-secondary/30 p-5 pt-3">
                     <div>
-                      <div className="text-[10px] font-mono uppercase text-slate-400">Member Price</div>
+                      <div className="font-mono text-[10px] uppercase text-muted-foreground">Member price</div>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-lg font-display font-black text-slate-900 tabular-nums">
+                        <span className="font-display text-lg font-semibold tabular-nums">
                           {formatINR(memberPrice)}
                         </span>
                         {hasDiscount && (
-                          <span className="text-xs text-slate-400 line-through tabular-nums">
+                          <span className="text-xs text-muted-foreground line-through tabular-nums">
                             {formatINR(regularPrice)}
                           </span>
                         )}
                       </div>
                     </div>
 
-                    <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 group-hover:translate-x-1 transition-transform">
-                      View Details &rarr;
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-primary transition-transform group-hover:translate-x-1">
+                      View details &rarr;
                     </span>
                   </div>
                 </Link>
@@ -190,7 +183,6 @@ export default function ShopCatalog() {
           </div>
         )}
 
-      </div>
     </div>
   );
 }

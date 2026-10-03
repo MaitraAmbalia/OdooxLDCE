@@ -1,4 +1,5 @@
 import { AppError } from '../../lib/AppError.js';
+import { parsePagination, createPageMeta } from '../../lib/pagination.js';
 
 export function createNotificationsService({ prisma }) {
   return {
@@ -15,12 +16,21 @@ export function createNotificationsService({ prisma }) {
       });
     },
 
-    async listUserNotifications(userId) {
-      return prisma.notification.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        take: 50,
-      });
+    async listUserNotifications(userId, query = {}) {
+      const page = parsePagination(query, { defaultLimit: 20 });
+      const where = { userId };
+
+      const [data, total] = await Promise.all([
+        prisma.notification.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: page.skip,
+          take: page.take,
+        }),
+        prisma.notification.count({ where }),
+      ]);
+
+      return { data, meta: createPageMeta(page, total) };
     },
 
     async markRead(userId, notificationId) {

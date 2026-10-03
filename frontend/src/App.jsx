@@ -54,7 +54,6 @@ function App() {
     <Routes>
       {/* Full Screen / Focus Routes */}
       <Route path="/door/:eventId" element={<DoorScanner />} />
-      <Route path="/cash-desk" element={<CashDesk />} />
 
       <Route element={<DiscoveryLayout />}>
         <Route path="/" element={<Home />} />
@@ -104,6 +103,7 @@ function App() {
         <Route path="volunteer/tasks/:id" element={<TaskDetail />} />
         <Route path="volunteer/claims/new" element={<SubmitClaim />} />
         <Route path="volunteer/claims/:id" element={<ClaimDetail />} />
+        <Route path="cash-desk" element={<CashDesk />} />
 
         <Route path="manage/claims" element={<ClaimQueue />} />
         <Route path="manage/claims/:id" element={<ClaimDetail />} />

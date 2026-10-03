@@ -1,8 +1,12 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function Register() {
+  usePageTitle("Create an account");
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm();
   const [errorMsg, setErrorMsg] = useState("");
   const navigate = useNavigate();
@@ -34,65 +38,66 @@ export default function Register() {
   };
 
   return (
-    <div className="flex-1 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <section className="page-container flex min-h-[72vh] flex-col justify-center py-12 sm:py-16">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-display font-extrabold text-[var(--color-ink)]">
-          Join Skyline
-        </h2>
-        <p className="mt-2 text-center text-sm text-[var(--color-muted)]">
+        <p className="text-center text-sm font-medium text-primary">Your campus, connected</p>
+        <h1 className="mt-3 text-center font-display text-4xl font-semibold tracking-tight">
+          Create your account
+        </h1>
+        <p className="mt-3 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link to="/login" className="font-medium text-[var(--color-dusk)] hover:underline">
+          <Link to="/login" className="font-medium text-primary hover:underline">
             Log in here
           </Link>
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-[var(--color-surface)] py-8 px-4 shadow sm:rounded-[10px] sm:px-10 border border-[var(--color-line)]">
+        <div className="rounded-2xl border border-border bg-card px-5 py-8 sm:px-10">
           {errorMsg && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-[var(--color-stop)] text-sm rounded-md">
+            <div className="mb-5 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive" role="alert">
               {errorMsg}
             </div>
           )}
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-[var(--color-ink)]">
-                Full Name
+              <label htmlFor="name" className="block text-sm font-medium">
+                Full name
               </label>
               <div className="mt-1">
-                <input
+                <Input
                   id="name"
                   type="text"
                   {...register("name", { required: "Name is required" })}
-                  className="appearance-none block w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[var(--color-dusk)] focus:border-[var(--color-dusk)] sm:text-sm"
+                  aria-invalid={!!errors.name}
                 />
-                {errors.name && <p className="mt-1 text-sm text-[var(--color-stop)]">{errors.name.message}</p>}
+                {errors.name && <p className="mt-1 text-sm text-destructive">{errors.name.message}</p>}
               </div>
             </div>
 
             <div>
-              <label htmlFor="studentId" className="block text-sm font-medium text-[var(--color-ink)]">
-                Student ID / Roll No.
+              <label htmlFor="studentId" className="block text-sm font-medium">
+                Student ID / roll number
               </label>
               <div className="mt-1">
-                <input
+                <Input
                   id="studentId"
                   type="text"
                   placeholder="e.g. 2026101"
                   {...register("studentId", { required: "Student ID is required" })}
-                  className="appearance-none block w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[var(--color-dusk)] focus:border-[var(--color-dusk)] sm:text-sm"
+                  aria-invalid={!!errors.studentId}
                 />
-                {errors.studentId && <p className="mt-1 text-sm text-[var(--color-stop)]">{errors.studentId.message}</p>}
+                {errors.studentId && <p className="mt-1 text-sm text-destructive">{errors.studentId.message}</p>}
               </div>
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-[var(--color-ink)]">
-                College Email
+              <label htmlFor="email" className="block text-sm font-medium">
+                College email
               </label>
               <div className="mt-1">
-                <input
+                <Input
                   id="email"
                   type="email"
                   {...register("email", { 
@@ -102,47 +107,48 @@ export default function Register() {
                       message: "Please enter a valid email address"
                     }
                   })}
-                  className="appearance-none block w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[var(--color-dusk)] focus:border-[var(--color-dusk)] sm:text-sm"
+                  aria-invalid={!!errors.email}
                 />
-                {errors.email && <p className="mt-1 text-sm text-[var(--color-stop)]">{errors.email.message}</p>}
+                {errors.email && <p className="mt-1 text-sm text-destructive">{errors.email.message}</p>}
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[var(--color-ink)]">
+              <label htmlFor="password" className="block text-sm font-medium">
                 Password
               </label>
               <div className="mt-1">
-                <input
+                <Input
                   id="password"
                   type="password"
                   {...register("password", { 
                     required: "Password is required",
                     minLength: { value: 10, message: "Password must be at least 10 characters" }
                   })}
-                  className="appearance-none block w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[var(--color-dusk)] focus:border-[var(--color-dusk)] sm:text-sm"
+                  aria-invalid={!!errors.password}
                 />
                 {/* Length meter as per specification */}
-                <div className="mt-2 text-xs text-[var(--color-muted)] flex items-center gap-2">
-                  <div className={`h-1 flex-1 rounded-full ${password.length >= 10 ? 'bg-[var(--color-ok)]' : 'bg-[var(--color-line)]'}`}></div>
+                <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className={`h-1 flex-1 rounded-full ${password.length >= 10 ? 'bg-[#47725e]' : 'bg-border'}`}></div>
                   <span>{Math.min(password.length, 10)}/10 characters</span>
                 </div>
-                {errors.password && <p className="mt-1 text-sm text-[var(--color-stop)]">{errors.password.message}</p>}
+                {errors.password && <p className="mt-1 text-sm text-destructive">{errors.password.message}</p>}
               </div>
             </div>
 
             <div>
-              <button
+              <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-[6px] shadow-sm text-sm font-medium text-white bg-[var(--color-dusk)] hover:bg-opacity-90 focus:outline-none disabled:opacity-50"
+                className="w-full"
+                size="lg"
               >
-                Create account
-              </button>
+                {isSubmitting ? "Creating account…" : "Create account"}
+              </Button>
             </div>
           </form>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

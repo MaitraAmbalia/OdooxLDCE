@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -10,6 +10,8 @@ import { Badge } from "../../../components/ui/badge";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { formatINR } from "../../../lib/utils";
 import { toast } from "sonner";
+import { ContentState } from "../../../components/common/ContentState";
+import { usePageTitle } from "../../../hooks/usePageTitle";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -18,7 +20,7 @@ export default function ProductDetail() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
-  const { data: productData, isLoading, error } = useQuery({
+  const { data: productData, isPending, isError, refetch } = useQuery({
     queryKey: ['products', id],
     queryFn: async () => {
       const res = await fetch(`/api/v1/products/${id}`);
@@ -31,15 +33,17 @@ export default function ProductDetail() {
   const variants = product?.variants || [];
 
   // Default to first variant if available
-  React.useEffect(() => {
+  useEffect(() => {
     if (variants.length > 0 && !selectedVariant) {
       setSelectedVariant(variants[0].id);
     }
   }, [variants, selectedVariant]);
 
-  if (isLoading) {
+  usePageTitle(product?.name || "Product details");
+
+  if (isPending) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6">
+      <div className="page-container py-12" role="status" aria-label="Loading product details">
         <Skeleton className="h-6 w-32 mb-6" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           <Skeleton className="aspect-square rounded-3xl" />
@@ -53,21 +57,17 @@ export default function ProductDetail() {
     );
   }
 
-  if (!product) {
+  if (isError || !product) {
     return (
-      <div className="max-w-md mx-auto py-20 px-4 text-center">
-        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
-        <h2 className="text-xl font-bold text-slate-900">Product Not Found</h2>
-        <Link to="/shop" className="mt-4 inline-block">
-          <Button variant="outline" size="sm">&larr; Return to Catalog</Button>
-        </Link>
+      <div className="page-container py-16">
+        <ContentState error title="We couldn’t load this product." description="It may no longer be available, or the connection may have been interrupted." action={refetch} />
       </div>
     );
   }
 
   const images = product.images && product.images.length > 0 
     ? product.images 
-    : [product.coverImageUrl || "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800&auto=format&fit=crop&q=80"];
+    : product.coverImageUrl ? [product.coverImageUrl] : [];
 
   const memberPrice = product.memberPricePaise ? product.memberPricePaise / 100 : 599;
   const regularPrice = product.pricePaise ? product.pricePaise / 100 : 799;
@@ -93,42 +93,41 @@ export default function ProductDetail() {
           navigate("/login");
           return;
         }
-        // Fallback for mock reservation
-        toast.success(`Reserved "${product.name}"! Pick up at Student Center Counter B.`);
-        navigate("/me/orders");
-        return;
+        throw new Error(json.error?.message || "Could not reserve this item");
       }
       toast.success(`Reserved "${product.name}"! Pickup pass ready.`);
       navigate("/me/orders");
-    } catch (e) {
-      toast.success(`Reserved "${product.name}"! (Mock reservation created)`);
-      navigate("/me/orders");
+    } catch (error) {
+      toast.error(error.message || "Could not reserve this item. Please try again.");
     } finally {
       setIsCheckingOut(false);
     }
   };
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    toast.success("Product link copied to clipboard!");
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success("Product link copied.");
+    } catch {
+      toast.error("Could not copy the link.");
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-paper)] py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="page-container py-10 sm:py-14">
         
         {/* Breadcrumb Header */}
         <div className="flex items-center justify-between mb-8">
           <Link 
             to="/shop" 
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+            className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
           >
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Merchandise
+            <ArrowLeft className="size-4" /> Back to shop
           </Link>
 
           <button
             onClick={handleShare}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-blue-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs hover:bg-slate-50 transition-colors"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-sm font-medium text-muted-foreground transition hover:bg-secondary hover:text-primary"
           >
             <Share2 className="w-3.5 h-3.5" /> Share Drop
           </button>
@@ -138,12 +137,12 @@ export default function ProductDetail() {
           
           {/* Left Column: Product Gallery */}
           <div className="lg:col-span-6 space-y-4">
-            <div className="relative aspect-square w-full rounded-3xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-md">
-              <img 
+            <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-border bg-secondary">
+              {images.length ? <img
                 src={images[activeImageIndex] || images[0]} 
                 alt={product.name} 
-                className="w-full h-full object-cover" 
-              />
+                className="size-full object-cover"
+              /> : <div className="flex size-full flex-col items-center justify-center gap-3 text-primary/40"><ShoppingBag className="size-20" /><span className="text-sm font-medium">Image coming soon</span></div>}
 
               <div className="absolute top-4 left-4 flex flex-col gap-2">
                 {product.isPreorder && (
@@ -167,7 +166,7 @@ export default function ProductDetail() {
                     key={i}
                     onClick={() => setActiveImageIndex(i)}
                     className={`relative w-20 h-20 rounded-2xl overflow-hidden border-2 cursor-pointer transition-all shrink-0 ${
-                      activeImageIndex === i ? "border-blue-600 ring-2 ring-blue-600/20" : "border-slate-200 opacity-70 hover:opacity-100"
+                      activeImageIndex === i ? "border-primary ring-2 ring-primary/20" : "border-border opacity-70 hover:opacity-100"
                     }`}
                   >
                     <img src={img} alt="" className="w-full h-full object-cover" />
@@ -190,13 +189,13 @@ export default function ProductDetail() {
                 </span>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl font-display font-black text-slate-900 tracking-tight leading-tight">
+              <h1 className="font-display text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
                 {product.name}
               </h1>
 
               {/* Price Anchor */}
               <div className="mt-4 flex items-baseline gap-3">
-                <span className="text-4xl font-display font-black text-slate-900 tabular-nums">
+                <span className="font-display text-4xl font-semibold tabular-nums">
                   {formatINR(memberPrice)}
                 </span>
                 {discountAmount > 0 && (
@@ -213,14 +212,14 @@ export default function ProductDetail() {
             </div>
 
             {/* Member savings upsell */}
-            <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/80 text-blue-900 flex items-start gap-3">
-              <Sparkles className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 rounded-2xl border border-border bg-secondary/60 p-4 text-secondary-foreground">
+              <Sparkles className="mt-0.5 size-5 shrink-0 text-primary" />
               <div className="text-xs">
-                <div className="font-bold">Verified Member Discount Active</div>
-                <div className="text-blue-700/90 mt-0.5">
+                <div className="font-semibold">Member pricing</div>
+                <div className="mt-0.5 text-muted-foreground">
                   You save {formatINR(discountAmount)} on this item with your Skyline Student Pass. Not a member yet?{" "}
-                  <Link to="/join" className="font-bold underline text-blue-800">
-                    Join for {formatINR(299)}/year &rarr;
+                  <Link to="/join" className="font-medium text-primary underline">
+                    Explore membership &rarr;
                   </Link>
                 </div>
               </div>
@@ -257,8 +256,8 @@ export default function ProductDetail() {
                           isSoldOut
                             ? "bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed line-through"
                             : isSelected
-                            ? "border-blue-600 bg-blue-600 text-white shadow-md scale-[1.02]"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                            ? "scale-[1.02] border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/30"
                         }`}
                       >
                         <div>{v.name}</div>
@@ -294,10 +293,10 @@ export default function ProductDetail() {
                 size="lg"
                 disabled={isCheckingOut || (variants.length > 0 && !selectedVariant)}
                 onClick={handleCheckout}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-base py-4 shadow-lg cursor-pointer"
+                className="w-full"
               >
                 {isCheckingOut ? (
-                  <span>Reserving Item...</span>
+                  <span>Reserving item…</span>
                 ) : (
                   <span className="flex items-center justify-center gap-2">
                     <ShoppingBag className="w-5 h-5" />
@@ -322,7 +321,6 @@ export default function ProductDetail() {
 
         </div>
 
-      </div>
     </div>
   );
 }

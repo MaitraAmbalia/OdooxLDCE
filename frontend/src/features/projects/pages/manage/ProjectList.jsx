@@ -1,81 +1,74 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, CalendarDays, CheckCircle2, ListTodo } from "lucide-react";
+import { ContentState } from "@/components/common/ContentState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
+
+function projectProgress(project) {
+  const tasks = project.tasks || [];
+  if (!tasks.length) return 0;
+  return Math.round((tasks.filter((task) => task.status === "DONE").length / tasks.length) * 100);
+}
 
 export default function ProjectList() {
-  const { data: projectsData, isLoading } = useQuery({
-    queryKey: ['projects'],
+  usePageTitle("Projects");
+  const { data: projectsData, isPending, isError, refetch } = useQuery({
+    queryKey: ["projects"],
     queryFn: async () => {
-      // API endpoint: GET /projects
-      const res = await fetch("/api/v1/projects");
-      if (!res.ok) throw new Error("Failed to fetch projects");
-      return res.json();
-    }
+      const response = await fetch("/api/v1/projects", { credentials: "include" });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message || "Failed to fetch projects");
+      return json;
+    },
   });
 
   const projects = projectsData?.data || [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8 flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">Projects Portfolio</h1>
-          <p className="text-sm text-[var(--color-muted)] mt-1">Manage events, tasks, and budgets across active projects.</p>
+    <div className="page-container py-12 sm:py-16">
+      <div>
+        <p className="mb-2 text-sm font-medium text-primary">Team delivery</p>
+        <h1 className="font-display text-4xl font-semibold tracking-tight">Projects</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Follow active initiatives and keep work moving across every task board.</p>
+      </div>
+
+      {isPending ? (
+        <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3" role="status" aria-label="Loading projects"><Skeleton className="h-64 rounded-2xl" /><Skeleton className="h-64 rounded-2xl" /><Skeleton className="h-64 rounded-2xl" /></div>
+      ) : isError ? (
+        <div className="mt-8"><ContentState error title="Projects aren’t available right now." description="We couldn’t load the project portfolio." action={refetch} /></div>
+      ) : projects.length === 0 ? (
+        <div className="mt-8"><ContentState title="No projects yet." description="Projects will appear here once a leadership initiative has been created." /></div>
+      ) : (
+        <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {projects.map((project) => {
+            const tasks = project.tasks || [];
+            const done = tasks.filter((task) => task.status === "DONE").length;
+            const progress = projectProgress(project);
+            const endDate = project.endDate || project.dueDate;
+            return (
+              <Link key={project.id} to={"/manage/projects/" + project.id} className="group flex min-h-64 flex-col rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div><p className="text-xs font-semibold uppercase tracking-wider text-primary">{project.type ? project.type.replaceAll("_", " ") : "Project"}</p><h2 className="mt-2 font-display text-xl font-semibold">{project.name}</h2></div>
+                  <span className={"rounded-full px-2.5 py-1 text-xs font-semibold " + (project.status === "CLOSED" || project.status === "DONE" ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800")}>{project.status === "CLOSED" ? "Closed" : project.status === "DONE" ? "Done" : "Active"}</span>
+                </div>
+
+                <p className="mt-4 line-clamp-3 flex-1 text-sm leading-6 text-muted-foreground">{project.description || "No project description has been added."}</p>
+
+                <div className="mt-5">
+                  <div className="flex items-center justify-between text-xs"><span className="flex items-center gap-1.5 text-muted-foreground"><ListTodo className="size-4" aria-hidden="true" />Task progress</span><span className="font-semibold tabular-nums">{done}/{tasks.length}</span></div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary"><div className={"h-full rounded-full " + (progress === 100 ? "bg-emerald-600" : "bg-primary")} style={{ width: progress + "%" }} /></div>
+                </div>
+
+                <div className="mt-5 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">{endDate ? <><CalendarDays className="size-4" aria-hidden="true" />Ends {new Date(endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</> : <><CheckCircle2 className="size-4" aria-hidden="true" />No end date</>}</span>
+                  <span className="flex items-center gap-1 font-medium text-primary">Open board <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" aria-hidden="true" /></span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
-        <button className="bg-[var(--color-dusk)] text-white px-4 py-2 rounded-[6px] text-sm font-medium hover:bg-opacity-90">
-          + New Project
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {isLoading ? (
-          <div className="col-span-full p-8 text-center text-[var(--color-muted)]">Loading projects...</div>
-        ) : projects.map(proj => (
-          <Link key={proj.id} to={`/manage/projects/${proj.id}`} className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] p-6 hover:shadow-md transition-shadow flex flex-col h-full">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-display font-bold text-[var(--color-ink)]">{proj.name}</h2>
-              <span className={`px-2 py-1 text-xs font-bold uppercase rounded ${
-                proj.status === 'DONE' ? 'bg-[var(--color-ok)] text-white' :
-                proj.status === 'IN_PROGRESS' ? 'bg-[var(--color-info)] text-white' :
-                'bg-[var(--color-neutral)] text-white'
-              }`}>
-                {proj.status.replace('_', ' ')}
-              </span>
-            </div>
-
-            <div className="mb-6 flex-1">
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-[var(--color-muted)]">Task Progress</span>
-                <span className="font-bold text-[var(--color-ink)]">{proj.progress}%</span>
-              </div>
-              <div className="w-full h-2 bg-[var(--color-line)] rounded-full overflow-hidden">
-                <div
-                  className={`h-full ${proj.progress === 100 ? 'bg-[var(--color-ok)]' : 'bg-[var(--color-dusk)]'}`}
-                  style={{ width: `${proj.progress}%` }}
-                ></div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-[var(--color-line)]">
-              <div className="flex justify-between text-sm">
-                <div>
-                  <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider">Budget Spent</p>
-                  <p className="font-mono font-bold text-[var(--color-ink)]">
-                    {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(proj.spentPaise / 100)}
-                    <span className="text-[var(--color-muted)] font-normal text-xs ml-1">
-                      / {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(proj.totalBudgetPaise / 100)}
-                    </span>
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider">Target Date</p>
-                  <p className="font-medium text-[var(--color-ink)]">{new Date(proj.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                </div>
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
+      )}
     </div>
   );
 }

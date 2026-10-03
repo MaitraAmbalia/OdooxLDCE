@@ -1,12 +1,14 @@
 import { AppError } from '../../lib/AppError.js';
 import { rolePermissions } from './access.permissions.js';
+import { parsePagination, createPageMeta } from '../../lib/pagination.js';
 
 export function createAccessService({ prisma }) {
   return {
     roles: () => Object.entries(rolePermissions).map(([role, permissions]) => ({ role, permissions })),
 
     async list(query = {}) {
-      const { page = 1, limit = 20, active, role, userId } = query;
+      const pageInfo = parsePagination(query, { defaultLimit: 20 });
+      const { active, role, userId } = query;
       const now = new Date();
       const where = {
         ...(role ? { role } : {}),
@@ -23,14 +25,14 @@ export function createAccessService({ prisma }) {
       const [data, total] = await Promise.all([
         prisma.roleAssignment.findMany({
           where,
-          skip: (page - 1) * limit,
-          take: limit,
+          skip: pageInfo.skip,
+          take: pageInfo.take,
           orderBy: [{ termStart: 'desc' }, { id: 'desc' }],
         }),
         prisma.roleAssignment.count({ where }),
       ]);
 
-      return { data, meta: { page, limit, total } };
+      return { data, meta: createPageMeta(pageInfo, total) };
     },
 
     async assign(actorId, input) {

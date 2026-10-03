@@ -1,304 +1,96 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, Banknote, CalendarDays, ClipboardCheck, Megaphone, PackageCheck, Plus, ReceiptIndianRupee, UsersRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ContentState } from "@/components/common/ContentState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
+
+const MODULES = [
+  { title: "Events", description: "Proposals, reviews, and public programming.", icon: CalendarDays, links: [{ label: "Propose an event", to: "/manage/events/new" }, { label: "Browse events", to: "/events" }] },
+  { title: "Finance", description: "Claims, cash, budgets, and reporting.", icon: Banknote, links: [{ label: "Expense claims", to: "/manage/claims" }, { label: "Cash verification", to: "/manage/cash" }, { label: "General ledger", to: "/manage/finance/ledger" }, { label: "Financial reports", to: "/manage/finance/reports" }] },
+  { title: "Projects", description: "Task boards and volunteer delivery.", icon: UsersRound, links: [{ label: "Project portfolio", to: "/manage/projects" }, { label: "Volunteer workspace", to: "/volunteer" }] },
+  { title: "Communications", description: "Announcements and publishing history.", icon: Megaphone, links: [{ label: "New announcement", to: "/manage/announcements/new" }, { label: "Communications history", to: "/manage/newsletter" }] },
+  { title: "Meetings", description: "Schedules, agendas, and invite responses.", icon: ClipboardCheck, links: [{ label: "Meeting schedule", to: "/manage/meetings" }, { label: "Schedule a meeting", to: "/manage/meetings/new" }] },
+  { title: "Store", description: "Pack and hand over merchandise orders.", icon: PackageCheck, links: [{ label: "Order fulfilment", to: "/manage/orders" }, { label: "View shop", to: "/shop" }] },
+];
 
 export default function ManageHome() {
+  usePageTitle("Manage");
   const { data: authData } = useQuery({
-    queryKey: ['auth', 'me'],
+    queryKey: ["auth", "me"],
     queryFn: async () => {
-      const res = await fetch("/api/v1/auth/me", { credentials: "include" });
-      if (!res.ok) return null;
-      return res.json();
+      const response = await fetch("/api/v1/auth/me", { credentials: "include" });
+      if (!response.ok) return null;
+      return response.json();
     },
     retry: false,
   });
 
-  const { data: countsData, isLoading } = useQuery({
-    queryKey: ['dashboard', 'counts'],
+  const { data: countsData, isPending, isError, refetch } = useQuery({
+    queryKey: ["dashboard", "counts"],
     queryFn: async () => {
-      try {
-        const res = await fetch("/api/v1/dashboard/counts", { credentials: "include" });
-        if (!res.ok) return { data: { claimsPending: 1, ordersToPack: 0, proposalsToReview: 1, activeTasks: 3 } };
-        return res.json();
-      } catch (e) {
-        return { data: { claimsPending: 1, ordersToPack: 0, proposalsToReview: 1, activeTasks: 3 } };
-      }
+      const response = await fetch("/api/v1/dashboard/counts", { credentials: "include" });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message || "Failed to load management counts");
+      return json;
+    },
+  });
+
+  const { data: proposalsData } = useQuery({
+    queryKey: ["events", { status: "PENDING_APPROVAL", limit: 5 }],
+    queryFn: async () => {
+      const response = await fetch("/api/v1/events?status=PENDING_APPROVAL&limit=5");
+      if (!response.ok) return { data: [] };
+      return response.json();
     },
     retry: false,
   });
 
   const user = authData?.data;
-  const counts = countsData?.data || {
-    claimsPending: 1,
-    ordersToPack: 0,
-    proposalsToReview: 1,
-    activeTasks: 3
-  };
+  const counts = countsData?.data;
+  const firstProposal = proposalsData?.data?.[0];
 
-  const isRole = (role) => user?.roles?.includes(role);
-
-  const queueStrips = [
-    {
-      title: "Expense Claims",
-      count: counts.claimsPending,
-      description: "Awaiting Treasurer review",
-      link: "/manage/claims",
-      color: "border-[var(--color-stop)] text-[var(--color-stop)]",
-      badge: "Finance"
-    },
-    {
-      title: "Event Proposals",
-      count: counts.proposalsToReview,
-      description: "Require Mentor authorization",
-      link: "/manage/events/00000000-0000-0000-0000-000000000001/review",
-      color: "border-[var(--color-wait)] text-[var(--color-wait)]",
-      badge: "Mentor"
-    },
-    {
-      title: "Active Tasks",
-      count: counts.activeTasks,
-      description: "Assigned to fundraiser volunteers",
-      link: "/manage/projects",
-      color: "border-[var(--color-ok)] text-[var(--color-ok)]",
-      badge: "Volunteers"
-    },
-    {
-      title: "Merch Fulfilment",
-      count: counts.ordersToPack,
-      description: "Paid orders ready for packing",
-      link: "/manage/orders",
-      color: "border-[var(--color-info)] text-[var(--color-info)]",
-      badge: "Shop"
-    }
-  ];
+  const queues = counts ? [
+    { title: "Expense claims", count: counts.claimsPending || 0, description: "Awaiting finance review", to: "/manage/claims", icon: ReceiptIndianRupee },
+    { title: "Event proposals", count: counts.proposalsToReview || 0, description: "Awaiting mentor review", to: firstProposal ? "/manage/events/" + firstProposal.id + "/review" : null, icon: CalendarDays },
+    { title: "Active tasks", count: counts.activeTasks || 0, description: "Across current projects", to: "/manage/projects", icon: UsersRound },
+    { title: "Orders to pack", count: counts.ordersToPack || 0, description: "Paid merchandise orders", to: "/manage/orders", icon: PackageCheck },
+  ] : [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 pb-6 border-b border-[var(--color-line)]">
-        <div>
-          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-50 text-[var(--color-dusk)] mb-2">
-            Executive Command Center
-          </div>
-          <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">
-            Organization Management Hub
-          </h1>
-          <p className="text-sm text-[var(--color-muted)] mt-1">
-            Logged in as <span className="font-semibold text-[var(--color-ink)]">{user?.name}</span> ({user?.roles?.join(', ') || 'Staff'})
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            to="/manage/events/new"
-            className="px-4 py-2 rounded-lg bg-[var(--color-dusk)] text-white font-bold text-xs hover:bg-opacity-90 shadow-sm"
-          >
-            + Propose Event
-          </Link>
-          <Link
-            to="/manage/meetings/new"
-            className="px-4 py-2 rounded-lg bg-[var(--color-paper)] border border-[var(--color-line)] text-[var(--color-ink)] font-bold text-xs hover:border-[var(--color-dusk)]"
-          >
-            + Schedule Meeting
-          </Link>
-          <Link
-            to="/manage/announcements/new"
-            className="px-4 py-2 rounded-lg bg-[var(--color-paper)] border border-[var(--color-line)] text-[var(--color-ink)] font-bold text-xs hover:border-[var(--color-dusk)]"
-          >
-            + Post Announcement
-          </Link>
-        </div>
+    <div className="page-container py-12 sm:py-16">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div><p className="mb-2 text-sm font-medium text-primary">Leadership workspace</p><h1 className="font-display text-4xl font-semibold tracking-tight">Manage Skyline</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{user?.name ? "Welcome back, " + user.name + ". " : ""}Review priority work and move between association operations.</p>{user?.roles?.length > 0 && <p className="mt-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">{user.roles.join(" · ").replaceAll("_", " ")}</p>}</div>
+        <div className="flex flex-col gap-2 sm:flex-row"><Button asChild variant="outline"><Link to="/manage/meetings/new"><Plus aria-hidden="true" /> Meeting</Link></Button><Button asChild><Link to="/manage/events/new"><Plus aria-hidden="true" /> Propose event</Link></Button></div>
       </div>
 
-      {/* Decision Queues Strip */}
-      <div className="mb-12">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--color-muted)] mb-4">
-          Priority Decision Queues
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {queueStrips.map((strip, idx) => (
-            <Link key={idx} to={strip.link} className="block group">
-              <div className={`bg-[var(--color-surface)] border-l-4 ${strip.color} border-y border-r border-[var(--color-line)] rounded-r-xl p-5 shadow-sm hover:shadow-md transition-all h-full flex flex-col justify-between`}>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)] px-2 py-0.5 rounded bg-[var(--color-paper)] border border-[var(--color-line)]">
-                      {strip.badge}
-                    </span>
-                    <span className="text-xs text-[var(--color-dusk)] group-hover:translate-x-0.5 transition-transform font-bold">
-                      &rarr;
-                    </span>
-                  </div>
-                  <p className="text-3xl font-display font-extrabold text-[var(--color-ink)] mb-1">{strip.count}</p>
-                  <h3 className="font-bold text-[var(--color-ink)] text-sm">{strip.title}</h3>
-                  <p className="text-xs text-[var(--color-muted)] mt-1">{strip.description}</p>
-                </div>
-              </div>
-            </Link>
-          ))}
+      <section className="mt-10" aria-labelledby="priority-heading">
+        <div className="mb-4"><h2 id="priority-heading" className="font-display text-2xl font-semibold">Priority queues</h2><p className="mt-1 text-sm text-muted-foreground">Live counts from the workflows that need attention.</p></div>
+        {isPending ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" role="status" aria-label="Loading management queues"><Skeleton className="h-40 rounded-2xl" /><Skeleton className="h-40 rounded-2xl" /><Skeleton className="h-40 rounded-2xl" /><Skeleton className="h-40 rounded-2xl" /></div>
+        ) : isError ? (
+          <ContentState error title="Priority queues aren’t available." description="The workspace counts could not be loaded." action={refetch} />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {queues.map((queue) => {
+              const Icon = queue.icon;
+              const content = <><div className="flex items-start justify-between"><span className="rounded-xl bg-primary/10 p-2 text-primary"><Icon className="size-5" aria-hidden="true" /></span>{queue.to && <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden="true" />}</div><p className="mt-6 font-display text-4xl font-semibold tabular-nums">{queue.count}</p><h3 className="mt-2 font-semibold">{queue.title}</h3><p className="mt-1 text-xs text-muted-foreground">{queue.description}</p>{!queue.to && queue.count > 0 && <p className="mt-3 text-xs text-amber-700">No review record is currently visible.</p>}</>;
+              return queue.to ? <Link key={queue.title} to={queue.to} className="group rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{content}</Link> : <div key={queue.title} className="rounded-2xl border border-border bg-card p-5">{content}</div>;
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-12" aria-labelledby="workspaces-heading">
+        <div className="mb-4"><h2 id="workspaces-heading" className="font-display text-2xl font-semibold">Workspaces</h2><p className="mt-1 text-sm text-muted-foreground">Choose an operational area to continue.</p></div>
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {MODULES.map((module) => {
+            const Icon = module.icon;
+            return <article key={module.title} className="rounded-2xl border border-border bg-card p-5 sm:p-6"><span className="inline-flex rounded-xl bg-secondary p-2.5 text-primary"><Icon className="size-5" aria-hidden="true" /></span><h3 className="mt-5 font-display text-xl font-semibold">{module.title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{module.description}</p><div className="mt-5 space-y-1">{module.links.map((link) => <Link key={link.to} to={link.to} className="group flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-medium transition hover:bg-secondary"><span>{link.label}</span><ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden="true" /></Link>)}</div></article>;
+          })}
         </div>
-      </div>
-
-      {/* Department Modules Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-        {/* 1. Governance & Oversight (Mentor / President) */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xl">🏛️</span>
-            <div>
-              <h3 className="font-bold text-[var(--color-ink)] text-base">Governance & Mentorship</h3>
-              <p className="text-xs text-[var(--color-muted)]">Faculty oversight & elections</p>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Link to="/manage/events/00000000-0000-0000-0000-000000000001/review" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Event Proposal Review & Diff</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-            <Link to="/manage/selection/00000000-0000-0000-0000-000000000001/edit" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Election Cycle & Question Builder</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-            <Link to="/manage/selection/00000000-0000-0000-0000-000000000001/applications" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Candidate Applications & Review</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-            <Link to="/manage/budget" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Semester Budget Allocations</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* 2. Executive Leadership & Meetings (President) */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xl">📅</span>
-            <div>
-              <h3 className="font-bold text-[var(--color-ink)] text-base">Executive & Meetings</h3>
-              <p className="text-xs text-[var(--color-muted)]">Presidential agenda & coordination</p>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Link to="/manage/meetings" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Club & Event Meetings Roster</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-            <Link to="/manage/meetings/new" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>+ Schedule Meeting & Agenda</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-            <Link to="/manage/claims" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>High-Value Claims Review (&gt; ₹2k)</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* 3. Finance & Ledgers (Treasurer) */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xl">📊</span>
-            <div>
-              <h3 className="font-bold text-[var(--color-ink)] text-base">Treasury & Accounting</h3>
-              <p className="text-xs text-[var(--color-muted)]">Double-entry ledger & reimbursements</p>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Link to="/manage/finance/ledger" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Double-Entry General Ledger</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-            <Link to="/manage/claims" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Volunteer Reimbursement Queue</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-            <Link to="/manage/cash" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Cash Collection Verification</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-            <Link to="/manage/finance/reports" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Financial Reports & CSV Export</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* 4. Events & Ticketing (Event Head) */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xl">🎟️</span>
-            <div>
-              <h3 className="font-bold text-[var(--color-ink)] text-base">Events & Ticketing</h3>
-              <p className="text-xs text-[var(--color-muted)]">Proposals, quotas & door check-in</p>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Link to="/manage/events/new" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Event Proposal Stepper (5-step)</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-            <Link to="/events" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Public Event Catalog</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-            <Link to="/door/00000000-0000-0000-0000-000000000001" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Full-Screen Door QR Scanner</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* 5. Fundraisers & Projects (Volunteer Head) */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xl">🤝</span>
-            <div>
-              <h3 className="font-bold text-[var(--color-ink)] text-base">Projects & Volunteers</h3>
-              <p className="text-xs text-[var(--color-muted)]">Kanban task boards & delegation</p>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Link to="/manage/projects" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Fundraiser Projects Roster</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-            <Link to="/manage/projects/00000000-0000-0000-0000-000000000003" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Bake Sale Kanban Task Board</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-            <Link to="/volunteer" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Volunteer Mobile Dashboard</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* 6. Communications & Store (Marketing Head) */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xl">📢</span>
-            <div>
-              <h3 className="font-bold text-[var(--color-ink)] text-base">Comms & Store</h3>
-              <p className="text-xs text-[var(--color-muted)]">Announcements, newsletters & merch</p>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Link to="/manage/announcements/new" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Compose Targeted Announcement</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-            <Link to="/manage/newsletter" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Newsletter Campaigns & Stats</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-            <Link to="/manage/orders" className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--color-line)] hover:bg-[var(--color-paper)] text-xs font-semibold text-[var(--color-ink)]">
-              <span>Merchandise Fulfilment Queue</span>
-              <span className="text-[var(--color-dusk)]">&rarr;</span>
-            </Link>
-          </div>
-        </div>
-
-      </div>
+      </section>
     </div>
   );
 }

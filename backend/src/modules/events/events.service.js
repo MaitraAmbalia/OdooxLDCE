@@ -1,4 +1,5 @@
 import { AppError } from '../../lib/AppError.js';
+import { parsePagination, createPageMeta } from '../../lib/pagination.js';
 
 export function createEventsService({ prisma }) {
   return {
@@ -36,20 +37,38 @@ export function createEventsService({ prisma }) {
     },
 
     async list(query = {}) {
-      const { visibility, status } = query;
-      const events = await prisma.event.findMany({
-        where: {
-          ...(visibility ? { visibility } : {}),
-          ...(status ? { status } : { status: 'PUBLISHED' }),
-        },
-        orderBy: { startAt: 'asc' },
-        include: {
-          ticketTypes: true,
-          proposedBy: { select: { id: true, name: true } },
-        },
-      });
+      const page = parsePagination(query, { defaultLimit: 50 });
+      const { visibility, status, q, category } = query;
+      const where = {
+        ...(visibility ? { visibility } : {}),
+        ...(status ? { status } : { status: 'PUBLISHED' }),
+        ...(category && category !== 'ALL' ? { category: { equals: category, mode: 'insensitive' } } : {}),
+        ...(q
+          ? {
+              OR: [
+                { title: { contains: q, mode: 'insensitive' } },
+                { description: { contains: q, mode: 'insensitive' } },
+                { venue: { contains: q, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      };
 
-      return events.map((e) => ({
+      const [events, total] = await Promise.all([
+        prisma.event.findMany({
+          where,
+          orderBy: { startAt: 'asc' },
+          skip: page.skip,
+          take: page.take,
+          include: {
+            ticketTypes: true,
+            proposedBy: { select: { id: true, name: true } },
+          },
+        }),
+        prisma.event.count({ where }),
+      ]);
+
+      const data = events.map((e) => ({
         ...e,
         startDate: e.startAt,
         endDate: e.endAt,
@@ -59,6 +78,8 @@ export function createEventsService({ prisma }) {
           pricePaise: Number(t.pricePaise),
         })),
       }));
+
+      return { data, meta: createPageMeta(page, total) };
     },
 
     async getById(id) {

@@ -1,12 +1,20 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ReceiptIndianRupee, X } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { ContentState } from "@/components/common/ContentState";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function ClaimQueue() {
+  usePageTitle("Expense claims");
   const queryClient = useQueryClient();
   const [selectedClaim, setSelectedClaim] = useState(null); // Used to open the drawer
   const [rejectReason, setRejectReason] = useState("");
 
-  const { data: claimsData, isLoading } = useQuery({
+  const { data: claimsData, isPending, isError, refetch } = useQuery({
     queryKey: ['claims', 'queue', { awaitingMe: true }],
     queryFn: async () => {
       // API endpoint: GET /claims?awaitingMe=true
@@ -18,37 +26,36 @@ export default function ClaimQueue() {
 
   const reviewMutation = useMutation({
     mutationFn: async ({ claimId, decision, reason }) => {
-      // API endpoint: POST /claims/:id/review
-      console.log(`Reviewing claim ${claimId}: ${decision}`, { reason });
-      return { success: true };
+      const response = await fetch(`/api/v1/claims/${claimId}/review`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision, reason }) });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message || "Could not review claim");
+      return json.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['claims', 'queue'] });
       setSelectedClaim(null);
       setRejectReason("");
-    }
+      toast.success("Claim review saved.");
+    },
+    onError: (error) => toast.error(error.message || "Could not review claim."),
   });
 
   const claims = claimsData?.data || [];
   
-  // Mock data if backend isn't returning yet
-  const mockClaims = claims.length > 0 ? claims : [
-    { id: '1', amountPaise: 150000, submitter: 'Aarav Shah', description: 'Paint for stage', ageDays: 2, status: 'SUBMITTED', link: 'Tech Gala 2026' },
-    { id: '2', amountPaise: 45000, submitter: 'Neha Gupta', description: 'Snacks for volunteers', ageDays: 5, status: 'SUBMITTED', link: 'Task: Buy Snacks' }
-  ];
-
-  if (isLoading) return <div className="p-8 text-[var(--color-muted)]">Loading queue...</div>;
+  if (isPending) return <div className="page-container py-12" role="status" aria-label="Loading claims"><Skeleton className="h-10 w-60" /><Skeleton className="mt-8 h-80 rounded-2xl" /></div>;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 flex relative">
+    <div className="page-container relative flex py-12 sm:py-16">
       
       {/* Queue Table */}
       <div className={`flex-1 transition-all ${selectedClaim ? 'lg:pr-96' : ''}`}>
-        <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)] mb-8">Expense Claims</h1>
+        <p className="mb-2 text-sm font-medium text-primary">Finance review</p>
+        <h1 className="mb-8 font-display text-4xl font-semibold tracking-tight">Expense claims</h1>
+        {isError ? <ContentState error title="Claims aren’t available right now." description="We couldn’t load the review queue." action={refetch} /> : claims.length === 0 ? <ContentState title="The review queue is clear." description="New expense claims will appear here when they need your decision." /> : (
         
-        <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] overflow-hidden">
-          <table className="min-w-full divide-y divide-[var(--color-line)]">
-            <thead className="bg-[var(--color-paper)]">
+        <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-secondary/40">
               <tr>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Date/Age</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Submitter</th>
@@ -56,15 +63,17 @@ export default function ClaimQueue() {
                 <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Amount</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--color-line)] bg-white">
-              {mockClaims.map((claim) => (
+            <tbody className="divide-y divide-border bg-card">
+              {claims.map((claim) => (
                 <tr 
                   key={claim.id} 
                   onClick={() => setSelectedClaim(claim)}
-                  className={`cursor-pointer hover:bg-gray-50 ${selectedClaim?.id === claim.id ? 'bg-[var(--color-paper)]' : ''}`}
+                  tabIndex={0}
+                  onKeyDown={(event) => { if (event.key === "Enter") setSelectedClaim(claim); }}
+                  className={`cursor-pointer transition-colors hover:bg-secondary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${selectedClaim?.id === claim.id ? 'bg-secondary/50' : ''}`}
                 >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-muted)]">{claim.ageDays} days ago</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--color-ink)]">{claim.submitter}</td>
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">{claim.ageDays} days ago</td>
+                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">{claim.submitter}</td>
                   <td className="px-6 py-4 text-sm text-[var(--color-ink)]">
                     <p className="truncate max-w-[200px]">{claim.description}</p>
                     <p className="text-xs text-[var(--color-muted)]">{claim.link}</p>
@@ -76,18 +85,16 @@ export default function ClaimQueue() {
               ))}
             </tbody>
           </table>
-          {mockClaims.length === 0 && (
-            <div className="p-8 text-center text-[var(--color-muted)]">No claims awaiting your review.</div>
-          )}
         </div>
+        )}
       </div>
 
       {/* Review Drawer (Right Side on Desktop, Overlaid on Mobile) */}
       {selectedClaim && (
         <div className="fixed inset-y-0 right-0 w-full md:w-96 bg-[var(--color-surface)] border-l border-[var(--color-line)] shadow-2xl z-40 flex flex-col transform transition-transform">
-          <div className="p-4 border-b border-[var(--color-line)] flex justify-between items-center bg-[var(--color-paper)]">
-            <h2 className="text-lg font-display font-bold">Review Claim</h2>
-            <button onClick={() => setSelectedClaim(null)} className="text-[var(--color-muted)] hover:text-[var(--color-ink)] text-xl leading-none">&times;</button>
+          <div className="flex items-center justify-between border-b border-border bg-secondary/40 p-4">
+            <h2 className="font-display text-xl font-semibold">Review claim</h2>
+            <Button variant="ghost" size="icon" onClick={() => setSelectedClaim(null)} aria-label="Close claim review"><X /></Button>
           </div>
           
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -111,35 +118,36 @@ export default function ClaimQueue() {
 
             <div>
               <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-2">Receipts</p>
-              <div className="h-40 bg-gray-200 rounded-[6px] flex items-center justify-center text-[var(--color-muted)] text-sm border border-[var(--color-line)]">
-                [Receipt Image Placeholder]
+              <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-border bg-secondary/30 text-sm text-muted-foreground">
+                <ReceiptIndianRupee className="mr-2 size-5" /> No persisted receipt
               </div>
             </div>
 
             <div className="pt-6 border-t border-[var(--color-line)] space-y-4">
-              <button 
+              <Button
                 onClick={() => reviewMutation.mutate({ claimId: selectedClaim.id, decision: 'APPROVE' })}
                 disabled={reviewMutation.isPending}
-                className="w-full py-2 bg-[var(--color-ok)] text-white font-medium rounded-[6px] hover:bg-opacity-90 transition-opacity"
+                className="w-full bg-[#345d4a] hover:bg-[#294b3b]"
               >
-                Approve Claim
-              </button>
+                Approve claim
+              </Button>
               
               <div>
-                <input 
+                <Input
                   type="text" 
                   placeholder="Reason for rejection (required)"
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-[var(--color-line)] rounded-[6px] text-sm mb-2"
+                  className="mb-2"
                 />
-                <button 
+                <Button
+                  variant="outline"
                   onClick={() => reviewMutation.mutate({ claimId: selectedClaim.id, decision: 'REJECT', reason: rejectReason })}
                   disabled={!rejectReason.trim() || reviewMutation.isPending}
-                  className="w-full py-2 bg-white text-[var(--color-stop)] border border-[var(--color-stop)] font-medium rounded-[6px] hover:bg-red-50 disabled:opacity-50 transition-colors"
+                  className="w-full border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive"
                 >
-                  Reject Claim
-                </button>
+                  Reject claim
+                </Button>
               </div>
             </div>
           </div>

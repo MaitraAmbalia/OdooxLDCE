@@ -1,61 +1,67 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Download, Landmark } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ContentState } from "@/components/common/ContentState";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function Ledger() {
+  usePageTitle("General ledger");
   const [filter, setFilter] = useState("ALL"); // ALL, INCOME, EXPENSE
 
-  const { data: ledgerData, isLoading } = useQuery({
+  const { data: ledgerData, isPending, isError, refetch } = useQuery({
     queryKey: ['finance', 'ledger', { filter }],
     queryFn: async () => {
       // API endpoint: GET /finance/ledger?type=...
-      const res = await fetch(`/api/v1/finance/ledger?type=${filter}`, { credentials: "include" });
+      const query = filter === "ALL" ? "" : `?type=${filter}`;
+      const res = await fetch(`/api/v1/finance/ledger${query}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch ledger");
       return res.json();
     }
   });
 
   const transactions = ledgerData?.data || [];
-  
-  // Mock data if API isn't wired
-  const mockTransactions = transactions.length > 0 ? transactions : [
-    { id: '1', date: '2026-10-02', type: 'INCOME', description: 'Membership Dues (Aarav Shah)', amountPaise: 15000, category: 'MEMBERSHIP' },
-    { id: '2', date: '2026-10-01', type: 'EXPENSE', description: 'Stage Paint (Reimbursement)', amountPaise: 150000, category: 'LOGISTICS' },
-    { id: '3', date: '2026-09-30', type: 'INCOME', description: 'Ticket Sale x2 (Tech Gala)', amountPaise: 30000, category: 'EVENT_TICKETS' }
-  ];
+  const { data: balanceData } = useQuery({ queryKey: ["finance", "balance"], queryFn: async () => { const response = await fetch("/api/v1/finance/balance", { credentials: "include" }); if (!response.ok) throw new Error("Failed to fetch balance"); return response.json(); } });
+  const balancePaise = balanceData?.data?.balancePaise || 0;
 
-  const filteredTransactions = filter === "ALL" ? mockTransactions : mockTransactions.filter(t => t.type === filter);
+  function exportCsv() {
+    const escape = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+    const rows = [["Date", "Description", "Category", "Direction", "Amount (INR)"], ...transactions.map((item) => [item.date, item.description, item.category, item.type, (item.amountPaise / 100).toFixed(2)])];
+    const url = URL.createObjectURL(new Blob([rows.map((row) => row.map(escape).join(",")).join("\r\n")], { type: "text/csv" }));
+    const link = document.createElement("a"); link.href = url; link.download = `skyline-ledger-${filter.toLowerCase()}.csv`; link.click(); URL.revokeObjectURL(url);
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+    <div className="page-container py-12 sm:py-16">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">General Ledger</h1>
-          <p className="text-sm text-[var(--color-muted)] mt-1">Official financial records for Skyline</p>
+          <p className="mb-2 text-sm font-medium text-primary">Finance</p>
+          <h1 className="font-display text-4xl font-semibold tracking-tight">General ledger</h1>
+          <p className="mt-2 text-sm text-muted-foreground">A chronological record of Skyline income and expenses.</p>
         </div>
         
         {/* Balance Header */}
-        <div className="bg-[var(--color-dusk)] text-white px-6 py-4 rounded-[10px] shadow-sm flex items-center gap-6">
+        <div className="flex items-center gap-6 rounded-2xl bg-[#272747] px-6 py-4 text-white">
           <div>
             <p className="text-xs text-white/80 uppercase tracking-wider mb-1">Current Balance</p>
             <p className="text-3xl font-display font-bold font-mono tabular-nums">
-              ₹45,250.00
+              {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(balancePaise / 100)}
             </p>
           </div>
-          <button className="text-xs bg-white text-[var(--color-dusk)] px-3 py-1.5 rounded font-bold hover:bg-opacity-90 transition-colors">
-            Export CSV
-          </button>
+          <Button onClick={exportCsv} disabled={!transactions.length} className="bg-white text-[#272747] hover:bg-[#eeedf7]"><Download /> Export CSV</Button>
         </div>
       </div>
 
-      <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] overflow-hidden shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card">
         
         {/* Filters */}
-        <div className="p-4 bg-[var(--color-paper)] border-b border-[var(--color-line)] flex gap-2">
+        <div className="flex flex-wrap gap-2 border-b border-border bg-secondary/40 p-4">
           {["ALL", "INCOME", "EXPENSE"].map(t => (
             <button
               key={t}
               onClick={() => setFilter(t)}
-              className={`px-4 py-2 rounded-[6px] text-sm font-medium transition-colors ${filter === t ? 'bg-[var(--color-dusk)] text-white' : 'bg-white border border-[var(--color-line)] text-[var(--color-ink)] hover:bg-gray-50'}`}
+              className={`min-h-10 rounded-md px-4 text-sm font-medium transition-colors ${filter === t ? 'bg-primary text-primary-foreground' : 'border border-border bg-card hover:bg-secondary'}`}
             >
               {t === 'ALL' ? 'All Transactions' : t === 'INCOME' ? 'Income Only' : 'Expenses Only'}
             </button>
@@ -71,13 +77,14 @@ export default function Ledger() {
                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Description</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Category</th>
                 <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Amount</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-[var(--color-ink)] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--color-line)] bg-white">
-              {isLoading ? (
-                <tr><td colSpan="5" className="p-8 text-center text-[var(--color-muted)]">Loading ledger...</td></tr>
-              ) : filteredTransactions.map((tx) => (
+            <tbody className="divide-y divide-border bg-card">
+              {isPending ? (
+                <tr><td colSpan="4" className="p-6"><Skeleton className="h-32" /></td></tr>
+              ) : isError ? (
+                <tr><td colSpan="4" className="p-6"><ContentState error title="The ledger isn’t available." description="Try loading the records again." action={refetch} /></td></tr>
+              ) : transactions.map((tx) => (
                 <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-muted)]">
                     {new Date(tx.date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}
@@ -93,15 +100,10 @@ export default function Ledger() {
                   <td className={`px-6 py-4 whitespace-nowrap text-sm font-mono text-right tabular-nums font-bold ${tx.type === 'INCOME' ? 'text-[var(--color-ok)]' : 'text-[var(--color-ink)]'}`}>
                     {tx.type === 'INCOME' ? '+' : '-'} {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(tx.amountPaise / 100)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button className="text-[var(--color-stop)] hover:underline ml-4" title="Reverse Transaction">
-                      Reverse
-                    </button>
-                  </td>
                 </tr>
               ))}
-              {filteredTransactions.length === 0 && !isLoading && (
-                <tr><td colSpan="5" className="p-8 text-center text-[var(--color-muted)]">No transactions found.</td></tr>
+              {transactions.length === 0 && !isPending && !isError && (
+                <tr><td colSpan="4" className="p-10 text-center"><Landmark className="mx-auto mb-3 size-8 text-primary/40" /><p className="text-sm text-muted-foreground">No transactions found for this view.</p></td></tr>
               )}
             </tbody>
           </table>
