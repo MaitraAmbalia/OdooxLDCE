@@ -57,7 +57,7 @@ export function createApp({
   app.use('/api/v1', createHealthRouter({ prisma }));
 
   // Feature Routers
-  app.use('/api/v1', createAuthRouter({ service: createAuthService({ prisma, config }), authenticate: auth, config }));
+  app.use('/api/v1', createAuthRouter({ service: createAuthService({ prisma, config }), authenticate: auth }));
   app.use('/api/v1', createUsersRouter({ service: createUsersService({ prisma }), authenticate: auth, authorize }));
   app.use('/api/v1', createAccessRouter({ service: createAccessService({ prisma }), authenticate: auth, authorize }));
   app.use('/api/v1', createVolunteersRouter({ service: createVolunteersService({ prisma }), authenticate: auth }));
