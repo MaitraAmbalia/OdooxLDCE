@@ -40,7 +40,7 @@ export default function Budget() {
         </div>
         <div className="rounded-2xl border border-border bg-card p-6">
           <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Total Spent</p>
-          <p className="text-3xl font-display font-bold font-mono tabular-nums text-[var(--color-stop)]">
+          <p className="text-3xl font-display font-bold font-mono tabular-nums text-destructive">
             {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(totalSpent / 100)}
           </p>
         </div>
@@ -50,9 +50,9 @@ export default function Budget() {
             <p className="text-3xl font-display font-bold font-mono tabular-nums text-foreground">
               {totalUtilisation.toFixed(1)}%
             </p>
-            <div className="flex-1 h-2 mb-2 bg-[var(--color-line)] rounded-full overflow-hidden">
+            <div className="flex-1 h-2 mb-2 bg-secondary rounded-full overflow-hidden">
               <div 
-                className={`h-full ${totalUtilisation > 90 ? 'bg-[var(--color-stop)]' : totalUtilisation > 75 ? 'bg-[var(--color-wait)]' : 'bg-[var(--color-dusk)]'}`}
+                className={`h-full ${totalUtilisation > 90 ? 'bg-destructive' : totalUtilisation > 75 ? 'bg-amber-500' : 'bg-primary'}`}
                 style={{ width: `${Math.min(totalUtilisation, 100)}%` }}
               ></div>
             </div>
@@ -65,12 +65,12 @@ export default function Budget() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {budgets.map(b => {
-            const util = (b.spentPaise / b.allocatedPaise) * 100;
+            const util = b.allocatedPaise ? (b.spentPaise / b.allocatedPaise) * 100 : 0;
             return (
               <div key={b.id} className="rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="font-semibold text-foreground">{b.category}</h3>
-                  <span className="text-sm font-medium bg-[var(--color-paper)] border border-[var(--color-line)] px-2 py-1 rounded">
+                  <span className="text-sm font-medium bg-secondary text-secondary-foreground border border-border px-2 py-0.5 rounded">
                     {util.toFixed(1)}%
                   </span>
                 </div>
@@ -80,9 +80,9 @@ export default function Budget() {
                   <span className="font-bold text-foreground">Limit: {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(b.allocatedPaise / 100)}</span>
                 </div>
                 
-                <div className="w-full h-3 bg-[var(--color-line)] rounded-full overflow-hidden">
+                <div className="w-full h-3 bg-secondary rounded-full overflow-hidden">
                   <div 
-                    className={`h-full ${util > 90 ? 'bg-[var(--color-stop)]' : util > 75 ? 'bg-[var(--color-wait)]' : 'bg-[var(--color-ok)]'}`}
+                    className={`h-full ${util > 90 ? 'bg-destructive' : util > 75 ? 'bg-amber-500' : 'bg-emerald-600'}`}
                     style={{ width: `${Math.min(util, 100)}%` }}
                   ></div>
                 </div>

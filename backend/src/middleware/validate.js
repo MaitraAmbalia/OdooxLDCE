@@ -17,7 +17,16 @@ export function validate(schemas) {
         }));
         return next(new AppError('VALIDATION_ERROR', 400, 'Request validation failed', errors));
       }
-      req[key] = result.data;
+      try {
+        req[key] = result.data;
+      } catch {
+        Object.defineProperty(req, key, {
+          value: result.data,
+          writable: true,
+          configurable: true,
+          enumerable: true,
+        });
+      }
       validated[key] = result.data;
     }
 

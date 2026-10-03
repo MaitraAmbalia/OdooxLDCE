@@ -61,7 +61,7 @@ export default function Ledger() {
             <button
               key={t}
               onClick={() => setFilter(t)}
-              className={`min-h-10 rounded-md px-4 text-sm font-medium transition-colors ${filter === t ? 'bg-primary text-primary-foreground' : 'border border-border bg-card hover:bg-secondary'}`}
+              className={`min-h-10 rounded-md px-4 text-sm font-medium transition-colors ${filter === t ? 'bg-primary text-primary-foreground shadow-sm' : 'border border-border bg-card text-foreground hover:bg-secondary'}`}
             >
               {t === 'ALL' ? 'All Transactions' : t === 'INCOME' ? 'Income Only' : 'Expenses Only'}
             </button>

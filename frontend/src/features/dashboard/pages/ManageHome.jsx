@@ -8,7 +8,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 
 const MODULES = [
   { title: "Events", description: "Proposals, reviews, and public programming.", icon: CalendarDays, links: [{ label: "Propose an event", to: "/manage/events/new" }, { label: "Browse events", to: "/events" }] },
-  { title: "Finance", description: "Claims, cash, budgets, and reporting.", icon: Banknote, links: [{ label: "Expense claims", to: "/manage/claims" }, { label: "Cash verification", to: "/manage/cash" }, { label: "General ledger", to: "/manage/finance/ledger" }, { label: "Financial reports", to: "/manage/finance/reports" }] },
+  { title: "Finance", description: "Claims, cash, budgets, and reporting.", icon: Banknote, links: [{ label: "Expense claims", to: "/manage/claims" }, { label: "Cash verification", to: "/manage/cash" }, { label: "General ledger", to: "/manage/finance/ledger" }, { label: "Financial reports", to: "/manage/finance/reports" }, { label: "Budget allocations", to: "/manage/budget" }] },
   { title: "Projects", description: "Task boards and volunteer delivery.", icon: UsersRound, links: [{ label: "Project portfolio", to: "/manage/projects" }, { label: "Volunteer workspace", to: "/volunteer" }] },
   { title: "Communications", description: "Announcements and publishing history.", icon: Megaphone, links: [{ label: "New announcement", to: "/manage/announcements/new" }, { label: "Communications history", to: "/manage/newsletter" }] },
   { title: "Meetings", description: "Schedules, agendas, and invite responses.", icon: ClipboardCheck, links: [{ label: "Meeting schedule", to: "/manage/meetings" }, { label: "Schedule a meeting", to: "/manage/meetings/new" }] },
@@ -41,7 +41,7 @@ export default function ManageHome() {
   const { data: proposalsData } = useQuery({
     queryKey: ["events", { status: "PENDING_APPROVAL", limit: 5 }],
     queryFn: async () => {
-      const response = await fetch("/api/v1/events?status=PENDING_APPROVAL&limit=5");
+      const response = await fetch("/api/v1/events?status=PENDING_APPROVAL&limit=5", { credentials: "include" });
       if (!response.ok) return { data: [] };
       return response.json();
     },

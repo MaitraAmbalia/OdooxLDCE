@@ -44,7 +44,7 @@ export default function Reports() {
             <button
               key={t}
               onClick={() => setReportType(t)}
-              className={`min-h-10 rounded-md px-4 text-sm font-medium transition-colors ${reportType === t ? 'bg-primary text-primary-foreground' : 'border border-border bg-card hover:bg-secondary'}`}
+              className={`min-h-10 rounded-md px-4 text-sm font-medium transition-colors ${reportType === t ? 'bg-primary text-primary-foreground shadow-sm' : 'border border-border bg-card text-foreground hover:bg-secondary'}`}
             >
               {t === 'SUMMARY' ? 'Overall Summary' : t === 'EVENT' ? 'Per-Event' : 'Per-Project'}
             </button>
@@ -57,23 +57,23 @@ export default function Reports() {
           ) : isError ? <ContentState error title="The report isn’t available." description="We couldn’t generate this financial summary." action={refetch} /> : (
             <div className="rounded-2xl border border-dashed border-border bg-secondary/20 px-4 py-14 text-center">
               <FileSpreadsheet className="mx-auto mb-4 size-9 text-primary" />
-              <h2 className="mb-2 font-display text-2xl font-semibold">{reportType === "SUMMARY" ? "Overall summary" : reportType === "EVENT" ? "Event summary" : "Project summary"}</h2>
+              <h2 className="mb-2 font-display text-2xl font-semibold text-foreground">{reportType === "SUMMARY" ? "Overall summary" : reportType === "EVENT" ? "Event summary" : "Project summary"}</h2>
               <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
                 Current aggregated financial data returned by the finance service.
               </p>
               
-              <div className="flex justify-center gap-6 text-left max-w-lg mx-auto bg-white p-6 rounded-[10px] border border-[var(--color-line)] shadow-sm">
+              <div className="flex justify-center gap-6 text-left max-w-lg mx-auto bg-card p-6 rounded-xl border border-border shadow-sm text-foreground">
                 <div>
                   <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Rows</p>
-                  <p className="font-mono text-lg font-semibold">{report?.rowCount || 0}</p>
+                  <p className="font-mono text-lg font-semibold text-foreground">{report?.rowCount || 0}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Total Income</p>
-                  <p className="font-mono text-lg font-semibold text-[#345d4a]">{money(report?.totalIncomePaise)}</p>
+                  <p className="font-mono text-lg font-semibold text-emerald-600">{money(report?.totalIncomePaise)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Total Expense</p>
-                  <p className="font-mono text-lg font-semibold">{money(report?.totalExpensePaise)}</p>
+                  <p className="font-mono text-lg font-semibold text-destructive">{money(report?.totalExpensePaise)}</p>
                 </div>
               </div>
             </div>

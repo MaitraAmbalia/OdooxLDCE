@@ -26,7 +26,7 @@ export function createDashboardsService({ prisma }) {
           if (!userPermissions.includes('mentor.dashboard')) throw new AppError('FORBIDDEN', 403, 'Requires mentor dashboard permission');
           const [pendingEvents, pendingClaims, budgetAllocations] = await Promise.all([
             prisma.event.count({ where: { status: 'PENDING_APPROVAL' } }),
-            prisma.expenseClaim.count({ where: { status: 'APPROVED_BY_EXECUTIVE' } }), // Mentor is final approver for high claims
+            prisma.expenseClaim.count({ where: { status: 'APPROVED_L1' } }), // Mentor is final approver for high claims
             prisma.budgetAllocation.aggregate({ _sum: { amountPaise: true } })
           ]);
           return {

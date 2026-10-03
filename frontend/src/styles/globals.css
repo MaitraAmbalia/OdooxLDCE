@@ -80,6 +80,9 @@
     outline: 2px solid var(--ring);
     outline-offset: 4px;
   }
+  button, input, select, textarea {
+    color: inherit;
+  }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]) {
     cursor: pointer;

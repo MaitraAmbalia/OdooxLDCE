@@ -342,10 +342,25 @@ export function createFinanceService({ prisma, files }) {
   }
 
   async function submitClaim(user, input) {
+    let cat = 'REIMBURSEMENT';
+    if (input.category) {
+      const up = input.category.toUpperCase().replace(/\s*&\s*/g, '_').trim();
+      const valid = ['DUES', 'TICKETS', 'MERCH', 'FUNDRAISER', 'BUDGET_ALLOCATION', 'SPONSORSHIP', 'REIMBURSEMENT', 'PURCHASE', 'REFUND', 'OTHER'];
+      if (valid.includes(up)) {
+        cat = up;
+      } else if (up === 'FOOD___BEV' || up === 'FOOD_BEV' || up === 'LOGISTICS' || up === 'TRAVEL') {
+        cat = 'PURCHASE';
+      }
+    }
+    const amountPaise = BigInt(Math.round(Number(input.amountPaise || 10000)));
+    const route = amountPaise > 200000n ? 'HIGH_VALUE' : 'STANDARD';
+
     const row = await prisma.expenseClaim.create({
       data: {
         submittedById: user.id,
-        amountPaise: BigInt(input.amountPaise || 10000),
+        amountPaise,
+        category: cat,
+        route,
         description: input.description || 'Expense claim',
         spentAt: input.dateSpent ? new Date(input.dateSpent) : new Date(),
         status: 'SUBMITTED',
@@ -355,13 +370,53 @@ export function createFinanceService({ prisma, files }) {
   }
 
   async function reviewClaim(user, id, { decision, reason }) {
+    const existing = await prisma.expenseClaim.findUnique({ where: { id } });
+    if (!existing) {
+      throw new AppError('NOT_FOUND', 404, 'Expense claim not found');
+    }
     const status = decision === 'APPROVE' ? 'APPROVED' : 'REJECTED';
     const row = await prisma.expenseClaim.update({
       where: { id },
       data: {
-        status: status,
+        status,
       },
     });
+
+    try {
+      await prisma.claimDecision.create({
+        data: {
+          claimId: id,
+          deciderId: user.id,
+          level: 'L1',
+          decision: decision === 'APPROVE' ? 'APPROVE' : 'REJECT',
+          reason: reason || null,
+        },
+      });
+    } catch {
+      // non-blocking
+    }
+
+    if (status === 'APPROVED') {
+      try {
+        await prisma.ledgerEntry.create({
+          data: {
+            direction: 'OUT',
+            category: row.category || 'REIMBURSEMENT',
+            amountPaise: row.amountPaise,
+            description: `Expense reimbursement: ${row.description}`,
+            sourceType: 'CLAIM',
+            sourceId: row.id,
+            eventId: row.eventId || null,
+            projectId: row.projectId || null,
+            occurredAt: new Date(),
+            recordedById: user.id,
+          },
+        });
+      } catch {
+        // Safe to ignore duplicate or foreign key errors
+      }
+    }
+
     return { id: row.id, status: row.status };
   }
 

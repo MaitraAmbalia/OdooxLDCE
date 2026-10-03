@@ -12,7 +12,7 @@ export default function VolunteerHome() {
     queryKey: ['tasks', 'me'],
     queryFn: async () => {
       // API endpoint: GET /tasks/me
-      const res = await fetch("/api/v1/tasks/me");
+      const res = await fetch("/api/v1/tasks/me", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch tasks");
       return res.json();
     }
@@ -22,7 +22,7 @@ export default function VolunteerHome() {
     queryKey: ['claims', 'me'],
     queryFn: async () => {
       // API endpoint: GET /claims/me
-      const res = await fetch("/api/v1/claims/me");
+      const res = await fetch("/api/v1/claims/me", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch claims");
       return res.json();
     }

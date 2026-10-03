@@ -18,7 +18,7 @@ export default function ClaimQueue() {
     queryKey: ['claims', 'queue', { awaitingMe: true }],
     queryFn: async () => {
       // API endpoint: GET /claims?awaitingMe=true
-      const res = await fetch("/api/v1/claims?awaitingMe=true");
+      const res = await fetch("/api/v1/claims?awaitingMe=true", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch claims");
       return res.json();
     }
@@ -32,7 +32,7 @@ export default function ClaimQueue() {
       return json.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['claims', 'queue'] });
+      queryClient.invalidateQueries({ queryKey: ['claims'] });
       setSelectedClaim(null);
       setRejectReason("");
       toast.success("Claim review saved.");
