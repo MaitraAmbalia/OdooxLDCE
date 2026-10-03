@@ -18,7 +18,7 @@ export function createAuthService({ prisma, config }) {
       tx.volunteer.findUnique({ where: { userId: user.id } }),
     ]);
 
-    const validTermRoles = new Set(['MENTOR', 'PRESIDENT', 'TREASURER', 'EVENT_HEAD', 'VOLUNTEER_HEAD', 'MARKETING_HEAD']);
+    const validTermRoles = new Set(['MENTOR', 'PRESIDENT', 'TREASURER', 'EVENT_HEAD', 'VOLUNTEER_HEAD', 'MARKETING_HEAD', 'SPONSORSHIP_HEAD']);
     const roles = [
       ...new Set(
         assignments

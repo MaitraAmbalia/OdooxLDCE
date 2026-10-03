@@ -6,6 +6,56 @@ export const EVENT_LEADS = ['event.approve', 'event.propose', 'event.publish'];
 const REVIEWABLE = ['PENDING_APPROVAL', 'CHANGES_REQUESTED'];
 const DECISION_STATUS = { APPROVE: 'PUBLISHED', REQUEST_CHANGES: 'CHANGES_REQUESTED', REJECT: 'REJECTED' };
 
+function sponsorshipData(input) {
+  const required = input.sponsorshipRequired === true;
+  if (!required) {
+    return {
+      sponsorshipRequired: false,
+      sponsorshipTargetPaise: null,
+      sponsorshipDeadline: null,
+      sponsorshipPitch: null,
+      sponsorshipPackages: null,
+      sponsorBenefits: null,
+    };
+  }
+
+  const target = Number(input.sponsorshipTargetPaise);
+  const deadline = new Date(input.sponsorshipDeadline);
+  const packages = Array.isArray(input.sponsorshipPackages)
+    ? input.sponsorshipPackages.map((value) => String(value).trim()).filter(Boolean)
+    : [];
+  const pitch = String(input.sponsorshipPitch || '').trim();
+  const benefits = String(input.sponsorBenefits || '').trim();
+
+  if (!Number.isSafeInteger(target) || target <= 0) {
+    throw new AppError('VALIDATION_ERROR', 400, 'A positive sponsorship target is required');
+  }
+  if (Number.isNaN(deadline.getTime())) {
+    throw new AppError('VALIDATION_ERROR', 400, 'A valid sponsorship deadline is required');
+  }
+  if (input.startAt && deadline >= new Date(input.startAt)) {
+    throw new AppError('VALIDATION_ERROR', 400, 'The sponsorship deadline must be before the event starts');
+  }
+  if (!pitch || !benefits || packages.length === 0) {
+    throw new AppError('VALIDATION_ERROR', 400, 'Sponsorship pitch, packages, and benefits are required');
+  }
+
+  return {
+    sponsorshipRequired: true,
+    sponsorshipTargetPaise: BigInt(target),
+    sponsorshipDeadline: deadline,
+    sponsorshipPitch: pitch,
+    sponsorshipPackages: packages,
+    sponsorBenefits: benefits,
+  };
+}
+
+const withPublicAmounts = (event) => ({
+  ...event,
+  approvedBudgetPaise: event.approvedBudgetPaise != null ? Number(event.approvedBudgetPaise) : null,
+  sponsorshipTargetPaise: event.sponsorshipTargetPaise != null ? Number(event.sponsorshipTargetPaise) : null,
+});
+
 export function createEventsService({ prisma }) {
   return {
     // Proposals wait for Mentor authorization; tickets only go on sale once PUBLISHED.
@@ -22,6 +72,7 @@ export function createEventsService({ prisma }) {
           visibility: input.visibility ?? 'PUBLIC',
           status: 'PENDING_APPROVAL',
           proposedById: userId,
+          ...sponsorshipData(input),
           ticketTypes: input.ticketTypes
             ? {
                 create: input.ticketTypes.map((t) => ({
@@ -47,7 +98,7 @@ export function createEventsService({ prisma }) {
         body: `"${event.title}" is waiting for your authorization.`,
         link: `/manage/events/${event.id}/review`,
       });
-      return { ...event, ticketTypes: event.ticketTypes.map((t) => ({ ...t, pricePaise: Number(t.pricePaise) })) };
+      return withPublicAmounts({ ...event, ticketTypes: event.ticketTypes.map((t) => ({ ...t, pricePaise: Number(t.pricePaise) })) });
     },
 
     async list(query = {}) {
@@ -85,6 +136,7 @@ export function createEventsService({ prisma }) {
       const data = events.map((e) => ({
         ...e,
         approvedBudgetPaise: e.approvedBudgetPaise != null ? Number(e.approvedBudgetPaise) : null,
+        sponsorshipTargetPaise: e.sponsorshipTargetPaise != null ? Number(e.sponsorshipTargetPaise) : null,
         startDate: e.startAt,
         endDate: e.endAt,
         coverImageUrl: e.coverFileId ? `/api/v1/files/${e.coverFileId}` : null,
@@ -116,6 +168,7 @@ export function createEventsService({ prisma }) {
       return {
         ...event,
         approvedBudgetPaise: event.approvedBudgetPaise != null ? Number(event.approvedBudgetPaise) : null,
+        sponsorshipTargetPaise: event.sponsorshipTargetPaise != null ? Number(event.sponsorshipTargetPaise) : null,
         startDate: event.startAt,
         endDate: event.endAt,
         coverImageUrl: event.coverFileId ? `/api/v1/files/${event.coverFileId}` : null,
@@ -151,6 +204,9 @@ export function createEventsService({ prisma }) {
           data: {
             eventId: id, reviewerId: mentorId, decision, comment: note || null,
             snapshot: { title: event.title, startAt: event.startAt, endAt: event.endAt, capacity: event.capacity, venue: event.venue,
+              sponsorshipRequired: event.sponsorshipRequired, sponsorshipTargetPaise: event.sponsorshipTargetPaise != null ? Number(event.sponsorshipTargetPaise) : null,
+              sponsorshipDeadline: event.sponsorshipDeadline, sponsorshipPitch: event.sponsorshipPitch,
+              sponsorshipPackages: event.sponsorshipPackages, sponsorBenefits: event.sponsorBenefits,
               ticketTypes: event.ticketTypes.map((t) => ({ name: t.name, pricePaise: Number(t.pricePaise), quota: t.quota })) },
           },
         });
@@ -173,12 +229,31 @@ export function createEventsService({ prisma }) {
           body: note ? `"${event.title}": ${note}` : `"${event.title}" is now live and tickets are on sale.`,
           link: `/events/${id}`,
         });
+        if (decision === 'APPROVE' && event.sponsorshipRequired) {
+          const now = new Date();
+          const sponsorshipLeads = await tx.roleAssignment.findMany({
+            where: {
+              role: 'SPONSORSHIP_HEAD',
+              termStart: { lte: now },
+              termEnd: { gt: now },
+              endedAt: null,
+            },
+            select: { userId: true },
+          });
+          await notifyMany(tx, sponsorshipLeads.map((lead) => lead.userId), {
+            type: 'SPONSORSHIP_REQUEST_READY',
+            title: 'Approved event needs sponsorship',
+            body: `"${event.title}" is ready for sponsor outreach.`,
+            link: `/manage/sponsorship?event=${event.id}`,
+          });
+        }
         return row;
       });
       return {
         ...updated,
         ticketTypes: updated.ticketTypes.map((t) => ({ ...t, pricePaise: Number(t.pricePaise) })),
         approvedBudgetPaise: updated.approvedBudgetPaise != null ? Number(updated.approvedBudgetPaise) : null,
+        sponsorshipTargetPaise: updated.sponsorshipTargetPaise != null ? Number(updated.sponsorshipTargetPaise) : null,
         startDate: updated.startAt,
         endDate: updated.endAt,
       };

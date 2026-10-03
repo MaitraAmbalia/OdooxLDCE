@@ -140,6 +140,7 @@ export default function DiscoveryLayout() {
         "EVENT_HEAD",
         "VOLUNTEER_HEAD",
         "MARKETING_HEAD",
+        "SPONSORSHIP_HEAD",
         "MENTOR",
       ].includes(role),
     )

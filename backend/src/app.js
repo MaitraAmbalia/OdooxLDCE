@@ -43,6 +43,7 @@ import { createDashboardsService } from './modules/dashboards/dashboards.service
 import { createDashboardsRouter } from './modules/dashboards/dashboards.routes.js';
 import { createNewsletterService } from './modules/newsletter/newsletter.service.js';
 import { createNewsletterRouter } from './modules/newsletter/newsletter.routes.js';
+import { createOdooClient, createOdooRouter, createOdooService } from './integrations/odoo/index.js';
 
 export function createApp({
   config = getConfig(),
@@ -100,6 +101,10 @@ export function createApp({
       authorize,
     })
   );
+
+  const odooClient = createOdooClient({ config });
+  const odooService = createOdooService({ prisma, client: odooClient });
+  app.use('/api/v1', createOdooRouter({ service: odooService, authenticate: auth, authorize }));
 
   app.get('/', (req, res) => res.json({ message: 'Skyline API Server Running' }));
 

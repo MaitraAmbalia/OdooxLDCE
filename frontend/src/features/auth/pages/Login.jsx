@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import {
   ShieldCheck, Lock, Zap, GraduationCap,
-  Crown, DollarSign, Ticket, Users, CheckCircle2 
+  Crown, DollarSign, Ticket, Users, Handshake, CheckCircle2 
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -82,6 +82,15 @@ export default function Login() {
       icon: Ticket,
       color: "bg-[#5b568c] text-white",
       desc: "Propose new events, configure ticket tiers & door staff."
+    },
+    {
+      title: "Sponsorship Head",
+      email: "sponsorship@nirmauni.ac.in",
+      role: "SPONSORSHIP_HEAD",
+      badge: "Odoo CRM",
+      icon: Handshake,
+      color: "bg-[#86533d] text-white",
+      desc: "Build sponsor pipelines in Odoo and track event commitments."
     },
     {
       title: "Volunteer",

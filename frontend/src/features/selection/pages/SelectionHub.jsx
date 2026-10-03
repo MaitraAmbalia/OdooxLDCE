@@ -17,19 +17,41 @@ export default function SelectionHub() {
     }
   });
 
+  const { data: authData } = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/auth/me", { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    retry: false,
+  });
+
+  const user = authData?.data;
+  const isPresidentOrMentor = user?.roles?.includes('PRESIDENT') || user?.roles?.includes('MENTOR');
+
   const cycles = cyclesData?.data || [];
   const openCycles = cycles.filter(c => c.status === 'OPEN' && new Date(c.deadlineAt) > new Date());
   const closedCycles = cycles.filter(c => c.status === 'CLOSED' || new Date(c.deadlineAt) <= new Date());
 
   return (
     <div className="page-container py-12 sm:py-16">
-      <div className="mb-12 max-w-2xl">
+      <div className="mb-8 max-w-2xl">
         <p className="mb-3 text-sm font-medium text-primary">Shape what comes next</p>
         <h1 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Bring your ideas. Build your community.</h1>
         <p className="mt-4 text-base leading-7 text-muted-foreground">
           Find open Skyline roles, understand the commitment, and apply when the fit feels right.
         </p>
       </div>
+
+      {isPresidentOrMentor && (
+        <div className="mb-10 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-900">
+          <p className="font-semibold">Supervisory Role Notice</p>
+          <p className="mt-1 text-xs text-amber-800">
+            As a sitting President or Faculty Mentor, you supervise the governance selection cycle. To avoid conflicts of interest, applications are restricted for your role.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-12">
         {isPending ? (
@@ -70,12 +92,22 @@ export default function SelectionHub() {
                         <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground"><UsersRound className="size-3" aria-hidden="true" />{post.capacity}</span>
                       </div>
                       <p className="mb-6 flex-1 text-sm leading-6 text-muted-foreground">{post.description}</p>
-                      <Link
-                        to={`/selection/posts/${post.id}/apply`}
-                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-                      >
-                        Apply now <ArrowUpRight className="size-4" aria-hidden="true" />
-                      </Link>
+                      {isPresidentOrMentor ? (
+                        <button
+                          type="button"
+                          disabled
+                          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-muted px-4 text-xs font-medium text-muted-foreground cursor-not-allowed"
+                        >
+                          Ineligible (Supervisory role)
+                        </button>
+                      ) : (
+                        <Link
+                          to={`/selection/posts/${post.id}/apply`}
+                          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                        >
+                          Apply now <ArrowUpRight className="size-4" aria-hidden="true" />
+                        </Link>
+                      )}
                     </div>
                   ))}
                 </div>

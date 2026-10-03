@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
-const STEPS = ["Basics", "Schedule", "Tickets", "Review"];
+const STEPS = ["Basics", "Schedule", "Tickets", "Sponsorship", "Review"];
 
 export default function EventProposalStepper() {
   usePageTitle("Create event");
@@ -24,6 +24,12 @@ export default function EventProposalStepper() {
       capacity: 100,
       startAt: suggestedDate ? `${suggestedDate.slice(0, 10)}T10:00` : "",
       endAt: suggestedDate ? `${suggestedDate.slice(0, 10)}T11:00` : "",
+      sponsorshipRequired: false,
+      sponsorshipTarget: 0,
+      sponsorshipDeadline: "",
+      sponsorshipPitch: "",
+      sponsorshipPackagesText: "Title Sponsor, Gold Sponsor, Silver Sponsor",
+      sponsorBenefits: "",
       ticketTypes: [{ name: "General admission", audience: "ALL", price: 0, quota: 100, maxPerUser: 5 }],
     },
   });
@@ -42,6 +48,14 @@ export default function EventProposalStepper() {
         endAt: data.endAt,
         capacity: Number(data.capacity),
         visibility: data.visibility,
+        sponsorshipRequired: Boolean(data.sponsorshipRequired),
+        sponsorshipTargetPaise: data.sponsorshipRequired ? Math.round(Number(data.sponsorshipTarget || 0) * 100) : null,
+        sponsorshipDeadline: data.sponsorshipRequired ? data.sponsorshipDeadline : null,
+        sponsorshipPitch: data.sponsorshipRequired ? data.sponsorshipPitch.trim() : null,
+        sponsorshipPackages: data.sponsorshipRequired
+          ? data.sponsorshipPackagesText.split(",").map((value) => value.trim()).filter(Boolean)
+          : null,
+        sponsorBenefits: data.sponsorshipRequired ? data.sponsorBenefits.trim() : null,
         ticketTypes: (data.ticketTypes || []).map((ticket) => ({
           name: ticket.name.trim(),
           audience: ticket.audience,
@@ -84,6 +98,11 @@ export default function EventProposalStepper() {
       setCurrentStep(3);
       return;
     }
+    if (data.sponsorshipRequired && new Date(data.sponsorshipDeadline) >= new Date(data.startAt)) {
+      toast.error("The sponsorship deadline must be before the event starts.");
+      setCurrentStep(4);
+      return;
+    }
     submitEvent.mutate(data);
   };
 
@@ -119,7 +138,18 @@ export default function EventProposalStepper() {
           {allocatedQuota > Number(values.capacity || 0) && <p className="mt-4 text-sm text-destructive" role="alert">Ticket quotas exceed the event capacity.</p>}
         </div>}
 
-        {currentStep === 4 && <div><h2 className="font-display text-2xl font-semibold">Review event</h2><div className="mt-6 grid gap-4 rounded-xl bg-secondary/40 p-5 text-sm sm:grid-cols-2"><div><p className="text-xs text-muted-foreground">Title</p><p className="mt-1 font-medium">{values.title}</p></div><div><p className="text-xs text-muted-foreground">Category</p><p className="mt-1 font-medium">{values.category}</p></div><div><p className="text-xs text-muted-foreground">Venue</p><p className="mt-1 font-medium">{values.venue}</p></div><div><p className="text-xs text-muted-foreground">Capacity</p><p className="mt-1 font-medium">{values.capacity}</p></div><div><p className="text-xs text-muted-foreground">Schedule</p><p className="mt-1 font-medium">{values.startAt ? new Date(values.startAt).toLocaleString() : "Not set"}</p></div><div><p className="text-xs text-muted-foreground">Tickets</p><p className="mt-1 font-medium">{fields.length} type{fields.length === 1 ? "" : "s"} · {allocatedQuota} places</p></div></div><p className="mt-5 text-sm leading-6 text-muted-foreground">Publishing makes this event visible according to its selected visibility and opens the configured ticket types.</p></div>}
+        {currentStep === 4 && <div className="space-y-5">
+          <div><h2 className="font-display text-2xl font-semibold">Sponsorship brief</h2><p className="mt-2 text-sm text-muted-foreground">Define what the Sponsorship Head needs before outreach begins. Sponsor contacts and communication will stay in Odoo CRM.</p></div>
+          <label className="flex items-start gap-3 rounded-xl border border-border bg-secondary/20 p-4"><input type="checkbox" className="mt-1 size-4" {...register("sponsorshipRequired")} /><span><span className="block text-sm font-semibold">This event requires sponsorship</span><span className="mt-1 block text-xs text-muted-foreground">The brief becomes available to the Sponsorship Head only after event approval.</span></span></label>
+          {values.sponsorshipRequired && <div className="space-y-5 rounded-xl border border-border p-5">
+            <div className="grid gap-5 sm:grid-cols-2"><div><label htmlFor="sponsorship-target" className="mb-2 block text-sm font-medium">Target amount (₹)</label><Input id="sponsorship-target" type="number" min="1" step="0.01" aria-invalid={!!errors.sponsorshipTarget} {...register("sponsorshipTarget", { valueAsNumber: true, validate: (value) => !watch("sponsorshipRequired") || Number(value) >= 1 || "Target must be positive" })} />{errors.sponsorshipTarget && <p className="mt-2 text-sm text-destructive">{errors.sponsorshipTarget.message}</p>}</div><div><label htmlFor="sponsorship-deadline" className="mb-2 block text-sm font-medium">Outreach deadline</label><Input id="sponsorship-deadline" type="datetime-local" aria-invalid={!!errors.sponsorshipDeadline} {...register("sponsorshipDeadline", { validate: (value) => !watch("sponsorshipRequired") || Boolean(value) || "Deadline is required" })} />{errors.sponsorshipDeadline && <p className="mt-2 text-sm text-destructive">{errors.sponsorshipDeadline.message}</p>}</div></div>
+            <div><label htmlFor="sponsorship-packages" className="mb-2 block text-sm font-medium">Packages, separated by commas</label><Input id="sponsorship-packages" aria-invalid={!!errors.sponsorshipPackagesText} {...register("sponsorshipPackagesText", { validate: (value) => !watch("sponsorshipRequired") || value.split(",").some((item) => item.trim()) || "At least one package is required" })} />{errors.sponsorshipPackagesText && <p className="mt-2 text-sm text-destructive">{errors.sponsorshipPackagesText.message}</p>}</div>
+            <div><label htmlFor="sponsorship-pitch" className="mb-2 block text-sm font-medium">Sponsor pitch</label><textarea id="sponsorship-pitch" rows={4} aria-invalid={!!errors.sponsorshipPitch} {...register("sponsorshipPitch", { validate: (value) => !watch("sponsorshipRequired") || Boolean(value?.trim()) || "Sponsor pitch is required" })} className="w-full resize-y rounded-xl border border-input bg-background px-4 py-3 text-sm leading-6 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50" />{errors.sponsorshipPitch && <p className="mt-2 text-sm text-destructive">{errors.sponsorshipPitch.message}</p>}</div>
+            <div><label htmlFor="sponsor-benefits" className="mb-2 block text-sm font-medium">Benefits offered</label><textarea id="sponsor-benefits" rows={4} aria-invalid={!!errors.sponsorBenefits} {...register("sponsorBenefits", { validate: (value) => !watch("sponsorshipRequired") || Boolean(value?.trim()) || "Sponsor benefits are required" })} className="w-full resize-y rounded-xl border border-input bg-background px-4 py-3 text-sm leading-6 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50" />{errors.sponsorBenefits && <p className="mt-2 text-sm text-destructive">{errors.sponsorBenefits.message}</p>}</div>
+          </div>}
+        </div>}
+
+        {currentStep === 5 && <div><h2 className="font-display text-2xl font-semibold">Review event</h2><div className="mt-6 grid gap-4 rounded-xl bg-secondary/40 p-5 text-sm sm:grid-cols-2"><div><p className="text-xs text-muted-foreground">Title</p><p className="mt-1 font-medium">{values.title}</p></div><div><p className="text-xs text-muted-foreground">Category</p><p className="mt-1 font-medium">{values.category}</p></div><div><p className="text-xs text-muted-foreground">Venue</p><p className="mt-1 font-medium">{values.venue}</p></div><div><p className="text-xs text-muted-foreground">Capacity</p><p className="mt-1 font-medium">{values.capacity}</p></div><div><p className="text-xs text-muted-foreground">Schedule</p><p className="mt-1 font-medium">{values.startAt ? new Date(values.startAt).toLocaleString() : "Not set"}</p></div><div><p className="text-xs text-muted-foreground">Tickets</p><p className="mt-1 font-medium">{fields.length} type{fields.length === 1 ? "" : "s"} · {allocatedQuota} places</p></div><div><p className="text-xs text-muted-foreground">Sponsorship</p><p className="mt-1 font-medium">{values.sponsorshipRequired ? `Required · ₹${Number(values.sponsorshipTarget || 0).toLocaleString("en-IN")}` : "Not required"}</p></div></div><p className="mt-5 text-sm leading-6 text-muted-foreground">Publishing makes this event visible according to its selected visibility and opens the configured ticket types.</p></div>}
 
         <div className="mt-8 flex items-center justify-between border-t border-border pt-6"><Button type="button" variant="outline" onClick={() => setCurrentStep((step) => Math.max(1, step - 1))} disabled={currentStep === 1}>Previous</Button><Button type="submit" disabled={submitEvent.isPending || (currentStep === 3 && allocatedQuota > Number(values.capacity || 0))}>{submitEvent.isPending ? "Publishing…" : currentStep === STEPS.length ? "Publish event" : "Continue"}</Button></div>
       </form>

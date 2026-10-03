@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Banknote, CalendarDays, ClipboardCheck, Megaphone, PackageCheck, Plus, ReceiptIndianRupee, UsersRound, ShieldCheck } from "lucide-react";
+import { ArrowRight, Banknote, CalendarDays, ClipboardCheck, HandCoins, Megaphone, PackageCheck, Plus, ReceiptIndianRupee, UsersRound, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,6 +8,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 
 const MODULES = [
   { title: "Events", description: "Proposals, reviews, and public programming.", icon: CalendarDays, links: [{ label: "Propose an event", to: "/manage/events/new" }, { label: "Browse events", to: "/events" }] },
+  { title: "Sponsorship", description: "Send approved event opportunities to Odoo CRM and reconcile received funds.", icon: HandCoins, links: [{ label: "Open sponsorship workspace", to: "/manage/sponsorship" }] },
   { title: "Finance", description: "Claims, cash, budgets, and reporting.", icon: Banknote, links: [{ label: "Expense claims", to: "/manage/claims" }, { label: "Cash verification", to: "/manage/cash" }, { label: "General ledger", to: "/manage/finance/ledger" }, { label: "Financial reports", to: "/manage/finance/reports" }, { label: "Budget allocations", to: "/manage/budget" }] },
   { title: "Projects", description: "Task boards and volunteer delivery.", icon: UsersRound, links: [{ label: "Project portfolio", to: "/manage/projects" }, { label: "Volunteer workspace", to: "/volunteer" }] },
   { title: "Communications", description: "Announcements and publishing history.", icon: Megaphone, links: [{ label: "New announcement", to: "/manage/announcements/new" }, { label: "Communications history", to: "/manage/newsletter" }] },

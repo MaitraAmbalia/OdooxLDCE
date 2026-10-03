@@ -370,7 +370,13 @@ export function createFinanceService({ prisma, files }) {
         status: 'SUBMITTED',
       },
     });
-    return { id: row.id, status: 'SUBMITTED' };
+    return {
+      id: row.id,
+      status: 'SUBMITTED',
+      submittedById: row.submittedById,
+      amountPaise: Number(row.amountPaise),
+      description: row.description,
+    };
   }
 
   async function reviewClaim(user, id, { decision, reason }) {
@@ -421,7 +427,14 @@ export function createFinanceService({ prisma, files }) {
       }
     }
 
-    return { id: row.id, status: row.status };
+    return {
+      id: row.id,
+      status: row.status,
+      submittedById: existing.submittedById,
+      amountPaise: Number(row.amountPaise),
+      description: row.description,
+      reason: reason || null,
+    };
   }
 
   return {

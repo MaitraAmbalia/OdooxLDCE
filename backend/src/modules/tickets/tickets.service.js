@@ -133,6 +133,7 @@ export function createTicketsService({ prisma, config }) {
         include: {
           user: { select: { name: true, studentId: true } },
           event: { select: { title: true } },
+          ticketType: { select: { name: true } },
         },
       });
 
@@ -158,12 +159,63 @@ export function createTicketsService({ prisma, config }) {
         },
       });
 
+      const [totalCheckedIn, totalIssued] = await Promise.all([
+        prisma.ticket.count({ where: { eventId: ticket.eventId, status: 'CHECKED_IN' } }),
+        prisma.ticket.count({ where: { eventId: ticket.eventId, status: { in: ['ISSUED', 'CHECKED_IN'] } } }),
+      ]);
+
       return {
+        ticketId: updated.id,
+        eventId: ticket.eventId,
         status: updated.status,
         checkedInAt: updated.checkedInAt,
-        attendeeName: ticket.user.name,
-        studentId: ticket.user.studentId,
+        attendeeName: ticket.user?.name || 'Attendee',
+        studentId: ticket.user?.studentId || '—',
+        ticketType: ticket.ticketType?.name || 'Standard Pass',
         eventTitle: ticket.event.title,
+        totalCheckedIn,
+        totalIssued,
+      };
+    },
+
+    async getEventAttendance(eventId) {
+      const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { id: true, title: true, capacity: true, seatsSold: true },
+      });
+      if (!event) throw new AppError('NOT_FOUND', 404, 'Event was not found');
+
+      const [checkedInTickets, totalCheckedIn, totalIssued] = await Promise.all([
+        prisma.ticket.findMany({
+          where: { eventId, status: 'CHECKED_IN' },
+          include: {
+            user: { select: { id: true, name: true, studentId: true, email: true } },
+            ticketType: { select: { name: true } },
+          },
+          orderBy: { checkedInAt: 'desc' },
+          take: 200,
+        }),
+        prisma.ticket.count({ where: { eventId, status: 'CHECKED_IN' } }),
+        prisma.ticket.count({ where: { eventId, status: { in: ['ISSUED', 'CHECKED_IN'] } } }),
+      ]);
+
+      const attendees = checkedInTickets.map((t) => ({
+        ticketId: t.id,
+        name: t.user?.name || 'Attendee',
+        studentId: t.user?.studentId || '—',
+        email: t.user?.email || '',
+        ticketType: t.ticketType?.name || 'Standard Pass',
+        checkedInAt: t.checkedInAt,
+      }));
+
+      return {
+        eventId: event.id,
+        eventTitle: event.title,
+        capacity: event.capacity,
+        seatsSold: event.seatsSold,
+        totalIssued,
+        totalCheckedIn,
+        attendees,
       };
     },
   };

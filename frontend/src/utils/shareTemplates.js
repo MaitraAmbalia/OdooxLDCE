@@ -65,46 +65,35 @@ export function buildWhatsAppTemplate({
   const summary = cleanExcerpt(description, 200);
   const formattedDate = formatShareDate(date);
 
-  let header = '📢 *CAMPUS ANNOUNCEMENT*';
-  let cta = '🔗 *Read Full Notice & Updates:*';
-  let footer = '_Skyline Student Association • LDCE & Nirma University_';
+  let label = 'Campus Announcement';
+  let cta = '👉 View details:';
+  let footer = '— Skyline Student Association • LDCE';
 
   if (type === 'event') {
-    header = '🎉 *CAMPUS EVENT INVITATION*';
-    cta = '👉 *Book Passes & View Schedule:*';
+    label = 'Campus Event';
+    cta = '👉 Book passes & view schedule:';
   } else if (type === 'merch' || type === 'product') {
-    header = '🛍️ *OFFICIAL CAMPUS MERCH DROP*';
-    cta = '👉 *Reserve Your Piece Here:*';
-    footer = '_Skyline Campus Store • LDCE & Nirma University_';
+    label = 'Campus Merch Drop';
+    cta = '👉 Reserve yours:';
+    footer = '— Skyline Campus Store • LDCE';
   }
 
   const lines = [
-    header,
-    '━━━━━━━━━━━━━━━━━━━━',
-    `📌 *${title.trim()}*`,
-    '',
+    `*${label}*`,
+    `*${title.trim()}*`,
   ];
 
-  if (formattedDate) {
-    lines.push(`🗓️ *When:* ${formattedDate}`);
-  }
-  if (venue) {
-    lines.push(`📍 *Venue:* ${venue}`);
-  }
+  if (formattedDate) lines.push(`🗓️ ${formattedDate}`);
+  if (venue) lines.push(`📍 ${venue}`);
   if (audience) {
-    const audLabel = audience === 'MEMBERS' ? 'Club Members Only' : 'Open to All Students';
-    lines.push(`👥 *Audience:* ${audLabel}`);
+    const audLabel = audience === 'MEMBERS' ? 'Members Only' : 'Open to All Students';
+    lines.push(`👥 ${audLabel}`);
   }
-  if (price !== null && price !== undefined) {
-    lines.push(`🎟️ *Entry/Price:* ${price}`);
-  }
-  if (author) {
-    lines.push(`✍️ *Posted by:* ${author}`);
-  }
+  if (price !== null && price !== undefined) lines.push(`🎟️ ${price}`);
+  if (author) lines.push(`✍️ ${author}`);
 
   if (summary) {
     lines.push('');
-    lines.push('📝 *Highlights:*');
     lines.push(summary);
   }
 
@@ -112,7 +101,6 @@ export function buildWhatsAppTemplate({
   lines.push(cta);
   lines.push(url);
   lines.push('');
-  lines.push('━━━━━━━━━━━━━━━━━━━━');
   lines.push(footer);
 
   const fullText = lines.join('\n');

@@ -13,7 +13,7 @@ const assignmentQuery = z.object({
 
 const assignmentBody = z.object({
   userId: z.string().uuid(),
-  role: z.enum(['MENTOR', 'PRESIDENT', 'TREASURER', 'EVENT_HEAD', 'VOLUNTEER_HEAD', 'MARKETING_HEAD']),
+  role: z.enum(['MENTOR', 'PRESIDENT', 'TREASURER', 'EVENT_HEAD', 'VOLUNTEER_HEAD', 'MARKETING_HEAD', 'SPONSORSHIP_HEAD']),
   termStart: z.string().datetime({ offset: true }),
   termEnd: z.string().datetime({ offset: true }),
   reason: z.string().min(1).max(500),

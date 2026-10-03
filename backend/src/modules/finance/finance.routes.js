@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { validate } from '../../middleware/validate.js';
 import { periodSchema } from '../../lib/period.js';
+import { getIO } from '../../lib/socket.js';
 
 const category = z.enum(['DUES', 'TICKETS', 'MERCH', 'FUNDRAISER', 'BUDGET_ALLOCATION', 'SPONSORSHIP', 'REIMBURSEMENT', 'PURCHASE', 'REFUND', 'OTHER']);
 const direction = z.enum(['IN', 'OUT']);
@@ -72,10 +73,26 @@ export function createFinanceRouter({ service, authenticate, requirePermission }
     res.json(await service.listClaims({ ...req.query, userId: req.user.sub })));
   router.get('/claims', authenticate, async (req, res) =>
     res.json(await service.listClaims(req.query)));
-  router.post('/claims', authenticate, async (req, res) =>
-    res.status(201).json({ data: await service.submitClaim(req.user, req.body) }));
-  router.post('/claims/:id/review', authenticate, async (req, res) =>
-    res.json({ data: await service.reviewClaim(req.user, req.params.id, req.body) }));
+  router.post('/claims', authenticate, async (req, res) => {
+    const claim = await service.submitClaim(req.user, req.body);
+    const io = getIO();
+    if (io) {
+      io.to('claims:queue').emit('claim:created', claim);
+      io.to(`user:${req.user.sub || req.user.id}`).emit('claim:created', claim);
+    }
+    return res.status(201).json({ data: claim });
+  });
+  router.post('/claims/:id/review', authenticate, async (req, res) => {
+    const claim = await service.reviewClaim(req.user, req.params.id, req.body);
+    const io = getIO();
+    if (io) {
+      io.to('claims:queue').emit('claim:reviewed', claim);
+      if (claim.submittedById) {
+        io.to(`user:${claim.submittedById}`).emit('claim:reviewed', claim);
+      }
+    }
+    return res.json({ data: claim });
+  });
 
   return router;
 }

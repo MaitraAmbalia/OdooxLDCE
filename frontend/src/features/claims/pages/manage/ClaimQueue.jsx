@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ReceiptIndianRupee, X } from "lucide-react";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { ContentState } from "@/components/common/ContentState";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { getSocket } from "@/lib/socket";
 
 export default function ClaimQueue() {
   usePageTitle("Expense claims");
@@ -23,6 +24,27 @@ export default function ClaimQueue() {
       return res.json();
     }
   });
+
+  // Real-time claims updates for finance officers
+  useEffect(() => {
+    const socket = getSocket();
+    socket.emit("join:claims");
+
+    const onClaimUpdate = (data) => {
+      queryClient.invalidateQueries({ queryKey: ["claims"] });
+      if (data?.status === "SUBMITTED") {
+        toast.info(`New expense claim submitted: ₹${data.amountPaise ? (data.amountPaise / 100).toFixed(0) : "—"} for ${data.description}`);
+      }
+    };
+
+    socket.on("claim:created", onClaimUpdate);
+    socket.on("claim:reviewed", onClaimUpdate);
+
+    return () => {
+      socket.off("claim:created", onClaimUpdate);
+      socket.off("claim:reviewed", onClaimUpdate);
+    };
+  }, [queryClient]);
 
   const reviewMutation = useMutation({
     mutationFn: async ({ claimId, decision, reason }) => {

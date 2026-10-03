@@ -23,6 +23,13 @@ const envSchema = z.object({
   SMTP_PASS: z.string().default(''),
   SMTP_FROM: z.string().default('Skyline Club <noreply@skyline.nirmauni.ac.in>'),
   SMTP_SECURE: z.enum(['true', 'false']).default('false'),
+  ODOO_ENABLED: z.enum(['true', 'false']).default('false'),
+  ODOO_URL: z.string().url().default('http://127.0.0.1:8069'),
+  ODOO_WEB_URL: z.string().url().optional(),
+  ODOO_DATABASE: z.string().default('skyline_odoo'),
+  ODOO_USERNAME: z.string().default('integration@skyline.local'),
+  ODOO_PASSWORD: z.string().default(''),
+  ODOO_TIMEOUT_MS: z.coerce.number().int().min(500).max(30000).default(5000),
 });
 
 let cachedConfig;
@@ -56,6 +63,13 @@ export function loadConfig(source = process.env) {
     smtpFrom: env.SMTP_FROM,
     smtpSecure: env.SMTP_SECURE === 'true',
     cardQrSecret: env.CARD_QR_SECRET,
+    odooEnabled: env.ODOO_ENABLED === 'true',
+    odooUrl: env.ODOO_URL.replace(/\/$/, ''),
+    odooWebUrl: (env.ODOO_WEB_URL || env.ODOO_URL).replace(/\/$/, ''),
+    odooDatabase: env.ODOO_DATABASE,
+    odooUsername: env.ODOO_USERNAME,
+    odooPassword: env.ODOO_PASSWORD,
+    odooTimeoutMs: env.ODOO_TIMEOUT_MS,
   });
 }
 

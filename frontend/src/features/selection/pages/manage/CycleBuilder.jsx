@@ -212,6 +212,7 @@ export default function CycleBuilder() {
                 <option value="MARKETING_HEAD">Marketing Head</option>
                 <option value="EVENT_HEAD">Event Head</option>
                 <option value="VOLUNTEER_HEAD">Volunteer Head</option>
+                <option value="SPONSORSHIP_HEAD">Sponsorship Head</option>
               </select>
               <Input name="seats" type="number" min="1" defaultValue="1" placeholder="Number of seats" required />
             </div>

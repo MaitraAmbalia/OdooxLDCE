@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { getIO } from '../../lib/socket.js';
 
 export function createTicketsRouter({ service, authenticate, authorize }) {
   const router = Router();
@@ -13,6 +14,11 @@ export function createTicketsRouter({ service, authenticate, authorize }) {
     res.json(await service.getUserTickets(req.user.sub, req.query));
   });
 
+  // GET /tickets/event/:eventId/attendance - Live Attendance List and counts
+  router.get('/tickets/event/:eventId/attendance', authenticate, async (req, res) => {
+    res.json({ data: await service.getEventAttendance(req.params.eventId) });
+  });
+
   // GET /tickets/:id - Single ticket details
   router.get('/tickets/:id', authenticate, async (req, res) => {
     res.json({ data: await service.getTicketById(req.user.sub, req.params.id) });
@@ -20,7 +26,22 @@ export function createTicketsRouter({ service, authenticate, authorize }) {
 
   // POST /tickets/checkin - Fast Door Check-in (Volunteer / Staff), body { qr, eventId }
   router.post('/tickets/checkin', authenticate, async (req, res) => {
-    res.json({ data: await service.checkIn(req.user.sub, req.body.qr, req.body.eventId) });
+    const result = await service.checkIn(req.user.sub, req.body.qr, req.body.eventId);
+    const io = getIO();
+    if (io && result.eventId) {
+      io.to(`event:${result.eventId}`).emit('checkin:attended', {
+        attendee: {
+          ticketId: result.ticketId,
+          name: result.attendeeName,
+          studentId: result.studentId,
+          ticketType: result.ticketType,
+          checkedInAt: result.checkedInAt,
+        },
+        totalCheckedIn: result.totalCheckedIn,
+        totalIssued: result.totalIssued,
+      });
+    }
+    res.json({ data: result });
   });
 
   return router;

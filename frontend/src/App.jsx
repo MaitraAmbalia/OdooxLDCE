@@ -16,6 +16,7 @@ import TicketPass from "./features/tickets/pages/TicketPass";
 import DoorScanner from "./features/checkin/pages/DoorScanner";
 import EventProposalStepper from "./features/events/pages/manage/EventProposalStepper";
 import MentorReview from "./features/events/pages/manage/MentorReview";
+import SponsorshipWorkspace from "./features/events/pages/manage/SponsorshipWorkspace";
 import SubmitClaim from "./features/claims/pages/SubmitClaim";
 import ClaimQueue from "./features/claims/pages/manage/ClaimQueue";
 import ClaimDetail from "./features/claims/pages/manage/ClaimDetail";
@@ -105,6 +106,7 @@ function App() {
         {/* Phase 3, 4, 5, 6, 7, 8 & 9: Manage */}
         <Route path="manage/events/new" element={<EventProposalStepper />} />
         <Route path="manage/events/:id/review" element={<MentorReview />} />
+        <Route path="manage/sponsorship" element={<SponsorshipWorkspace />} />
 
         <Route path="volunteer" element={<VolunteerHome />} />
         <Route path="volunteer/tasks/:id" element={<TaskDetail />} />

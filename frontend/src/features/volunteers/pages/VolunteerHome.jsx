@@ -1,13 +1,20 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Clock, MapPin, ReceiptIndianRupee, ShoppingBag, Ticket } from "lucide-react";
+import { CalendarDays, Clock, MapPin, ReceiptIndianRupee, ShoppingBag, Ticket, Radio } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useSession } from "@/hooks/useSession";
+import { getSocket } from "@/lib/socket";
 
 export default function VolunteerHome() {
   usePageTitle("Volunteer space");
+  const { data: sessionData } = useSession();
+  const user = sessionData?.data;
+
   const { data: tasksData, isPending: tasksLoading, isError: tasksError, refetch: refetchTasks } = useQuery({
     queryKey: ['tasks', 'me'],
     queryFn: async () => {
@@ -27,6 +34,46 @@ export default function VolunteerHome() {
       return res.json();
     }
   });
+
+  // Real-time updates for claims decisions and task assignments
+  useEffect(() => {
+    const socket = getSocket();
+    const userId = user?.id || user?.sub;
+    if (userId) {
+      socket.emit("join:user", userId);
+    }
+
+    const onClaimReviewed = (claim) => {
+      refetchClaims();
+      if (claim?.status === "APPROVED") {
+        toast.success(`Expense claim approved!`, {
+          description: `₹${(Number(claim.amountPaise || 0) / 100).toFixed(0)} for "${claim.description}" has been approved.`,
+        });
+      } else if (claim?.status === "REJECTED") {
+        toast.error(`Expense claim rejected`, {
+          description: claim.reason ? `Reason: ${claim.reason}` : `Your claim for "${claim.description}" was rejected.`,
+        });
+      }
+    };
+
+    const onClaimCreated = () => {
+      refetchClaims();
+    };
+
+    const onTaskUpdated = () => {
+      refetchTasks();
+    };
+
+    socket.on("claim:reviewed", onClaimReviewed);
+    socket.on("claim:created", onClaimCreated);
+    socket.on("task:status_updated", onTaskUpdated);
+
+    return () => {
+      socket.off("claim:reviewed", onClaimReviewed);
+      socket.off("claim:created", onClaimCreated);
+      socket.off("task:status_updated", onTaskUpdated);
+    };
+  }, [user, refetchClaims, refetchTasks]);
 
   const { data: eventsData } = useQuery({
     queryKey: ['events', 'published'],
@@ -182,7 +229,13 @@ export default function VolunteerHome() {
           </section>
 
           <section>
-            <h2 className="mb-4 font-display text-xl font-semibold">My claims</h2>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-display text-xl font-semibold">My claims</h2>
+              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                Live sync
+              </span>
+            </div>
             <div className="overflow-hidden rounded-xl border border-border bg-card">
               {claimsLoading ? (
                 <div className="p-4"><Skeleton className="h-20" /></div>
