@@ -5,7 +5,6 @@ import cookieParser from 'cookie-parser';
 import { getConfig } from './config/env.js';
 import { getPrismaClient } from './db/prisma.js';
 import { createLogger, createRequestLogger } from './lib/logger.js';
-import { AppError } from './lib/AppError.js';
 import { requestId } from './middleware/requestId.js';
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -40,37 +39,16 @@ import { createFilesService } from './modules/files/files.service.js';
 import { createFilesRouter } from './modules/files/files.routes.js';
 import { createGovernanceRouter } from './modules/governance/governance.routes.js';
 
-function createCorsOptions(config) {
-  return {
-    credentials: true,
-    origin(origin, callback) {
-      if (!config.isProduction) return callback(null, true);
-      if (!origin || origin === config.corsOrigin) return callback(null, true);
-      return callback(new AppError('CORS_ORIGIN_DENIED', 403, 'Origin is not allowed'));
-    },
-  };
-}
-
 export function createApp(options = {}) {
   const config = options.config ?? getConfig();
   const prisma = options.prisma ?? getPrismaClient();
   const logger = options.logger ?? createLogger(config);
   const app = express();
 
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] },
-      },
-    })
-  );
-  app.use(cors(createCorsOptions(config)));
+  app.use(helmet());
+  app.use(cors({ origin: config.corsOrigin || true, credentials: true }));
   app.use(cookieParser());
-
-  // Webhook raw byte body parser
-  app.use('/api/v1/payments/webhook', express.raw({ type: 'application/json', limit: '1mb' }));
   app.use(express.json({ limit: config.jsonBodyLimit }));
-
   app.use(requestId);
   app.use(createRequestLogger(logger));
 
