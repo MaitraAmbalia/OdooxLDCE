@@ -1,12 +1,20 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { 
+  ShoppingBag, Package, CheckCircle2, Clock, 
+  MapPin, ArrowRight, ExternalLink, QrCode 
+} from "lucide-react";
+import { Button } from "../../../components/ui/button";
+import { Badge } from "../../../components/ui/badge";
+import { Card, CardHeader, CardTitle, CardContent } from "../../../components/ui/card";
+import { Skeleton } from "../../../components/ui/skeleton";
+import { formatINR } from "../../../lib/utils";
 
 export default function MyOrders() {
   const { data: ordersData, isLoading } = useQuery({
     queryKey: ['orders', 'me'],
     queryFn: async () => {
-      // API endpoint: GET /orders/me
       const res = await fetch("/api/v1/orders/me");
       if (!res.ok) throw new Error("Failed to fetch orders");
       return res.json();
@@ -15,120 +23,152 @@ export default function MyOrders() {
 
   const orders = ordersData?.data || [];
 
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-10 sm:px-6">
+        <Skeleton className="h-8 w-40 mb-6" />
+        <Skeleton className="h-48 rounded-3xl mb-4" />
+        <Skeleton className="h-48 rounded-3xl" />
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)]">My Orders</h1>
+    <div className="max-w-4xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-display font-extrabold text-slate-900 tracking-tight">
+            Merchandise Orders
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Track fulfillment status and pickup instructions for your campus merch.
+          </p>
+        </div>
+
+        <Link to="/shop">
+          <Button variant="outline" size="sm" className="bg-white border-slate-300 text-xs shadow-2xs">
+            <ShoppingBag className="w-3.5 h-3.5 mr-1 text-blue-600" /> Browse Catalog
+          </Button>
+        </Link>
       </div>
 
-      <div className="space-y-8">
-        {isLoading ? (
-          <div className="text-center py-12 text-[var(--color-muted)]">Loading orders...</div>
-        ) : orders.length === 0 ? (
-          <div className="text-center py-12 bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px]">
-            <p className="text-[var(--color-muted)] mb-4">You haven't ordered any merch yet.</p>
-            <Link to="/shop" className="text-[var(--color-dusk)] hover:underline font-medium">Visit the Shop</Link>
+      {orders.length === 0 ? (
+        <div className="bg-white rounded-3xl border border-slate-200/80 p-12 text-center shadow-xs">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
+            <ShoppingBag className="w-8 h-8" />
           </div>
-        ) : orders.map(order => (
-          <div key={order.id} className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] overflow-hidden shadow-sm">
-            <div className="bg-[var(--color-paper)] p-4 border-b border-[var(--color-line)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Order Placed</p>
-                <p className="font-medium text-[var(--color-ink)]">{new Date(order.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-              </div>
-              <div>
-                <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Total</p>
-                <p className="font-medium text-[var(--color-ink)]">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(order.totalPaise / 100)}</p>
-              </div>
-              <div className="sm:text-right">
-                <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider mb-1">Order ID</p>
-                <p className="font-mono font-medium text-[var(--color-ink)]">{order.id}</p>
-              </div>
-            </div>
+          <h3 className="text-lg font-display font-bold text-slate-900">
+            No merchandise orders found
+          </h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-2 leading-relaxed">
+            You haven't ordered any club apparel yet. Skyline members get up to ₹200 off hoodies and tees.
+          </p>
+          <div className="mt-6">
+            <Link to="/shop">
+              <Button variant="gold" size="md">
+                Visit Merch Store &rarr;
+              </Button>
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {orders.map(order => {
+            const isReady = order.status === "READY";
+            const isCollected = order.status === "COLLECTED";
+            const orderDate = new Date(order.createdAt || Date.now());
 
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Items */}
-              <div>
-                <h3 className="font-semibold text-[var(--color-ink)] mb-4">Items</h3>
-                <ul className="space-y-4">
-                  {order.items.map((item, i) => (
-                    <li key={i} className="flex justify-between items-start border-b border-[var(--color-line)] pb-4 last:border-0 last:pb-0">
-                      <div>
-                        <p className="font-medium text-[var(--color-ink)]">{item.name}</p>
-                        <p className="text-sm text-[var(--color-muted)] mt-1">Size: {item.variant} &times; {item.quantity}</p>
-                      </div>
-                      <p className="font-medium text-[var(--color-ink)]">
-                        {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format((item.pricePaise * item.quantity) / 100)}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Timeline */}
-              <div className="md:border-l border-[var(--color-line)] md:pl-8">
-                <h3 className="font-semibold text-[var(--color-ink)] mb-4">Status</h3>
-
-                <div className="space-y-6">
-                  {/* PENDING_PAYMENT / PAID */}
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="w-3 h-3 bg-[var(--color-ok)] rounded-full"></div>
-                      <div className="w-0.5 h-10 bg-[var(--color-ok)] my-1"></div>
-                    </div>
-                    <div>
-                      <p className="font-medium text-[var(--color-ink)]">Order Confirmed</p>
-                      {order.history.find(h => h.status === 'PAID') && (
-                        <p className="text-xs text-[var(--color-muted)] mt-1">
-                          {new Date(order.history.find(h => h.status === 'PAID').time).toLocaleString()}
-                        </p>
-                      )}
+            return (
+              <Card key={order.id} className="rounded-3xl border-slate-200/90 shadow-xs overflow-hidden">
+                {/* Order Top Bar */}
+                <div className="bg-slate-50 p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs">
+                  <div>
+                    <div className="text-[10px] uppercase font-mono text-slate-400">Date Placed</div>
+                    <div className="font-semibold text-slate-800">
+                      {orderDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </div>
                   </div>
 
-                  {/* READY */}
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full ${['READY', 'COLLECTED'].includes(order.status) ? 'bg-[var(--color-ok)]' : 'bg-[var(--color-line)]'}`}></div>
-                      <div className={`w-0.5 h-10 my-1 ${order.status === 'COLLECTED' ? 'bg-[var(--color-ok)]' : 'bg-[var(--color-line)]'}`}></div>
-                    </div>
-                    <div>
-                      <p className={`font-medium ${['READY', 'COLLECTED'].includes(order.status) ? 'text-[var(--color-ink)]' : 'text-[var(--color-muted)]'}`}>Ready for Pickup</p>
-                      {order.status === 'READY' && (
-                        <div className="mt-2 bg-[var(--color-paper)] p-3 rounded-[6px] border border-[var(--color-info)]">
-                          <p className="text-sm font-bold text-[var(--color-info)]">Action Required</p>
-                          <p className="text-xs mt-1">Show this Order ID at the Student Union desk between 10 AM - 4 PM.</p>
-                        </div>
-                      )}
-                      {order.status === 'COLLECTED' && order.history.find(h => h.status === 'READY') && (
-                        <p className="text-xs text-[var(--color-muted)] mt-1">
-                          {new Date(order.history.find(h => h.status === 'READY').time).toLocaleString()}
-                        </p>
-                      )}
+                  <div>
+                    <div className="text-[10px] uppercase font-mono text-slate-400">Total Amount</div>
+                    <div className="font-display font-black text-slate-900 text-sm tabular-nums">
+                      {formatINR(order.totalPaise / 100)}
                     </div>
                   </div>
 
-                  {/* COLLECTED */}
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full ${order.status === 'COLLECTED' ? 'bg-[var(--color-ok)]' : 'bg-[var(--color-line)]'}`}></div>
+                  <div>
+                    <div className="text-[10px] uppercase font-mono text-slate-400">Order ID</div>
+                    <div className="font-mono text-slate-600">
+                      {String(order.id).slice(0, 10).toUpperCase()}
                     </div>
-                    <div>
-                      <p className={`font-medium ${order.status === 'COLLECTED' ? 'text-[var(--color-ink)]' : 'text-[var(--color-muted)]'}`}>Collected</p>
-                      {order.status === 'COLLECTED' && order.history.find(h => h.status === 'COLLECTED') && (
-                        <p className="text-xs text-[var(--color-muted)] mt-1">
-                          {new Date(order.history.find(h => h.status === 'COLLECTED').time).toLocaleString()}
-                        </p>
-                      )}
-                    </div>
+                  </div>
+
+                  <div>
+                    <Badge variant={isCollected ? "secondary" : isReady ? "success" : "primary"}>
+                      {order.status || "CONFIRMED"}
+                    </Badge>
                   </div>
                 </div>
 
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+                <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+                  {/* Items List */}
+                  <div className="md:col-span-7 space-y-4">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Purchased Items
+                    </h4>
+                    
+                    <div className="space-y-3">
+                      {(order.items || []).map((item, i) => (
+                        <div key={i} className="flex items-center justify-between pb-3 border-b border-slate-100 last:border-0 last:pb-0 text-xs">
+                          <div>
+                            <div className="font-bold text-slate-900">{item.name}</div>
+                            <div className="text-slate-500 text-[11px] mt-0.5">
+                              Size: {item.variant} • Qty: {item.quantity}
+                            </div>
+                          </div>
+                          <div className="font-display font-bold text-slate-900 tabular-nums">
+                            {formatINR((item.pricePaise * item.quantity) / 100)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Pickup Progress & Instructions */}
+                  <div className="md:col-span-5 md:border-l md:border-slate-100 md:pl-6 space-y-4">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Fulfillment Milestone
+                    </h4>
+
+                    {isReady ? (
+                      <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 text-emerald-950 text-xs space-y-2">
+                        <div className="font-bold flex items-center gap-1.5 text-emerald-800">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          Ready for Counter Collection
+                        </div>
+                        <p className="text-[11px] text-emerald-900/80 leading-relaxed">
+                          Show this Order ID at Student Center Desk B between 10:00 AM – 04:30 PM.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/80 text-blue-950 text-xs space-y-2">
+                        <div className="font-bold flex items-center gap-1.5 text-blue-800">
+                          <Package className="w-4 h-4 text-blue-600" />
+                          Batch In Production
+                        </div>
+                        <p className="text-[11px] text-blue-900/80 leading-relaxed">
+                          Your order is being manufactured and printed. You will receive an alert once sorted for pickup.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
