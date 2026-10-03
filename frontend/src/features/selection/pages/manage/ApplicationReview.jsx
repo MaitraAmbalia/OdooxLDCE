@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FileSearch, X } from "lucide-react";
 import { ContentState } from "@/components/common/ContentState";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ export default function ApplicationReview() {
     queryKey: ['selection', 'cycles', id, 'applications'],
     queryFn: async () => {
       // API endpoint: GET /selection/cycles/:id/applications
-      const res = await fetch(`/api/v1/selection/cycles/${id}/applications`);
+      const res = await fetch(`/api/v1/selection/cycles/${id}/applications`, { credentials: 'include' });
       if (!res.ok) throw new Error("Failed to fetch applications");
       return res.json();
     }
@@ -31,6 +31,27 @@ export default function ApplicationReview() {
   const filteredApps = selectedPost === 'ALL'
     ? applications
     : applications.filter(app => app.post.title === selectedPost);
+
+  const queryClient = useQueryClient();
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }) => {
+      const res = await fetch(`/api/v1/selection/applications/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || "Failed to update application");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['selection', 'cycles', id, 'applications']);
+      setSelectedApp(null);
+    }
+  });
 
   return (
     <div className="page-container relative py-12 sm:py-16">
@@ -121,6 +142,15 @@ export default function ApplicationReview() {
                 <Button variant="ghost" size="icon" onClick={() => setSelectedApp(null)} aria-label="Close application"><X aria-hidden="true" /></Button>
               </div>
               <div className="p-6 flex-1 overflow-y-auto">
+                
+                <div className="mb-6 rounded-xl border border-border bg-secondary/30 p-4">
+                   <h3 className="mb-2 font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Contact Details</h3>
+                   <div className="space-y-1 text-sm">
+                      <p><span className="font-medium">Student ID:</span> {selectedApp.user?.studentId}</p>
+                      <p><span className="font-medium">Email:</span> <a href={`mailto:${selectedApp.user?.email}`} className="text-primary hover:underline">{selectedApp.user?.email}</a></p>
+                   </div>
+                </div>
+
                 <h3 className="mb-4 font-display text-lg font-semibold">Application answers</h3>
                 <div className="space-y-6">
                   {selectedApp.answers && Object.entries(selectedApp.answers).map(([qId, ans], idx) => (
@@ -135,7 +165,27 @@ export default function ApplicationReview() {
                 </div>
               </div>
               <div className="border-t border-border bg-secondary/30 p-6">
-                <p className="text-xs leading-5 text-muted-foreground">Decision controls will appear here when the review workflow is enabled. No action is taken from this preview.</p>
+                {selectedApp.status !== 'APPOINTED' && selectedApp.status !== 'REJECTED' ? (
+                  <div className="flex gap-4">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1 border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => updateStatusMutation.mutate({ id: selectedApp.id, status: 'REJECTED' })}
+                      disabled={updateStatusMutation.isPending}
+                    >
+                      Decline
+                    </Button>
+                    <Button 
+                      className="flex-1 bg-[var(--color-ok)] hover:bg-[#3b6050]"
+                      onClick={() => updateStatusMutation.mutate({ id: selectedApp.id, status: 'APPOINTED' })}
+                      disabled={updateStatusMutation.isPending}
+                    >
+                      Accept & Appoint
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-sm font-medium text-center">Application has been {selectedApp.status.toLowerCase()}.</p>
+                )}
               </div>
             </div>
           </div>

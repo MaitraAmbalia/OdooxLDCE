@@ -49,11 +49,29 @@ export default function CycleBuilder() {
 
   const updateMutation = useMutation({
     mutationFn: async (payload) => {
-      return payload;
+      const url = id === 'new' ? "/api/v1/selection/cycles" : `/api/v1/selection/cycles/${id}`;
+      const method = id === 'new' ? "POST" : "PATCH";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || "Failed to save selection cycle");
+      }
+      return res.json();
     },
-    onSuccess: () => {
-      queryClient.setQueryData(['selection', 'cycle-draft', id], formData);
-      toast.info("Draft kept in this session. Publishing isn’t connected yet.");
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['selection', 'cycles']);
+      toast.success("Selection cycle saved successfully!");
+      if (id === 'new' && data?.data?.id) {
+        navigate(`/manage/selection/${data.data.id}/edit`);
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message);
     }
   });
 
@@ -78,7 +96,6 @@ export default function CycleBuilder() {
         <p className="mt-2 text-sm text-muted-foreground">Set the term and application window before adding positions.</p>
       </div>
 
-      <div className="mb-6 flex gap-3 rounded-xl border border-border bg-secondary/50 p-4 text-sm text-muted-foreground"><Info className="mt-0.5 size-4 shrink-0 text-primary" /><p>This editor currently keeps changes as a session draft. Publishing remains unavailable until the management API is connected.</p></div>
       <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-card p-6 sm:p-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="md:col-span-2">
@@ -131,26 +148,78 @@ export default function CycleBuilder() {
               className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <option value="DRAFT">Draft</option>
-              <option value="PUBLISHED">Published (Open)</option>
+              <option value="OPEN">Published (Open)</option>
               <option value="CLOSED">Closed (Reviewing)</option>
             </select>
           </div>
         </div>
 
-        <div className="mb-8 border-t border-border pt-6 text-center text-sm text-muted-foreground">
-          Position and question builders become available after cycle persistence is connected.
-        </div>
-
-        <div className="flex justify-end gap-4">
+        <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-border">
           <Button asChild variant="outline"><Link to="/selection">Cancel</Link></Button>
           <Button
             type="submit"
             disabled={updateMutation.isPending}
           >
-            {updateMutation.isPending ? 'Saving…' : 'Keep session draft'}
+            {updateMutation.isPending ? 'Saving…' : 'Save cycle'}
           </Button>
         </div>
       </form>
+
+      {id !== 'new' && (
+        <div className="mt-8 rounded-2xl border border-border bg-card p-6 sm:p-10">
+          <h2 className="font-display text-2xl font-semibold mb-6">Positions</h2>
+          <div className="space-y-4 mb-8">
+            {cycleData?.posts?.map(post => (
+              <div key={post.id} className="flex justify-between items-center rounded-xl border border-border bg-secondary/30 p-4">
+                <div>
+                  <h3 className="font-semibold text-lg">{post.title}</h3>
+                  <p className="text-sm text-muted-foreground">{post.description}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm font-medium">{post.capacity} Seats</span>
+                  <Button variant="ghost" className="text-destructive block ml-auto mt-2 h-auto py-1 px-2 text-xs hover:bg-destructive/10" onClick={async () => {
+                     await fetch(`/api/v1/selection/posts/${post.id}`, { method: 'DELETE', credentials: 'include' });
+                     refetch();
+                  }}>Delete</Button>
+                </div>
+              </div>
+            ))}
+            {!cycleData?.posts?.length && <p className="text-sm text-muted-foreground">No positions added yet.</p>}
+          </div>
+
+          <h3 className="font-semibold text-lg mb-4">Add new position</h3>
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            const data = new FormData(e.target);
+            await fetch(`/api/v1/selection/cycles/${id}/posts`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                role: data.get('role'),
+                seats: data.get('seats'),
+                description: data.get('description'),
+              })
+            });
+            e.target.reset();
+            refetch();
+          }} className="grid gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <select name="role" required className="h-10 rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <option value="">Select a role...</option>
+                <option value="PRESIDENT">President</option>
+                <option value="TREASURER">Treasurer</option>
+                <option value="MARKETING_HEAD">Marketing Head</option>
+                <option value="EVENT_HEAD">Event Head</option>
+                <option value="VOLUNTEER_HEAD">Volunteer Head</option>
+              </select>
+              <Input name="seats" type="number" min="1" defaultValue="1" placeholder="Number of seats" required />
+            </div>
+            <textarea name="description" required rows="2" placeholder="Job description" className="w-full rounded-md border border-input bg-card p-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"></textarea>
+            <Button type="submit" className="w-fit bg-primary text-primary-foreground hover:bg-primary/90">Add position</Button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

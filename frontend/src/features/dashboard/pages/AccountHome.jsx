@@ -125,15 +125,17 @@ export default function AccountHome() {
         </Link>
 
         {/* Volunteer/Tasks Tile */}
-        <Link to="/volunteer" className="block rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
-          <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"><HeartHandshake className="size-3.5" /> Volunteering</p>
-          <div className="flex items-end gap-2">
-            <span className="text-3xl font-display font-bold text-slate-900 leading-none">
-              {user?.isVolunteer ? 'Active' : 'Open'}
-            </span>
-          </div>
-          <p className="text-xs text-primary mt-2 font-medium">Open portal &rarr;</p>
-        </Link>
+        {!user?.roles?.includes("MENTOR") && (
+          <Link to="/volunteer" className="block rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
+            <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"><HeartHandshake className="size-3.5" /> Volunteering</p>
+            <div className="flex items-end gap-2">
+              <span className="text-3xl font-display font-bold text-slate-900 leading-none">
+                {user?.isVolunteer ? 'Active' : 'Open'}
+              </span>
+            </div>
+            <p className="text-xs text-primary mt-2 font-medium">Open portal &rarr;</p>
+          </Link>
+        )}
       </div>
 
       {/* Quick Action Navigation Links */}

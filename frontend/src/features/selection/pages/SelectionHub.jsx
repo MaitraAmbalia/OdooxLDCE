@@ -18,7 +18,7 @@ export default function SelectionHub() {
   });
 
   const cycles = cyclesData?.data || [];
-  const openCycles = cycles.filter(c => c.status === 'PUBLISHED' && new Date(c.deadlineAt) > new Date());
+  const openCycles = cycles.filter(c => c.status === 'OPEN' && new Date(c.deadlineAt) > new Date());
   const closedCycles = cycles.filter(c => c.status === 'CLOSED' || new Date(c.deadlineAt) <= new Date());
 
   return (

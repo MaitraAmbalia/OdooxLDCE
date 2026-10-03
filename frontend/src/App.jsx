@@ -43,6 +43,7 @@ import MeetingDetail from "./features/meetings/pages/manage/MeetingDetail";
 import SelectionHub from "./features/selection/pages/SelectionHub";
 import ApplicationForm from "./features/selection/pages/ApplicationForm";
 import CycleBuilder from "./features/selection/pages/manage/CycleBuilder";
+import CycleList from "./features/selection/pages/manage/CycleList";
 import ApplicationReview from "./features/selection/pages/manage/ApplicationReview";
 import ManageHome from "./features/dashboard/pages/ManageHome";
 import AccountHome from "./features/dashboard/pages/AccountHome";
@@ -124,6 +125,7 @@ function App() {
         <Route path="manage/meetings/new" element={<MeetingBuilder />} />
         <Route path="manage/meetings/:id" element={<MeetingDetail />} />
 
+        <Route path="manage/selection/cycles" element={<CycleList />} />
         <Route path="manage/selection/:id/edit" element={<CycleBuilder />} />
         <Route path="manage/selection/:id/applications" element={<ApplicationReview />} />
 

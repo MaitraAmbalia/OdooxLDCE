@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Banknote, CalendarDays, ClipboardCheck, Megaphone, PackageCheck, Plus, ReceiptIndianRupee, UsersRound } from "lucide-react";
+import { ArrowRight, Banknote, CalendarDays, ClipboardCheck, Megaphone, PackageCheck, Plus, ReceiptIndianRupee, UsersRound, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,6 +13,7 @@ const MODULES = [
   { title: "Communications", description: "Announcements and publishing history.", icon: Megaphone, links: [{ label: "New announcement", to: "/manage/announcements/new" }, { label: "Communications history", to: "/manage/newsletter" }] },
   { title: "Meetings", description: "Schedules, agendas, and invite responses.", icon: ClipboardCheck, links: [{ label: "Meeting schedule", to: "/manage/meetings" }, { label: "Schedule a meeting", to: "/manage/meetings/new" }] },
   { title: "Store", description: "Pack and hand over merchandise orders.", icon: PackageCheck, links: [{ label: "Order fulfilment", to: "/manage/orders" }, { label: "View shop", to: "/shop" }] },
+  { title: "Leadership Selection", description: "Recruit executives and heads.", icon: ShieldCheck, links: [{ label: "Create selection cycle", to: "/manage/selection/new/edit" }, { label: "Manage current cycles", to: "/manage/selection/cycles" }] },
 ];
 
 export default function ManageHome() {

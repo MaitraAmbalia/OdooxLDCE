@@ -74,6 +74,29 @@ export function createGovernanceRouter({ prisma, authenticate }) {
     return res.json({ data: formatCycle(updated) });
   });
 
+  router.post('/selection/cycles/:id/posts', authenticate, async (req, res) => {
+    const input = req.body;
+    const post = await prisma.selectionPost.create({
+      data: {
+        cycleId: req.params.id,
+        role: input.role,
+        seats: Number(input.seats || 1),
+        description: input.description,
+        minMembershipDays: Number(input.minMembershipDays || 0),
+        questions: {
+          create: input.questions || []
+        }
+      },
+      include: { questions: true }
+    });
+    return res.status(201).json({ data: post });
+  });
+
+  router.delete('/selection/posts/:id', authenticate, async (req, res) => {
+    await prisma.selectionPost.delete({ where: { id: req.params.id } });
+    return res.status(204).send();
+  });
+
   router.post('/selection/posts/:id/applications', authenticate, async (req, res) => {
     const now = new Date();
     const post = await prisma.selectionPost.findUnique({
@@ -142,6 +165,64 @@ export function createGovernanceRouter({ prisma, authenticate }) {
         answers: Object.fromEntries(application.answers.map((answer) => [answer.question.label, answer.value])),
       })),
     });
+  });
+
+  router.patch('/selection/applications/:id/status', authenticate, async (req, res) => {
+    const { status, note } = req.body;
+    
+    if (!req.user.roles || !req.user.roles.includes('MENTOR')) {
+       throw new AppError('FORBIDDEN', 403, 'Only mentors can review applications');
+    }
+
+    const application = await prisma.application.findUnique({
+      where: { id: req.params.id },
+      include: { post: { include: { cycle: true } } }
+    });
+
+    if (!application) throw new AppError('NOT_FOUND', 404, 'Application not found');
+
+    if (status === 'APPOINTED') {
+      const updated = await prisma.$transaction(async (tx) => {
+        const app = await tx.application.update({
+          where: { id: req.params.id },
+          data: { status, reviewerNote: note }
+        });
+
+        await tx.roleAssignment.updateMany({
+          where: { role: application.post.role, endedAt: null },
+          data: { endedAt: new Date() }
+        });
+
+        const assignment = await tx.roleAssignment.create({
+          data: {
+            userId: application.applicantId,
+            role: application.post.role,
+            termStart: application.post.cycle.termStart,
+            termEnd: application.post.cycle.termEnd,
+            source: 'SELECTION',
+            createdById: req.user.sub,
+            reason: `Selected via ${application.post.cycle.title}`,
+          }
+        });
+
+        await tx.appointment.create({
+          data: {
+            applicationId: app.id,
+            roleAssignmentId: assignment.id,
+            appointedById: req.user.sub,
+          }
+        });
+        
+        return app;
+      });
+      return res.json({ data: updated });
+    } else {
+      const app = await prisma.application.update({
+        where: { id: req.params.id },
+        data: { status, reviewerNote: note }
+      });
+      return res.json({ data: app });
+    }
   });
 
   router.get('/meetings', authenticate, async (_req, res) => {
