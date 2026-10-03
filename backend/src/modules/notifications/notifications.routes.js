@@ -145,13 +145,14 @@ export function createNotificationsRouter({ service, authenticate, prisma }) {
             },
           },
         }),
+        // The soonest upcoming event the user holds a pass for.
         prisma.ticket.findFirst({
-          where: { userId, status: 'ISSUED' },
-          include: { event: true },
-          orderBy: { createdAt: 'desc' },
+          where: { userId, status: 'ISSUED', event: { endAt: { gte: new Date() } } },
+          select: { id: true, status: true, event: { select: { id: true, title: true, venue: true, startAt: true, endAt: true } } },
+          orderBy: { event: { startAt: 'asc' } },
         }),
         prisma.order.count({
-          where: { userId, status: { in: ['PENDING', 'PAID'] } },
+          where: { userId, status: { in: ['PENDING_PAYMENT', 'PAID', 'READY'] } },
         }),
         prisma.taskAssignee.count({
           where: {
@@ -177,6 +178,7 @@ export function createNotificationsRouter({ service, authenticate, prisma }) {
         },
       });
     } catch (e) {
+      req.log?.error({ err: e }, 'personal dashboard failed');
       return res.status(500).json({ error: { message: 'Failed to load personal dashboard data' } });
     }
   });

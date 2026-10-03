@@ -83,9 +83,14 @@ export function EventCard({ event }) {
       <div className="flex flex-1 flex-col p-5">
         <div className="mb-3 flex items-center gap-2 text-xs font-medium text-primary">
           <span>{categoryLabel(event.category)}</span>
-          {isPastEvent(event) && (
+          {isPastEvent(event) ? (
             <span className="rounded bg-secondary px-2 py-0.5 text-muted-foreground">
               Past event
+            </span>
+          ) : event.capacity > 0 && event.capacity - event.seatsSold <= Math.ceil(event.capacity * 0.2) && (
+            // Only when it's genuinely nearly full (last 20%).
+            <span className={"ml-auto rounded px-2 py-0.5 " + (event.seatsSold >= event.capacity ? "bg-destructive/10 text-destructive" : "bg-warning-soft text-warning")}>
+              {event.seatsSold >= event.capacity ? "Sold out" : `${event.capacity - event.seatsSold} left`}
             </span>
           )}
         </div>

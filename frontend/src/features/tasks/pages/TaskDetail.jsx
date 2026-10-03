@@ -250,10 +250,10 @@ export default function TaskDetail() {
                         : 'bg-secondary/70 border border-border text-foreground rounded-bl-none'
                     }`}>
                       <div className="flex items-center justify-between gap-3 mb-1">
-                        <span className={`text-xs font-bold ${isMe ? 'text-blue-100' : 'text-primary'}`}>
+                        <span className={`text-xs font-bold ${isMe ? 'text-primary-foreground' : 'text-primary'}`}>
                           {senderName}
                         </span>
-                        <span className={`text-[10px] ${isMe ? 'text-blue-200' : 'text-muted-foreground'}`}>
+                        <span className={`text-[10px] ${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                           {timeString}
                         </span>
                       </div>

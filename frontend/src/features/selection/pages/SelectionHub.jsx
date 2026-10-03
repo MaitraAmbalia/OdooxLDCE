@@ -91,7 +91,7 @@ export default function SelectionHub() {
               {closedCycles.map(cycle => (
                 <div key={cycle.id} className="rounded-xl border border-border bg-card p-4">
                   <h4 className="font-semibold">{cycle.name}</h4>
-                  <p className="mt-1 text-xs text-muted-foreground">Closed {new Date(cycle.deadlineAt).toLocaleDateString()}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Closed {new Date(cycle.deadlineAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
                 </div>
               ))}
             </div>

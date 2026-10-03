@@ -1,5 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import crypto from 'node:crypto';
+
+// N days from today at a fixed IST wall-clock time, so seeded events start at sensible hours.
+const atIST = (days, hour, minute = 0) => {
+  const d = new Date(Date.now() + days * 24 * 3600000);
+  const ymd = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  return new Date(`${ymd}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00+05:30`);
+};
 import { hashPassword } from '../src/utils/security.js';
 
 const prisma = new PrismaClient();
@@ -240,8 +247,8 @@ async function main() {
     description: 'The premier flagship cultural evening and networking celebration of LDCE & Nirma University featuring student bands, formal dinner, and guest addresses.',
     category: 'GALA',
     venue: 'University Grand Auditorium',
-    startAt: new Date(Date.now() + 14 * 24 * 3600000),
-    endAt: new Date(Date.now() + 14 * 24 * 3600000 + 4 * 3600000),
+    startAt: atIST(14, 18),
+    endAt: new Date(atIST(14, 18).getTime() + 4 * 3600000),
     capacity: 350,
     visibility: 'PUBLIC',
     status: 'PUBLISHED',
@@ -290,8 +297,8 @@ async function main() {
     description: '36-hour student hackathon building open solutions in AI, campus mobility, and fintech. Over 1.5 Lakhs in cash prizes, mentors, free food, and exclusive sponsor swags.',
     category: 'HACKATHON',
     venue: 'Computer Engineering Department Labs',
-    startAt: new Date(Date.now() + 28 * 24 * 3600000),
-    endAt: new Date(Date.now() + 30 * 24 * 3600000),
+    startAt: atIST(28, 9),
+    endAt: atIST(30, 9),
     capacity: 200,
     visibility: 'PUBLIC',
     status: 'PUBLISHED',
@@ -327,8 +334,8 @@ async function main() {
     description: 'Hands-on session with industry founders on organizational scaling, student venture ideation, and financial budgeting.',
     category: 'WORKSHOP',
     venue: 'Seminar Hall 3, Management Block',
-    startAt: new Date(Date.now() + 7 * 24 * 3600000),
-    endAt: new Date(Date.now() + 7 * 24 * 3600000 + 3 * 3600000),
+    startAt: atIST(7, 10),
+    endAt: new Date(atIST(7, 10).getTime() + 3 * 3600000),
     capacity: 100,
     visibility: 'PUBLIC',
     status: 'PUBLISHED',
@@ -364,8 +371,8 @@ async function main() {
     description: 'Flagship inter-college combat robotics tournament and autonomous FPV drone obstacle racing league in the campus open arena.',
     category: 'COMPETITION',
     venue: 'Campus Open Air Amphitheatre',
-    startAt: new Date(Date.now() + 21 * 24 * 3600000),
-    endAt: new Date(Date.now() + 22 * 24 * 3600000),
+    startAt: atIST(21, 9),
+    endAt: atIST(22, 9),
     capacity: 400,
     visibility: 'PUBLIC',
     status: 'PENDING_APPROVAL', // Ready for Dr. Mentor Sharma to review at /manage/events/:id/review
@@ -417,8 +424,8 @@ async function main() {
     description: 'Screening of top student short films, documentary shorts, and photo gallery exhibition in the central library lobby.',
     category: 'EXHIBITION',
     venue: 'Central Library Exhibition Hall',
-    startAt: new Date(Date.now() + 35 * 24 * 3600000),
-    endAt: new Date(Date.now() + 35 * 24 * 3600000 + 5 * 3600000),
+    startAt: atIST(35, 17),
+    endAt: new Date(atIST(35, 17).getTime() + 5 * 3600000),
     capacity: 150,
     visibility: 'PUBLIC',
     status: 'CHANGES_REQUESTED',
@@ -456,8 +463,8 @@ async function main() {
     description: 'Keynote panels with distinguished alumni working at Google, Microsoft, and premier tech startups.',
     category: 'CONFERENCE',
     venue: 'Main Auditorium',
-    startAt: new Date(Date.now() - 60 * 24 * 3600000),
-    endAt: new Date(Date.now() - 60 * 24 * 3600000 + 6 * 3600000),
+    startAt: atIST(-60, 10),
+    endAt: new Date(atIST(-60, 10).getTime() + 6 * 3600000),
     capacity: 300,
     visibility: 'PUBLIC',
     status: 'CLOSED',
@@ -1484,8 +1491,8 @@ async function main() {
   await upsertMeeting({
     id: '80000000-0000-0000-0000-000000000001',
     title: 'Executive Council Bi-Weekly Planning & Budget Review',
-    startAt: new Date(Date.now() + 3 * 24 * 3600000),
-    endAt: new Date(Date.now() + 3 * 24 * 3600000 + 90 * 60000),
+    startAt: atIST(3, 16),
+    endAt: new Date(atIST(3, 16).getTime() + 90 * 60000),
     location: 'Conference Room B, Admin Block',
     audience: 'LEADERS',
     createdById: createdUsers['president@nirmauni.ac.in'].id,
@@ -1506,8 +1513,8 @@ async function main() {
   await upsertMeeting({
     id: '80000000-0000-0000-0000-000000000002',
     title: 'Spring Gala All-Hands Volunteer Briefing',
-    startAt: new Date(Date.now() + 10 * 24 * 3600000),
-    endAt: new Date(Date.now() + 10 * 24 * 3600000 + 60 * 60000),
+    startAt: atIST(10, 15),
+    endAt: new Date(atIST(10, 15).getTime() + 60 * 60000),
     location: 'University Grand Auditorium',
     audience: 'BOTH',
     createdById: createdUsers['eventhead@nirmauni.ac.in'].id,
@@ -1529,8 +1536,8 @@ async function main() {
   await upsertMeeting({
     id: '80000000-0000-0000-0000-000000000003',
     title: 'Semester Kickoff & Membership Drive Retrospective',
-    startAt: new Date(Date.now() - 20 * 24 * 3600000),
-    endAt: new Date(Date.now() - 20 * 24 * 3600000 + 45 * 60000),
+    startAt: atIST(-20, 11),
+    endAt: new Date(atIST(-20, 11).getTime() + 45 * 60000),
     location: 'Seminar Hall 2',
     audience: 'LEADERS',
     status: 'COMPLETED',

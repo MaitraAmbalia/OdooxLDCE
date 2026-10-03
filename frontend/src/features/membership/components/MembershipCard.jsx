@@ -1,13 +1,26 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { ShieldCheck, Wifi, Sparkles, Download } from "lucide-react";
-import { Badge } from "../../../components/ui/badge";
-import { Button } from "../../../components/ui/button";
+import { Check, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "../../../components/ui/button";
+import { StatusBadge } from "../../../components/common/StatusBadge";
+import { sendJson } from "../../../lib/api";
+
+// Only what the platform actually enforces for active members.
+export const MEMBER_PERKS = [
+  ["Member ticket prices", "Events with a member tier charge you the member price automatically at checkout."],
+  ["Member shop prices", "Official merchandise is sold to you at the member rate."],
+  ["Members-only events", "Register for events open to active members only."],
+  ["Leadership applications", "Apply for executive and head roles when a selection cycle opens."],
+  ["Digital door pass", "This QR is verified at the door for check-in and membership checks."],
+];
+
+const fmt = (d) => new Date(d).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
 
 export default function MembershipCard({ membership }) {
   const [flipped, setFlipped] = useState(false);
+  const queryClient = useQueryClient();
   // Signed, opaque QR from the server: never encode raw ids into the card.
   const { data: cardData } = useQuery({
     queryKey: ["membershipCard"],
@@ -18,165 +31,90 @@ export default function MembershipCard({ membership }) {
     },
     enabled: membership?.status === "ACTIVE",
   });
+  const rotate = useMutation({
+    mutationFn: () => sendJson("/memberships/me/card/rotate"),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["membershipCard"] }); toast.success("New pass code issued. Old screenshots no longer work."); },
+    onError: (e) => toast.error(e.message),
+  });
   const qr = cardData?.data?.qr;
 
   if (!membership) return null;
-
   const isActive = membership.status === "ACTIVE";
-  const isLapsed = membership.status === "LAPSED";
-
-  const handleDownloadPass = () => {
-    toast.success("Wallet pass ready! Scanning enabled at campus gates.");
-  };
+  const validUntil = membership.validUntil ?? membership.expiresAt;
 
   return (
-    <div className="flex flex-col items-center">
-      {/* Interactive Wallet Card Container */}
-      <div 
+    <div className="flex w-full flex-col items-center">
+      <button
+        type="button"
         onClick={() => setFlipped(!flipped)}
-        className="group relative w-full max-w-sm cursor-pointer select-none transition-all duration-300 hover:scale-[1.02]"
-        title="Click to flip pass"
+        className="relative w-full max-w-sm select-none text-left transition-transform duration-300 hover:scale-[1.01]"
+        aria-label={flipped ? "Show pass front" : "Show member benefits"}
       >
-        {/* Holographic glowing back-shadow */}
-        <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-500 to-amber-400 opacity-25 blur-xl group-hover:opacity-40 transition-opacity"></div>
-
-        {/* Card Body */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white shadow-2xl border border-slate-700/60 p-6 min-h-[380px] flex flex-col justify-between">
-          
-          {/* Top holographic accent line */}
-          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-400 via-blue-500 to-emerald-400 animate-pulse"></div>
-
-          {/* Background watermark seal */}
-          <div className="pointer-events-none absolute -right-12 -bottom-12 w-56 h-56 rounded-full border border-white/5 flex items-center justify-center opacity-40">
-            <div className="w-40 h-40 rounded-full border border-dashed border-white/10"></div>
-          </div>
+        <div className="relative flex min-h-[380px] flex-col justify-between overflow-hidden rounded-3xl bg-[#272747] p-6 text-white shadow-xl shadow-primary/10">
+          <div className="poster-orbit text-white" aria-hidden="true" />
 
           {!flipped ? (
-            /* FRONT OF PASS */
             <>
-              {/* Header: Organization & NFC Contactless */}
-              <div className="flex items-center justify-between">
+              <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-display font-black text-white shadow-md">
-                    S
-                  </div>
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-primary font-display font-bold">S</div>
                   <div>
-                    <h3 className="text-base font-display font-black tracking-tight text-white flex items-center gap-1.5">
-                      Skyline LDCE
-                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    </h3>
-                    <p className="text-[11px] text-muted-foreground font-mono tracking-wider uppercase">Official Student Pass</p>
+                    <p className="font-display text-base font-semibold tracking-tight">Skyline</p>
+                    <p className="font-mono text-[11px] uppercase tracking-wider text-white/60">Member pass</p>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <Wifi className="w-5 h-5 text-muted-foreground rotate-90" title="Contactless NFC Enabled" />
-                  <Badge 
-                    variant={isActive ? "success" : isLapsed ? "destructive" : "warning"}
-                    className="text-[10px] uppercase font-bold tracking-wider py-0.5 px-2"
-                  >
-                    {membership.status || "ACTIVE"}
-                  </Badge>
-                </div>
+                <StatusBadge status={membership.status} />
               </div>
 
-              {/* Student Identity Section */}
-              <div className="my-6">
-                <div className="text-[10px] font-mono tracking-widest text-muted-foreground uppercase">Registered Student</div>
-                <div className="text-2xl font-display font-extrabold text-white tracking-tight mt-0.5">
-                  {membership.user?.name || "Student Member"}
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="inline-flex items-center gap-1 text-xs text-amber-300 font-semibold bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full">
-                    ★ {membership.tier?.name || "Standard Membership Tier"}
-                  </span>
-                </div>
+              <div className="relative my-6">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-white/60">Member</p>
+                <p className="mt-0.5 font-display text-2xl font-semibold tracking-tight">{membership.user?.name}</p>
+                <p className="mt-1 text-sm text-[#c6c3f3]">{membership.tier?.name ?? membership.tierName} · {membership.user?.studentId}</p>
               </div>
 
-              {/* QR Code Centerpiece */}
-              <div className="bg-white p-3.5 rounded-2xl shadow-xl w-fit mx-auto border-2 border-border flex flex-col items-center group-hover:shadow-blue-500/20 transition-all">
+              <div className="relative mx-auto flex w-fit flex-col items-center rounded-2xl bg-white p-3.5">
                 {qr ? (
                   <QRCodeSVG value={qr} size={148} level="H" includeMargin={false} />
                 ) : (
-                  <div className="size-[148px] animate-pulse rounded-lg bg-muted" role="status" aria-label="Loading pass QR" />
+                  <div className="size-[148px] animate-pulse rounded-lg bg-muted" role="status" aria-label={isActive ? "Loading pass QR" : "Pass inactive"} />
                 )}
-                <span className="text-[9px] font-mono text-muted-foreground mt-1 font-semibold uppercase tracking-wider">
-                  Tap card to view security details
-                </span>
               </div>
 
-              {/* Footer: Expiration & Verification */}
-              <div className="flex items-end justify-between border-t border-slate-800/80 pt-4 mt-4">
+              <div className="relative mt-4 flex items-end justify-between border-t border-white/10 pt-4">
                 <div>
-                  <div className="text-[10px] font-mono uppercase text-muted-foreground">Valid Until</div>
-                  <div className="text-xs font-semibold text-muted-foreground/70">
-                    {membership.validUntil 
-                      ? new Date(membership.validUntil).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })
-                      : "May 31, 2027"}
-                  </div>
+                  <p className="font-mono text-[10px] uppercase text-white/60">Valid until</p>
+                  <p className="text-sm font-semibold">{validUntil ? fmt(validUntil) : "—"}</p>
                 </div>
-
-                <div className="text-right">
-                  <div className="text-[10px] font-mono uppercase text-muted-foreground">Security Gate</div>
-                  <div className="text-xs font-semibold text-emerald-400 flex items-center justify-end gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    Verified Fast-Pass
-                  </div>
-                </div>
+                <p className="text-[11px] text-white/60">Tap for benefits</p>
               </div>
             </>
           ) : (
-            /* BACK OF PASS (Security Details & Quick Actions) */
-            <div className="h-full flex flex-col justify-between py-2">
-              <div>
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <div className="text-sm font-bold text-white flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-blue-400" />
-                    Member Verification
-                  </div>
-                  <span className="text-[10px] font-mono text-muted-foreground">Tap to flip back</span>
-                </div>
-
-                <div className="mt-4 space-y-3 text-xs">
-                  <div className="bg-foreground/80 p-3 rounded-xl border border-slate-800 space-y-1">
-                    <div className="text-[10px] uppercase font-mono text-muted-foreground">Privileges Included</div>
-                    <ul className="text-muted-foreground/70 space-y-1 text-[11px]">
-                      <li>✓ Priority entry at all campus auditorium events</li>
-                      <li>✓ Member discounts on official club merchandise</li>
-                      <li>✓ Voting & candidacy in annual executive elections</li>
-                      <li>✓ Access to closed volunteer & project registries</li>
-                    </ul>
-                  </div>
-                </div>
+            <div className="relative flex h-full flex-col">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <p className="font-display text-base font-semibold">Member benefits</p>
+                <p className="text-[11px] text-white/60">Tap to flip back</p>
               </div>
-
-              <div className="text-center pt-4 border-t border-slate-800">
-                <p className="text-[10px] text-muted-foreground font-mono">
-                  Issued by Skyline Student Association • LDCE Autonomous
-                </p>
-              </div>
+              <ul className="mt-4 space-y-3">
+                {MEMBER_PERKS.map(([title, body]) => (
+                  <li key={title} className="flex gap-2.5 text-sm">
+                    <Check className="mt-0.5 size-4 shrink-0 text-[#c6c3f3]" aria-hidden="true" />
+                    <span><span className="font-semibold">{title}</span><span className="block text-xs text-white/60">{body}</span></span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
-      </div>
+      </button>
 
-      {/* Quick Action Buttons below card */}
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3 w-full max-w-sm">
-        <Button 
-          variant="default" 
-          size="sm" 
-          onClick={handleDownloadPass}
-          className="flex-1 text-xs bg-primary hover:bg-primary text-white shadow-sm"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>Save to Wallet</span>
-        </Button>
-      </div>
-
-      <p className="text-xs text-muted-foreground text-center mt-3 flex items-center gap-1 font-medium">
-        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-        Turn up screen brightness for instant door scanning at LDCE gates.
-      </p>
+      {isActive && (
+        <div className="mt-5 flex w-full max-w-sm flex-col items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => rotate.mutate()} disabled={rotate.isPending}>
+            <RefreshCw className={rotate.isPending ? "animate-spin" : ""} aria-hidden="true" /> Issue a new pass code
+          </Button>
+          <p className="text-center text-xs text-muted-foreground">Shared a screenshot by mistake? A new code makes the old one stop working.</p>
+        </div>
+      )}
     </div>
   );
 }

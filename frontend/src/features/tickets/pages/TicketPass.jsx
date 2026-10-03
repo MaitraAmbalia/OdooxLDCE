@@ -1,6 +1,8 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
+import { formatINR } from "../../../lib/utils";
+import { StatusBadge } from "../../../components/common/StatusBadge";
 import {
   Calendar, MapPin, Clock, ArrowLeft, Share2,
   Sun, ShieldCheck,
@@ -110,7 +112,7 @@ export default function TicketPass() {
 
           <div className="relative z-10 flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-white/20 text-white flex items-center justify-center font-display font-black text-xs">
+              <span className="w-6 h-6 rounded-lg bg-card/20 text-white flex items-center justify-center font-display font-black text-xs">
                 S
               </span>
               <span className="font-mono text-xs font-medium uppercase tracking-wider text-[#c6c3f3]">
@@ -120,7 +122,7 @@ export default function TicketPass() {
 
             <Badge 
               variant={isCheckedIn ? "success" : "default"}
-              className="text-[10px] uppercase font-bold tracking-wider bg-white/20 text-white backdrop-blur-sm border-white/20"
+              className="text-[10px] uppercase font-bold tracking-wider bg-card/20 text-white backdrop-blur-sm border-white/20"
             >
               {isCheckedIn ? "Checked In ✓" : "Valid Entry"}
             </Badge>
@@ -131,9 +133,9 @@ export default function TicketPass() {
               {event.title || "Skyline event"}
             </h1>
 
-            <div className="mt-4 space-y-2 text-xs text-blue-100/90 font-medium">
+            <div className="mt-4 space-y-2 text-xs text-white/80 font-medium">
               <div className="flex items-center gap-2">
-                <Calendar className="w-3.5 h-3.5 text-blue-300 shrink-0" />
+                <Calendar className="w-3.5 h-3.5 text-[#c6c3f3] shrink-0" />
                 <span>
                   {event.startAt || event.startDate
                     ? new Date(event.startAt || event.startDate).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
@@ -141,7 +143,7 @@ export default function TicketPass() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-blue-300 shrink-0" />
+                <Clock className="w-3.5 h-3.5 text-[#c6c3f3] shrink-0" />
                 <span>
                   {event.startAt || event.startDate
                     ? new Date(event.startAt || event.startDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
@@ -149,15 +151,15 @@ export default function TicketPass() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-blue-300 shrink-0" />
-                <span>{event.venue || "Main Auditorium, LDCE Campus"}</span>
+                <MapPin className="w-3.5 h-3.5 text-[#c6c3f3] shrink-0" />
+                <span>{event.venue}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Perforated Stub Dividers (Punch Holes on both sides) */}
-        <div className="relative h-6 bg-white flex items-center justify-between -my-3 z-20">
+        <div className="relative h-6 bg-card flex items-center justify-between -my-3 z-20">
           {/* Left semi-circle cutout */}
           <div className="w-6 h-6 rounded-full bg-muted/50 -ml-3 border-r border-border/80 shadow-inner"></div>
           
@@ -169,7 +171,7 @@ export default function TicketPass() {
         </div>
 
         {/* Bottom Section: QR Code & Security Stub */}
-        <div className="p-6 pt-5 bg-white text-center">
+        <div className="p-6 pt-5 bg-card text-center">
           
           <div className="bg-muted p-4 rounded-2xl border border-border/80 shadow-inner inline-block mx-auto mb-4">
             {ticket.qr ? (
@@ -189,28 +191,12 @@ export default function TicketPass() {
             </div>
           </div>
 
-          {/* Barcode Metaphor Graphic */}
-          <div className="w-48 mx-auto my-3 flex items-center justify-between opacity-60">
-            <div className="h-6 w-1 bg-foreground"></div>
-            <div className="h-6 w-2 bg-foreground"></div>
-            <div className="h-6 w-0.5 bg-foreground"></div>
-            <div className="h-6 w-1.5 bg-foreground"></div>
-            <div className="h-6 w-0.5 bg-foreground"></div>
-            <div className="h-6 w-3 bg-foreground"></div>
-            <div className="h-6 w-1 bg-foreground"></div>
-            <div className="h-6 w-2 bg-foreground"></div>
-            <div className="h-6 w-0.5 bg-foreground"></div>
-            <div className="h-6 w-1 bg-foreground"></div>
-            <div className="h-6 w-2.5 bg-foreground"></div>
-            <div className="h-6 w-1 bg-foreground"></div>
-          </div>
-
           {/* Attendee Metadata */}
           <div className="grid grid-cols-2 gap-3 text-left border-t border-border pt-4 mt-2">
             <div>
               <div className="text-[10px] font-mono uppercase text-muted-foreground">Pass Holder</div>
               <div className="text-xs font-bold text-foreground truncate">
-                {ticket.holderName || ticket.user?.name || "Student Attendee"}
+                {ticket.user?.name}
               </div>
             </div>
 
@@ -222,16 +208,16 @@ export default function TicketPass() {
             </div>
 
             <div>
-              <div className="text-[10px] font-mono uppercase text-muted-foreground">Seat / Gate</div>
+              <div className="text-[10px] font-mono uppercase text-muted-foreground">Price paid</div>
               <div className="text-xs font-bold text-foreground">
-                Gate A (Main Porch)
+                {ticket.pricePaidPaise ? formatINR(ticket.pricePaidPaise, true) : "Free"}
               </div>
             </div>
 
             <div>
-              <div className="text-[10px] font-mono uppercase text-muted-foreground">Verification</div>
-              <div className="text-xs font-bold text-emerald-600 flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" /> Fast Pass Active
+              <div className="text-[10px] font-mono uppercase text-muted-foreground">Status</div>
+              <div className="mt-0.5">
+                <StatusBadge status={ticket.status} label={ticket.status === "CHECKED_IN" && ticket.checkedInAt ? `Checked in ${new Date(ticket.checkedInAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}` : undefined} />
               </div>
             </div>
           </div>

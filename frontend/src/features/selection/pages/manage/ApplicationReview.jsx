@@ -109,7 +109,7 @@ export default function ApplicationReview() {
                   <p className="text-sm font-medium">{app.post?.title || "Leadership role"}</p>
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
-                  {new Date(app.submittedAt).toLocaleDateString()}
+                  {new Date(app.submittedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right">
                   <span className={`inline-flex px-2 py-1 text-[10px] font-bold uppercase rounded ${

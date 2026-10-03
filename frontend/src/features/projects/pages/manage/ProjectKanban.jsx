@@ -9,7 +9,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 
 const COLUMNS = [
   { id: "TODO", label: "To do", accent: "bg-muted-foreground/40", surface: "bg-muted" },
-  { id: "IN_PROGRESS", label: "In progress", accent: "bg-blue-500", surface: "bg-secondary/60" },
+  { id: "IN_PROGRESS", label: "In progress", accent: "bg-info", surface: "bg-secondary/60" },
   { id: "BLOCKED", label: "Blocked", accent: "bg-red-500", surface: "bg-red-50/60" },
   { id: "DONE", label: "Done", accent: "bg-emerald-600", surface: "bg-emerald-50/60" },
 ];

@@ -17,12 +17,12 @@ export function Badge({
     destructive: "bg-red-50 text-red-700 border-red-200",
     outline: "text-muted-foreground border-border bg-card",
     gold: "bg-gradient-to-r from-amber-100 to-amber-200 text-amber-950 border-amber-300 font-bold",
-    dark: "bg-foreground text-white border-slate-800",
+    dark: "bg-foreground text-white border-foreground",
   };
 
   const dotColors = {
     default: "bg-muted-foreground/40",
-    secondary: "bg-slate-500",
+    secondary: "bg-muted-foreground",
     primary: "bg-primary",
     success: "bg-emerald-600",
     warning: "bg-amber-500",

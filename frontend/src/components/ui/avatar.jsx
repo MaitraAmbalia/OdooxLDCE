@@ -5,7 +5,7 @@ export function Avatar({ className, children, ...props }) {
   return (
     <div
       className={cn(
-        "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full ring-2 ring-slate-200/80 shadow-2xs",
+        "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full ring-2 ring-border shadow-2xs",
         className
       )}
       {...props}

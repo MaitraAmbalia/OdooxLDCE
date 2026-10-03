@@ -268,7 +268,7 @@ export default function ProductDetail() {
                       >
                         <div>{v.size || v.name || "Size"}</div>
                         {stock > 0 && stock <= 5 && (
-                          <div className={`text-[9px] font-normal ${isSelected ? "text-blue-200" : "text-amber-600"}`}>
+                          <div className={`text-[9px] font-normal ${isSelected ? "text-primary-foreground/70" : "text-warning"}`}>
                             {stock} left
                           </div>
                         )}

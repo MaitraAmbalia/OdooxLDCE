@@ -118,7 +118,7 @@ export default function VolunteerHome() {
 
                       <div className="flex items-center justify-between text-sm">
                         <span className="flex items-center gap-2 text-muted-foreground">
-                          <CalendarDays className="size-4" /> Due {task.dueDate || task.dueAt ? new Date(task.dueDate || task.dueAt).toLocaleDateString() : 'anytime'}
+                          <CalendarDays className="size-4" /> Due {task.dueDate || task.dueAt ? new Date(task.dueDate || task.dueAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : 'anytime'}
                         </span>
                         <span className="font-medium text-primary">Open task &rarr;</span>
                       </div>
@@ -203,7 +203,7 @@ export default function VolunteerHome() {
                       <Link to={`/volunteer/claims/${claim.id}`} className="flex justify-between items-center">
                         <div>
                           <p className="text-sm font-medium text-foreground">{claim.description}</p>
-                          <p className="text-xs text-muted-foreground font-medium mt-1">{claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : ''}</p>
+                          <p className="text-xs text-muted-foreground font-medium mt-1">{claim.createdAt ? new Date(claim.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : ''}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-mono font-bold">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(claim.amountPaise / 100)}</p>

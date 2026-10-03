@@ -4,7 +4,10 @@ import {
   Shield, Sparkles, CheckCircle2, ArrowRight, Zap, Award, 
   Calendar, Gift, History, Clock, AlertTriangle 
 } from "lucide-react";
-import MembershipCard from "../components/MembershipCard";
+import MembershipCard, { MEMBER_PERKS } from "../components/MembershipCard";
+import { StatusBadge } from "../../../components/common/StatusBadge";
+
+const fmtDate = (d) => new Date(d).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "../../../components/ui/card";
@@ -24,7 +27,10 @@ export default function MyMembership() {
     }
   });
 
-  const membership = membershipData?.data?.current || membershipData?.data;
+  const membership = membershipData?.data?.current || null;
+  const history = membershipData?.data?.history || [];
+  const validUntil = membership?.validUntil ?? membership?.expiresAt;
+  const daysLeft = validUntil ? Math.ceil((new Date(validUntil) - Date.now()) / 86400000) : null;
 
   if (isPending) {
     return (
@@ -53,7 +59,7 @@ export default function MyMembership() {
             Digital membership pass
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Your credential for event check-in, workshop priority, and member pricing.
+            Show this pass at the door, and get member prices on tickets and merch.
           </p>
         </div>
 
@@ -104,106 +110,59 @@ export default function MyMembership() {
           {/* Right Column: Perks, Tier Details & History */}
           <div className="lg:col-span-6 space-y-6">
             
-            {/* Membership Status & Benefits Overview */}
-            <Card className="rounded-2xl border-border/90 shadow-xs">
-              <CardHeader className="pb-3 border-b border-border">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
-                    <Award className="w-4 h-4 text-primary" />
-                    Tier Privileges Active
-                  </CardTitle>
-                  <Badge variant="success">All Benefits Active</Badge>
-                </div>
+            {/* Membership details: all from the membership record */}
+            <Card className="rounded-2xl shadow-xs">
+              <CardHeader className="border-b border-border pb-3">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+                  <Award className="size-4 text-primary" /> {membership.tier?.name ?? membership.tierName}
+                </CardTitle>
               </CardHeader>
-              <CardContent className="pt-4 space-y-3.5">
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs">
-                    ✓
+              <CardContent className="space-y-3 pt-4 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Status</span><StatusBadge status={membership.status} /></div>
+                {membership.startsAt && <div className="flex justify-between"><span className="text-muted-foreground">Member since</span><span className="font-medium">{fmtDate(membership.startsAt)}</span></div>}
+                {validUntil && <div className="flex justify-between"><span className="text-muted-foreground">Valid until</span><span className="font-medium">{fmtDate(validUntil)}</span></div>}
+                {daysLeft != null && (
+                  <div className={"rounded-xl p-3 text-sm " + (daysLeft <= 30 ? "bg-warning-soft text-warning" : "bg-secondary text-secondary-foreground")}>
+                    {daysLeft <= 0 ? "Your membership has expired." : `${daysLeft} day${daysLeft === 1 ? "" : "s"} left.`}
+                    {daysLeft <= 30 && <Link to="/join" className="ml-1 font-semibold underline">Renew now</Link>}
                   </div>
-                  <div>
-                    <div className="text-xs font-bold text-foreground">Exclusive Event Pricing</div>
-                    <div className="text-xs text-muted-foreground">Save up to 40% on tickets for the Skyline Annual Gala and workshops.</div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs">
-                    ✓
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-foreground">Merch Store Discounts</div>
-                    <div className="text-xs text-muted-foreground">Automatic ₹200 OFF on all official hoodies, tees, and varsity jackets.</div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs">
-                    ✓
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-foreground">Leadership Candidacy</div>
-                    <div className="text-xs text-muted-foreground">Only verified active members can apply for Executive Board positions.</div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs">
-                    ✓
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-foreground">Contactless 1.2s Fast Pass</div>
-                    <div className="text-xs text-muted-foreground">Skip the manual check-in lines at the auditorium with instant QR verification.</div>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
+            <Card className="rounded-2xl shadow-xs">
+              <CardHeader className="pb-2"><CardTitle className="text-base font-semibold">What your membership includes</CardTitle></CardHeader>
+              <CardContent className="space-y-3 pt-2">
+                {MEMBER_PERKS.map(([title, body]) => (
+                  <div key={title} className="flex items-start gap-3">
+                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+                    <div><p className="text-sm font-semibold">{title}</p><p className="text-xs text-muted-foreground">{body}</p></div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
             <div className="grid grid-cols-2 gap-3">
-              <Link to="/events" className="block">
-                <div className="p-4 rounded-xl border border-border bg-white hover:border-blue-400 hover:shadow-xs transition-all group">
-                  <Calendar className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                  <div className="text-xs font-bold text-foreground">Browse Events</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">Use your member discount</div>
-                </div>
+              <Link to="/events" className="group rounded-xl border border-border bg-card p-4 transition hover:border-primary/30 hover:shadow-xs">
+                <Calendar className="mb-2 size-5 text-primary" aria-hidden="true" />
+                <p className="text-sm font-semibold">Browse events</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">Member prices apply</p>
               </Link>
-              <Link to="/shop" className="block">
-                <div className="p-4 rounded-xl border border-border bg-white hover:border-amber-400 hover:shadow-xs transition-all group">
-                  <Gift className="w-5 h-5 text-amber-600 mb-2 group-hover:scale-110 transition-transform" />
-                  <div className="text-xs font-bold text-foreground">Merch Catalog</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">Member rates available</div>
-                </div>
+              <Link to="/shop" className="group rounded-xl border border-border bg-card p-4 transition hover:border-primary/30 hover:shadow-xs">
+                <Gift className="mb-2 size-5 text-primary" aria-hidden="true" />
+                <p className="text-sm font-semibold">Shop</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">Member rates on merch</p>
               </Link>
             </div>
 
-            {/* Pass Ledger / History */}
-            <Card className="rounded-2xl border-border/90 shadow-xs">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <History className="w-3.5 h-3.5" /> Membership Ledger
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-2">
-                <div className="flex items-center justify-between text-xs py-2 border-b border-border">
-                  <div>
-                    <span className="font-semibold text-foreground">Pass Activated</span>
-                    <p className="text-[11px] text-muted-foreground font-mono">
-                      {new Date(membership.createdAt || Date.now()).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}
-                    </p>
-                  </div>
-                  <Badge variant="success">Completed</Badge>
-                </div>
-                <div className="flex items-center justify-between text-xs py-2">
-                  <div>
-                    <span className="font-semibold text-foreground">Validity Horizon</span>
-                    <p className="text-[11px] text-muted-foreground font-mono">
-                      Through {membership.validUntil ? new Date(membership.validUntil).toLocaleDateString('en-IN') : 'May 2027'}
-                    </p>
-                  </div>
-                  <span className="text-[11px] font-mono text-primary font-bold">In Good Standing</span>
-                </div>
-              </CardContent>
-            </Card>
+            {history.length > 0 && (
+              <Card className="rounded-2xl shadow-xs">
+                <CardHeader className="pb-2"><CardTitle className="flex items-center gap-1.5 text-base font-semibold"><History className="size-4" /> Past memberships</CardTitle></CardHeader>
+                <CardContent className="divide-y divide-border pt-0 text-sm">
+                  {history.map((h) => <div key={h.id} className="flex items-center justify-between py-2.5"><span>{h.tierName ?? h.tier?.name} <span className="text-xs text-muted-foreground">· {h.startsAt ? fmtDate(h.startsAt) : "—"} – {h.expiresAt ? fmtDate(h.expiresAt) : "—"}</span></span><StatusBadge status={h.status} /></div>)}
+                </CardContent>
+              </Card>
+            )}
 
           </div>
         </div>
