@@ -83,9 +83,10 @@ export function createPaymentsService({ prisma, config, logger }) {
       if (count === 0) return 'ALREADY_PROCESSED';
 
       const paid = await tx.payment.findUnique({ where: { id: payment.id } });
-      await handlers.get(paid.purpose)?.onPaid?.(paid, tx);
+      // A handler may return { eventId } so the income is tagged to that event (per-event reports).
+      const tag = await handlers.get(paid.purpose)?.onPaid?.(paid, tx);
       await postIncome(
-        { category: CATEGORY[paid.purpose], amountPaise: Number(paid.amountPaise), sourceType: 'PAYMENT', sourceId: paid.id, description: `${paid.purpose} payment ${gatewayPaymentId}` },
+        { category: CATEGORY[paid.purpose], amountPaise: Number(paid.amountPaise), sourceType: 'PAYMENT', sourceId: paid.id, eventId: tag?.eventId, description: `${paid.purpose} payment ${gatewayPaymentId}` },
         tx,
       );
       return 'FULFILLED';

@@ -50,6 +50,9 @@ import CycleBuilder from "./features/selection/pages/manage/CycleBuilder";
 import CycleList from "./features/selection/pages/manage/CycleList";
 import ApplicationReview from "./features/selection/pages/manage/ApplicationReview";
 import ManageHome from "./features/dashboard/pages/ManageHome";
+import EventConsole from "./features/events/pages/manage/EventConsole";
+import EventReport from "./features/events/pages/manage/EventReport";
+import MembershipDues from "./features/membership/pages/manage/MembershipDues";
 import AccountHome from "./features/dashboard/pages/AccountHome";
 import Home from "./pages/Home";
 import ProtectedRoute from "./app/guards/ProtectedRoute";
@@ -113,10 +116,42 @@ function App() {
 
         {/* Phase 3, 4, 5, 6, 7, 8 & 9: Manage */}
         <Route
+          path="manage/events"
+          element={
+            <ProtectedRoute requireAuth anyPermission={["event.report.read", "event.propose", "event.publish"]} unauthorizedMessage="Event console requires event management authorization.">
+              <EventConsole />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="manage/events/new"
           element={
             <ProtectedRoute requireAuth anyPermission={["event.propose"]} unauthorizedMessage="Event proposals can only be submitted by Event Leads or the President.">
               <EventProposalStepper />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="manage/events/:id/edit"
+          element={
+            <ProtectedRoute requireAuth anyPermission={["event.propose", "event.publish"]} unauthorizedMessage="Event editing requires event lead authorization.">
+              <EventProposalStepper />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="manage/events/:id/report"
+          element={
+            <ProtectedRoute requireAuth anyPermission={["event.report.read"]} unauthorizedMessage="Event reports are restricted to Event Leads and Executives.">
+              <EventReport />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="manage/memberships"
+          element={
+            <ProtectedRoute requireAuth anyPermission={["member.read.any", "membership.tier.manage", "membership.remind"]} unauthorizedMessage="Membership dues management is restricted to the Treasurer and President.">
+              <MembershipDues />
             </ProtectedRoute>
           }
         />

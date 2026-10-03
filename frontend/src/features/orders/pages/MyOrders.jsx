@@ -2,8 +2,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { 
   ShoppingBag, Package, CheckCircle2, Clock, 
-  MapPin, ArrowRight, ExternalLink, QrCode 
-} from "lucide-react";
+  MapPin, ArrowRight, ExternalLink, QrCode, ShoppingBag as ShoppingBagIcon } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "../../../components/ui/card";
@@ -59,7 +58,7 @@ export default function MyOrders() {
       {isError ? (
         <ContentState error title="Your orders aren’t available right now." description="We couldn’t load your order history. Try again in a moment." action={refetch} />
       ) : orders.length === 0 ? (
-        <ContentState title="No orders yet." description="When you order Skyline merchandise, pickup progress and details will appear here." actionLabel="Visit the shop" action={() => window.location.assign("/shop")} />
+        <ContentState icon={ShoppingBagIcon} to="/shop" actionLabel="Visit the shop" title="No orders yet." description="When you order Skyline merchandise, pickup progress and details will appear here." />
       ) : (
         <div className="space-y-6">
           {orders.map(order => {
@@ -130,11 +129,11 @@ export default function MyOrders() {
                     </h4>
 
                     {order.status === "PENDING_PAYMENT" ? (
-                      <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-xs text-amber-900">
+                      <div className="space-y-3 rounded-xl border border-warning/30 bg-warning-soft/70 p-4 text-xs text-warning">
                         <div className="flex items-center gap-1.5 font-semibold">
-                          <Clock className="size-4 text-amber-600" /> Payment pending
+                          <Clock className="size-4 text-warning" /> Payment pending
                         </div>
-                        <p className="text-[11px] text-amber-800/90 leading-relaxed">
+                        <p className="text-[11px] text-warning/90 leading-relaxed">
                           Complete payment to confirm your pickup reservation.
                         </p>
                         {order.paymentId && (
@@ -148,7 +147,7 @@ export default function MyOrders() {
                         <div className="flex items-center gap-1.5 font-semibold">
                           <CheckCircle2 className="size-4" /> Ready for pickup
                         </div>
-                        <p className="text-[11px] text-emerald-900/80 leading-relaxed">
+                        <p className="text-[11px] text-success/80 leading-relaxed">
                           Show this Order ID at Student Center Desk B between 10:00 AM – 04:30 PM.
                         </p>
                       </div>
@@ -157,7 +156,7 @@ export default function MyOrders() {
                         <div className="flex items-center gap-1.5 font-semibold">
                           <Package className="size-4 text-primary" /> In production
                         </div>
-                        <p className="text-[11px] text-blue-900/80 leading-relaxed">
+                        <p className="text-[11px] text-primary/80 leading-relaxed">
                           Your order is being manufactured and printed. You will receive an alert once sorted for pickup.
                         </p>
                       </div>

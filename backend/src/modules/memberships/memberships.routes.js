@@ -3,24 +3,24 @@ import { z } from 'zod';
 import { AppError } from '../../lib/AppError.js';
 import { validate } from '../../middleware/validate.js';
 
-const idParams = z.object({ id: z.uuid() });
+const idParams = z.object({ id: z.guid() });
 const money = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 const benefits = z.object({ ticketDiscountPct: z.number().min(0).max(100).optional(), merchDiscountPct: z.number().min(0).max(100).optional() });
 const tierBody = z.object({ name: z.string().min(2).max(60), pricePaise: money, durationType: z.enum(['ACADEMIC_YEAR', 'SEMESTER']), benefits: benefits.optional() });
 const tierPatch = tierBody.partial().extend({ isActive: z.boolean().optional() });
-const checkoutBody = z.object({ tierId: z.uuid() });
-const verifyBody = z.object({ qr: z.string().max(200), eventId: z.uuid().optional() });
+const checkoutBody = z.object({ tierId: z.guid() });
+const verifyBody = z.object({ qr: z.string().max(200), eventId: z.guid().optional() });
 const remindBody = z.object({ withinDays: z.number().int().min(1).max(90).optional() }).default({});
 const listQuery = z.object({
   status: z.enum(['PENDING', 'ACTIVE', 'LAPSED', 'CANCELLED']).optional(),
-  tierId: z.uuid().optional(),
+  tierId: z.guid().optional(),
   expiringWithinDays: z.coerce.number().int().min(1).max(365).optional(),
   page: z.string().optional(), limit: z.string().optional(), // parsed by lib/pagination.js
 });
 
 // Mounted at /api/v1. `requirePermission` is B's `authorize` (dev stub until it lands).
 // `createPayment` comes from the payments service.
-export function createMembershipsRouter({ service, createPayment, authenticate, requirePermission }) {
+export function createMembershipsRouter({ service, createPayment, authenticate, requirePermission, canWorkDoor }) {
   const router = Router();
 
   router.get('/membership-tiers', async (_req, res) => res.json({ data: await service.listTiers() }));
@@ -35,9 +35,9 @@ export function createMembershipsRouter({ service, createPayment, authenticate, 
   router.post('/memberships/checkout', authenticate, validate({ body: checkoutBody }), async (req, res) =>
     res.status(201).json({ data: await service.checkout(req.user, req.body, req.get('Idempotency-Key'), createPayment) }));
 
-  // membership.verify, or ticket.checkin (scoped door-staff access arrives with the events module).
-  const canVerify = (req, _res, next) =>
-    ['membership.verify', 'ticket.checkin'].some((k) => req.user.permissions?.includes(k))
+  // membership.verify / ticket.checkin, or volunteers on the door of the event in the body.
+  const canVerify = async (req, _res, next) =>
+    req.user.permissions?.includes('membership.verify') || (await canWorkDoor(req.user, req.body?.eventId))
       ? next()
       : next(new AppError('FORBIDDEN', 403, 'You do not have permission to do this'));
   router.post('/memberships/verify', authenticate, canVerify, validate({ body: verifyBody }), async (req, res) =>

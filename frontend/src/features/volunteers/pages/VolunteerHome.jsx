@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Clock, MapPin, ReceiptIndianRupee, ShoppingBag, Ticket, Radio } from "lucide-react";
+import { CalendarDays, Clock, MapPin, ReceiptIndianRupee, ShoppingBag, Ticket, ListTodo as ListTodoIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
@@ -9,6 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useSession } from "@/hooks/useSession";
 import { getSocket } from "@/lib/socket";
+import { getJson } from "@/lib/api";
+import { StatusBadge } from "@/components/common/StatusBadge";
 
 export default function VolunteerHome() {
   usePageTitle("Volunteer space");
@@ -86,6 +88,9 @@ export default function VolunteerHome() {
     retry: false,
   });
 
+  // Door shifts the Event Head assigned to me.
+  const { data: doorData } = useQuery({ queryKey: ["door-duties", "me"], queryFn: () => getJson("/events/door-duties/me") });
+  const doorDuties = doorData?.data || [];
   const tasks = tasksData?.data || [];
   const claims = claimsData?.data || [];
   const allEvents = eventsData?.data || [];
@@ -146,28 +151,21 @@ export default function VolunteerHome() {
             ) : tasksError ? (
               <div className="p-5"><ContentState error title="Tasks aren't available." description="Try loading your assignments again." action={refetchTasks} /></div>
             ) : tasks.length === 0 ? (
-              <div className="p-5"><ContentState title="No active tasks." description="New volunteer assignments will appear here." /></div>
+              <div className="p-5"><ContentState icon={ListTodoIcon} title="No active tasks." description="New volunteer assignments will appear here." /></div>
             ) : (
-              <ul className="divide-y divide-[var(--color-line)]">
+              <ul className="divide-y divide-border">
                 {tasks.map(task => (
                   <li key={task.id}>
                     <Link to={`/volunteer/tasks/${task.id}`} className="block p-6 transition-colors hover:bg-secondary/30">
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="text-lg font-semibold">{task.title}</h3>
-                        <span className={`px-2 py-1 text-xs font-bold uppercase rounded ${
-                          task.status === 'DONE' ? 'bg-[var(--color-ok)] text-white' :
-                          task.status === 'BLOCKED' ? 'bg-[var(--color-stop)] text-white' :
-                          task.status === 'IN_PROGRESS' ? 'bg-[var(--color-info)] text-white' :
-                          'bg-[var(--color-neutral)] text-white'
-                        }`}>
-                          {task.status.replace('_', ' ')}
-                        </span>
+                        <StatusBadge status={task.status} />
                       </div>
                       <p className="mb-4 text-sm text-muted-foreground">{task.project?.name || "General event task"}</p>
 
                       <div className="flex items-center justify-between text-sm">
                         <span className="flex items-center gap-2 text-muted-foreground">
-                          <CalendarDays className="size-4" /> Due {task.dueDate || task.dueAt ? new Date(task.dueDate || task.dueAt).toLocaleDateString() : 'anytime'}
+                          <CalendarDays className="size-4" /> Due {task.dueDate || task.dueAt ? new Date(task.dueDate || task.dueAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : 'anytime'}
                         </span>
                         <span className="font-medium text-primary">Open task &rarr;</span>
                       </div>
@@ -184,7 +182,15 @@ export default function VolunteerHome() {
 
           <section>
             <h2 className="mb-4 font-display text-xl font-semibold">Upcoming duties</h2>
-            {upcomingDuties.length > 0 ? (
+            {doorDuties.length > 0 && (
+              <ul className="mb-3 space-y-2">{doorDuties.map((d) => (
+                <li key={d.eventId} className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-card p-4 text-sm">
+                  <span><span className="font-semibold">Door · {d.title}</span><span className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"><CalendarDays className="size-3" />{new Date(d.startAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })} · {d.venue}</span></span>
+                  {d.open ? <Button asChild size="sm"><Link to={`/door/${d.eventId}`}>Open scanner</Link></Button> : <span className="text-right text-xs text-muted-foreground">Scanner opens 6h before start</span>}
+                </li>
+              ))}</ul>
+            )}
+            {upcomingDuties.length > 0 || doorDuties.length > 0 ? (
               <div className="space-y-3">
                 {upcomingDuties.slice(0, 5).map(duty => (
                   <Link
@@ -244,20 +250,17 @@ export default function VolunteerHome() {
               ) : claims.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground text-sm">No recent claims.</div>
               ) : (
-                <ul className="divide-y divide-[var(--color-line)]">
+                <ul className="divide-y divide-border">
                   {claims.map(claim => (
-                    <li key={claim.id} className="p-4 hover:bg-[var(--color-paper)]">
+                    <li key={claim.id} className="p-4 hover:bg-muted">
                       <Link to={`/volunteer/claims/${claim.id}`} className="flex justify-between items-center">
                         <div>
-                          <p className="text-sm font-medium text-[var(--color-ink)]">{claim.description}</p>
-                          <p className="text-xs text-muted-foreground font-medium mt-1">{claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : ''}</p>
+                          <p className="text-sm font-medium text-foreground">{claim.description}</p>
+                          <p className="text-xs text-muted-foreground font-medium mt-1">{claim.createdAt ? new Date(claim.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : ''}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-mono font-bold">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(claim.amountPaise / 100)}</p>
-                          <p className={`text-[10px] uppercase font-bold tracking-wider mt-1 ${
-                            claim.status === 'PAID' || claim.status === 'APPROVED' ? 'text-[var(--color-ok)]' :
-                            claim.status === 'REJECTED' ? 'text-[var(--color-stop)]' : 'text-[var(--color-wait)]'
-                          }`}>{claim.status.replace('_', ' ')}</p>
+                          <StatusBadge status={claim.status} className="mt-1" />
                         </div>
                       </Link>
                     </li>

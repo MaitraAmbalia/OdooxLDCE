@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, MapPin, Plus, Users } from "lucide-react";
+import { CalendarDays, MapPin, Plus, Users, CalendarClock as CalendarClockIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -48,7 +48,7 @@ export default function MeetingList() {
       ) : isError ? (
         <ContentState error title="Meetings aren’t available right now." description="We couldn’t load the schedule. Try again in a moment." action={refetch} />
       ) : meetings.length === 0 ? (
-        <ContentState title="No meetings are scheduled." description="Create a meeting to start coordinating an agenda and invite responses." actionLabel="Schedule meeting" action={() => window.location.assign("/manage/meetings/new")} />
+        <ContentState icon={CalendarClockIcon} to="/manage/meetings/new" actionLabel="Schedule a meeting" title="No meetings are scheduled." description="Create a meeting to start coordinating an agenda and invite responses." />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-border bg-card">
           <div className="divide-y divide-border md:hidden">

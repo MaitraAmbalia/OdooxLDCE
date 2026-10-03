@@ -5,75 +5,90 @@ import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { formatINR } from "@/lib/utils";
 
 const ALL_MODULES = [
   {
     title: "Events",
-    description: "Proposals, reviews, and public programming.",
+    perms: ["event.propose", "event.approve", "event.report.read"],
+    description: "Proposals, reviews, door staff, and post-event analytics.",
     icon: CalendarDays,
-    anyPermission: ["event.propose", "event.approve", "event.report.read"],
     links: [
+      { label: "Event console", to: "/manage/events" },
       { label: "Propose an event", to: "/manage/events/new", requiredPermission: "event.propose" },
       { label: "Browse events", to: "/events" },
     ],
   },
   {
     title: "Sponsorship",
+    perms: ["sponsorship.crm.read", "sponsorship.crm.manage"],
     description: "Send approved event opportunities to Odoo CRM and reconcile received funds.",
     icon: HandCoins,
-    anyPermission: ["sponsorship.crm.read", "sponsorship.crm.manage"],
     links: [{ label: "Open sponsorship workspace", to: "/manage/sponsorship" }],
   },
   {
     title: "Finance",
-    description: "Claims, cash, budgets, and reporting.",
+    perms: ["ledger.read", "claim.review", "claim.review.high", "claim.review.treasurer", "cash.verify"],
+    description: "Claims, cash, dues, budgets, and reporting.",
     icon: Banknote,
-    anyPermission: ["ledger.read", "claim.review", "claim.review.treasurer", "claim.review.high", "budget.limit.manage"],
     links: [
-      { label: "Expense claims", to: "/manage/claims", anyPermission: ["claim.review", "claim.review.treasurer", "claim.review.high"] },
-      { label: "Cash verification", to: "/manage/cash", anyPermission: ["cash.verify"] },
-      { label: "General ledger", to: "/manage/finance/ledger", anyPermission: ["ledger.read"] },
-      { label: "Financial reports", to: "/manage/finance/reports", anyPermission: ["finance.report.read"] },
-      { label: "Budget allocations", to: "/manage/budget", anyPermission: ["budget.limit.manage", "budget.allocate"] },
+      { label: "Expense claims", to: "/manage/claims" },
+      { label: "Cash verification", to: "/manage/cash" },
+      { label: "Membership dues", to: "/manage/memberships" },
+      { label: "Budget", to: "/manage/budget" },
+      { label: "General ledger", to: "/manage/finance/ledger" },
+      { label: "Reports & reconciliation", to: "/manage/finance/reports" },
     ],
   },
   {
     title: "Projects",
+    perms: ["project.manage", "volunteer.manage"],
     description: "Task boards and volunteer delivery.",
     icon: UsersRound,
-    anyPermission: ["project.manage", "volunteer.manage"],
-    links: [{ label: "Project portfolio", to: "/manage/projects" }, { label: "Volunteer workspace", to: "/volunteer" }],
+    links: [
+      { label: "Project portfolio", to: "/manage/projects" },
+      { label: "Volunteer workspace", to: "/volunteer" },
+    ],
   },
   {
     title: "Communications",
+    perms: ["announcement.publish", "newsletter.send", "newsletter.stats.read"],
     description: "Announcements and publishing history.",
     icon: Megaphone,
-    anyPermission: ["announcement.publish", "newsletter.send", "newsletter.stats.read"],
     links: [
-      { label: "New announcement", to: "/manage/announcements/new", anyPermission: ["announcement.publish"] },
+      { label: "New announcement", to: "/manage/announcements/new" },
       { label: "Communications history", to: "/manage/newsletter" },
     ],
   },
   {
     title: "Meetings",
+    perms: ["meeting.manage"],
     description: "Schedules, agendas, and invite responses.",
     icon: ClipboardCheck,
-    anyPermission: ["meeting.manage"],
-    links: [{ label: "Meeting schedule", to: "/manage/meetings" }, { label: "Schedule a meeting", to: "/manage/meetings/new" }],
+    links: [
+      { label: "Meeting schedule", to: "/manage/meetings" },
+      { label: "Schedule a meeting", to: "/manage/meetings/new" },
+    ],
   },
   {
     title: "Store",
+    perms: ["order.fulfil", "merch.manage"],
     description: "Pack and hand over merchandise orders.",
     icon: PackageCheck,
-    anyPermission: ["order.fulfil", "merch.manage"],
-    links: [{ label: "Order fulfilment", to: "/manage/orders" }, { label: "View shop", to: "/shop" }],
+    links: [
+      { label: "Order fulfilment", to: "/manage/orders" },
+      { label: "View shop", to: "/shop" },
+    ],
   },
   {
     title: "Leadership Selection",
+    perms: ["selection.manage"],
     description: "Recruit executives and heads.",
     icon: ShieldCheck,
-    anyPermission: ["selection.manage", "selection.review"],
-    links: [{ label: "Create selection cycle", to: "/manage/selection/new/edit" }, { label: "Manage current cycles", to: "/manage/selection/cycles" }],
+    links: [
+      { label: "Create selection cycle", to: "/manage/selection/new/edit" },
+      { label: "Manage current cycles", to: "/manage/selection/cycles" },
+    ],
   },
 ];
 
@@ -91,6 +106,7 @@ export default function ManageHome() {
 
   const user = authData?.data;
   const userPermissions = user?.permissions || [];
+  const can = (perms) => !perms || perms.some((p) => userPermissions.includes(p));
 
   const { data: countsData, isPending, isError, refetch } = useQuery({
     queryKey: ["dashboard", "counts"],
@@ -116,56 +132,19 @@ export default function ManageHome() {
 
   const counts = countsData?.data;
   const firstProposal = proposalsData?.data?.[0];
+  const isMentor = userPermissions.includes("event.approve");
 
   const queues = counts ? [
-    userPermissions.some((p) => ["claim.review", "claim.review.treasurer", "claim.review.high"].includes(p)) && {
-      title: "Expense claims",
-      count: counts.claimsPending || 0,
-      description: "Awaiting finance review",
-      to: "/manage/claims",
-      icon: ReceiptIndianRupee,
-    },
-    userPermissions.includes("event.approve") && {
-      title: "Event proposals",
-      count: counts.proposalsToReview || 0,
-      description: "Awaiting mentor review",
-      to: firstProposal ? "/manage/events/" + firstProposal.id + "/review" : null,
-      icon: CalendarDays,
-    },
-    userPermissions.includes("project.manage") && {
-      title: "Active tasks",
-      count: counts.activeTasks || 0,
-      description: "Across current projects",
-      to: "/manage/projects",
-      icon: UsersRound,
-    },
-    userPermissions.includes("order.fulfil") && {
-      title: "Orders to pack",
-      count: counts.ordersToPack || 0,
-      description: "Paid merchandise orders",
-      to: "/manage/orders",
-      icon: PackageCheck,
-    },
-    userPermissions.includes("sponsorship.crm.read") && {
-      title: "Sponsorship CRM",
-      count: "Odoo",
-      description: "Pipeline & commitments",
-      to: "/manage/sponsorship",
-      icon: HandCoins,
-    },
-  ].filter(Boolean) : [];
-
-  const visibleModules = ALL_MODULES
-    .filter((mod) => !mod.anyPermission || mod.anyPermission.some((perm) => userPermissions.includes(perm)))
-    .map((mod) => ({
-      ...mod,
-      links: mod.links.filter((link) => {
-        if (link.requiredPermission && !userPermissions.includes(link.requiredPermission)) return false;
-        if (link.anyPermission && !link.anyPermission.some((p) => userPermissions.includes(p))) return false;
-        return true;
-      }),
-    }))
-    .filter((mod) => mod.links.length > 0);
+    { perms: ["claim.review", "claim.review.high", "claim.review.treasurer", "claim.pay"], title: "Expense claims", count: counts.claimsPending || 0, description: "Awaiting review or payout", to: "/manage/claims", icon: ReceiptIndianRupee },
+    { perms: ["cash.verify"], title: "Cash to verify", count: counts.cashPending || 0, description: counts.cashPending ? `${formatINR(counts.cashPendingPaise, true)} awaiting handover` : "Nothing waiting", to: "/manage/cash", icon: Banknote },
+    { perms: ["member.read.any"], title: "Unpaid dues", count: counts.duesPending || 0, description: "Signed up, not yet paid", to: "/manage/memberships", icon: UsersRound },
+    isMentor
+      ? { perms: ["event.approve"], title: "Event proposals", count: counts.proposalsToReview || 0, description: "Awaiting your review", to: firstProposal ? "/manage/events/" + firstProposal.id + "/review" : "/manage/events", icon: CalendarDays }
+      : { perms: ["event.propose"], title: "My proposals", count: (counts.myProposalsPending || 0) + (counts.myProposalsChangesRequested || 0), description: counts.myProposalsChangesRequested ? `${counts.myProposalsChangesRequested} need your changes` : "Waiting for mentor review", to: "/manage/events", icon: CalendarDays },
+    { perms: ["project.manage", "volunteer.manage"], title: "Active tasks", count: counts.activeTasks || 0, description: "Across current projects", to: "/manage/projects", icon: UsersRound },
+    { perms: ["order.fulfil"], title: "Orders to pack", count: counts.ordersToPack || 0, description: "Paid merchandise orders", to: "/manage/orders", icon: PackageCheck },
+    { perms: ["sponsorship.crm.read"], title: "Sponsorship CRM", count: "Odoo", description: "Pipeline & commitments", to: "/manage/sponsorship", icon: HandCoins },
+  ].filter((q) => can(q.perms)) : [];
 
   if (!isAuthPending && !user) {
     return (
@@ -196,17 +175,17 @@ export default function ManageHome() {
           {user?.roles?.length > 0 && <p className="mt-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">{user.roles.join(" · ").replaceAll("_", " ")}</p>}
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
-          {userPermissions.includes("meeting.manage") && (
+          {can(["meeting.manage"]) && (
             <Button asChild variant="outline">
               <Link to="/manage/meetings/new"><Plus aria-hidden="true" /> Meeting</Link>
             </Button>
           )}
-          {userPermissions.includes("event.propose") && (
+          {can(["event.propose"]) && (
             <Button asChild>
               <Link to="/manage/events/new"><Plus aria-hidden="true" /> Propose event</Link>
             </Button>
           )}
-          {userPermissions.includes("sponsorship.crm.manage") && !userPermissions.includes("event.propose") && (
+          {can(["sponsorship.crm.manage"]) && !can(["event.propose"]) && (
             <Button asChild>
               <Link to="/manage/sponsorship"><HandCoins aria-hidden="true" /> Sponsorship CRM</Link>
             </Button>
@@ -224,8 +203,29 @@ export default function ManageHome() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {queues.map((queue) => {
               const Icon = queue.icon;
-              const content = <><div className="flex items-start justify-between"><span className="rounded-xl bg-primary/10 p-2 text-primary"><Icon className="size-5" aria-hidden="true" /></span>{queue.to && <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden="true" />}</div><p className="mt-6 font-display text-4xl font-semibold tabular-nums">{queue.count}</p><h3 className="mt-2 font-semibold">{queue.title}</h3><p className="mt-1 text-xs text-muted-foreground">{queue.description}</p>{!queue.to && queue.count > 0 && <p className="mt-3 text-xs text-amber-700">No review record is currently visible.</p>}</>;
-              return queue.to ? <Link key={queue.title} to={queue.to} className="group rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{content}</Link> : <div key={queue.title} className="rounded-2xl border border-border bg-card p-5">{content}</div>;
+              const content = (
+                <>
+                  <div className="flex items-start justify-between">
+                    <span className="rounded-xl bg-primary/10 p-2 text-primary">
+                      <Icon className="size-5" aria-hidden="true" />
+                    </span>
+                    {queue.to && <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden="true" />}
+                  </div>
+                  <p className="mt-6 font-display text-4xl font-semibold tabular-nums">{queue.count}</p>
+                  <h3 className="mt-2 font-semibold">{queue.title}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">{queue.description}</p>
+                  {!queue.to && queue.count > 0 && <p className="mt-3 text-xs text-warning">No review record is currently visible.</p>}
+                </>
+              );
+              return queue.to ? (
+                <Link key={queue.title} to={queue.to} className="group rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {content}
+                </Link>
+              ) : (
+                <div key={queue.title} className="rounded-2xl border border-border bg-card p-5">
+                  {content}
+                </div>
+              );
             })}
           </div>
         )}
@@ -234,9 +234,27 @@ export default function ManageHome() {
       <section className="mt-12" aria-labelledby="workspaces-heading">
         <div className="mb-4"><h2 id="workspaces-heading" className="font-display text-2xl font-semibold">Workspaces</h2><p className="mt-1 text-sm text-muted-foreground">Choose an operational area to continue.</p></div>
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {visibleModules.map((module) => {
+          {ALL_MODULES.filter((module) => can(module.perms)).map((module) => {
             const Icon = module.icon;
-            return <article key={module.title} className="rounded-2xl border border-border bg-card p-5 sm:p-6"><span className="inline-flex rounded-xl bg-secondary p-2.5 text-primary"><Icon className="size-5" aria-hidden="true" /></span><h3 className="mt-5 font-display text-xl font-semibold">{module.title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{module.description}</p><div className="mt-5 space-y-1">{module.links.map((link) => <Link key={link.to} to={link.to} className="group flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-medium transition hover:bg-secondary"><span>{link.label}</span><ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden="true" /></Link>)}</div></article>;
+            const visibleLinks = module.links.filter((l) => !l.requiredPermission || userPermissions.includes(l.requiredPermission));
+            if (!visibleLinks.length) return null;
+            return (
+              <article key={module.title} className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+                <span className="inline-flex rounded-xl bg-secondary p-2.5 text-primary">
+                  <Icon className="size-5" aria-hidden="true" />
+                </span>
+                <h3 className="mt-5 font-display text-xl font-semibold">{module.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{module.description}</p>
+                <div className="mt-5 space-y-1">
+                  {visibleLinks.map((link) => (
+                    <Link key={link.to} to={link.to} className="group flex min-h-10 items-center justify-between rounded-lg px-3 text-sm font-medium transition hover:bg-secondary">
+                      <span>{link.label}</span>
+                      <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                    </Link>
+                  ))}
+                </div>
+              </article>
+            );
           })}
         </div>
       </section>

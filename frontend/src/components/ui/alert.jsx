@@ -3,11 +3,11 @@ import { AlertCircle, CheckCircle2, Info, AlertTriangle } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 const variantStyles = {
-  default: "bg-slate-50 border-slate-200/90 text-slate-800 [&>svg]:text-slate-600",
-  destructive: "bg-red-50/80 border-red-200 text-red-900 [&>svg]:text-red-600",
-  success: "bg-emerald-50/80 border-emerald-200 text-emerald-900 [&>svg]:text-emerald-600",
-  warning: "bg-amber-50/80 border-amber-200 text-amber-900 [&>svg]:text-amber-600",
-  info: "bg-blue-50/80 border-blue-200 text-blue-900 [&>svg]:text-blue-600",
+  default: "bg-muted border-border/90 text-foreground [&>svg]:text-muted-foreground",
+  destructive: "bg-destructive/10/80 border-destructive/30 text-destructive [&>svg]:text-destructive",
+  success: "bg-success-soft/80 border-success/30 text-success [&>svg]:text-success",
+  warning: "bg-warning-soft/80 border-warning/30 text-warning [&>svg]:text-warning",
+  info: "bg-secondary/80 border-primary/30 text-primary [&>svg]:text-primary",
 };
 
 export function Alert({ className, variant = "default", children, ...props }) {

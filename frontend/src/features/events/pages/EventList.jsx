@@ -5,6 +5,16 @@ import { useDebounce } from "@/hooks/useDebounce";
 import {
   ArrowUpRight,
   CalendarDays,
+  Code2,
+  Frame,
+  GraduationCap,
+  LayoutGrid,
+  Mic,
+  PartyPopper,
+  Sparkles,
+  Swords,
+  Trophy,
+  Wrench,
   ChevronDown,
   Search,
   SlidersHorizontal,
@@ -37,6 +47,9 @@ const periodLabels = {
   past: "Past events",
 };
 
+// Icon per category code; anything unknown falls back to Sparkles.
+const CATEGORY_ICON = { ALL: LayoutGrid, WORKSHOP: Wrench, HACKATHON: Code2, CONFERENCE: Mic, COMPETITION: Swords, EXHIBITION: Frame, GALA: PartyPopper, SOCIAL: PartyPopper, SPORTS: Trophy, ACADEMIC: GraduationCap };
+
 export default function EventList() {
   usePageTitle("Explore events");
   const { data, isPending, isError, refetch } = useEvents();
@@ -60,6 +73,11 @@ export default function EventList() {
     ),
   ];
   const filtered = filterEvents(events, { search, category, period, sort });
+  // Counts reflect the current search and period, so a chip never promises events that aren't shown.
+  const countBy = filterEvents(events, { search, category: "ALL", period, sort }).reduce(
+    (acc, e) => ({ ...acc, ALL: acc.ALL + 1, [(e.category || "GENERAL").toUpperCase()]: (acc[(e.category || "GENERAL").toUpperCase()] ?? 0) + 1 }),
+    { ALL: 0 },
+  );
   const hasFilters = Boolean(
     search || category !== "ALL" || period !== "upcoming" || sort !== "soonest",
   );
@@ -214,22 +232,27 @@ export default function EventList() {
           aria-label="Filter by category"
           className="mt-5 flex flex-wrap gap-2"
         >
-          {categories.map((value) => (
+          {categories.map((value) => {
+            const Icon = CATEGORY_ICON[value] ?? Sparkles;
+            return (
             <Button
               key={value}
               variant="ghost"
               aria-pressed={category === value}
               onClick={() => updateFilter("category", value)}
               className={cn(
-                "h-10 rounded-full border px-4 text-sm",
+                "h-10 gap-1.5 rounded-full border px-3.5 text-sm",
                 category === value
                   ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
                   : "border-border bg-card text-muted-foreground hover:bg-secondary",
               )}
             >
+              <Icon className="size-4" aria-hidden="true" />
               {value === "ALL" ? "All categories" : categoryLabel(value)}
+              <span className={cn("rounded-full px-1.5 text-xs tabular-nums", category === value ? "bg-white/20" : "bg-muted")}>{countBy[value] ?? 0}</span>
             </Button>
-          ))}
+            );
+          })}
         </div>
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-2 py-4">
           <p

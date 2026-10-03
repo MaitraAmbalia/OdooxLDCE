@@ -8,10 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 const COLUMNS = [
-  { id: "TODO", label: "To do", accent: "bg-slate-400", surface: "bg-slate-50" },
-  { id: "IN_PROGRESS", label: "In progress", accent: "bg-blue-500", surface: "bg-blue-50/60" },
-  { id: "BLOCKED", label: "Blocked", accent: "bg-red-500", surface: "bg-red-50/60" },
-  { id: "DONE", label: "Done", accent: "bg-emerald-600", surface: "bg-emerald-50/60" },
+  { id: "TODO", label: "To do", accent: "bg-muted-foreground/40", surface: "bg-muted" },
+  { id: "IN_PROGRESS", label: "In progress", accent: "bg-info", surface: "bg-secondary/60" },
+  { id: "BLOCKED", label: "Blocked", accent: "bg-red-500", surface: "bg-destructive/10/60" },
+  { id: "DONE", label: "Done", accent: "bg-success", surface: "bg-success-soft/60" },
 ];
 
 function assigneeNames(task) {
@@ -94,7 +94,7 @@ export default function ProjectKanban() {
       <Button asChild variant="ghost" className="mb-6 -ml-3"><Link to="/manage/projects"><ArrowLeft aria-hidden="true" /> Back to projects</Link></Button>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div><p className="mb-2 text-sm font-medium text-primary">{project.type ? project.type.replaceAll("_", " ") : "Project board"}</p><h1 className="font-display text-4xl font-semibold tracking-tight">{project.name}</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{project.description || "Move tasks through the workflow as work progresses."}</p></div>
-        <span className={"w-fit rounded-full px-3 py-1.5 text-xs font-semibold " + (isClosed ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800")}>{isClosed ? "Closed project" : tasks.length + " tasks"}</span>
+        <span className={"w-fit rounded-full px-3 py-1.5 text-xs font-semibold " + (isClosed ? "bg-success-soft text-success" : "bg-secondary text-primary")}>{isClosed ? "Closed project" : tasks.length + " tasks"}</span>
       </div>
 
       {isClosed && <div className="mt-6 rounded-xl border border-border bg-secondary/40 p-4 text-sm text-muted-foreground" role="status">This project is closed. Its board is available as a read-only record.</div>}

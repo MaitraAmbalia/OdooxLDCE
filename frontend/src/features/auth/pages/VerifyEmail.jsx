@@ -45,7 +45,7 @@ export default function VerifyEmail() {
         <div className="mt-8 rounded-2xl border border-border bg-card p-6 sm:p-8">
           {verified ? (
             <div className="text-center" role="status">
-              <CheckCircle2 className="mx-auto size-10 text-emerald-600" aria-hidden="true" />
+              <CheckCircle2 className="mx-auto size-10 text-success" aria-hidden="true" />
               <Button asChild size="lg" className="mt-6 w-full"><Link to="/login">Continue to login</Link></Button>
             </div>
           ) : (

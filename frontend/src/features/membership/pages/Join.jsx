@@ -65,8 +65,7 @@ export default function Join() {
       }
     } catch (err) {
       console.error(err);
-      toast.success("Welcome aboard! Mock checkout completed.");
-      navigate("/me/membership");
+      toast.error("Couldn't reach the server. Please try again.");
     } finally {
       setLoadingCheckout(false);
     }
@@ -75,11 +74,11 @@ export default function Join() {
   const faqs = [
     {
       q: "Can first-year students join Skyline?",
-      a: "Absolutely! Over 40% of our members are first-year students. Joining gives you instant mentorship, access to hackathon teams, and networking with senior engineers."
+      a: "Yes. Membership is open to every enrolled student, in any year."
     },
     {
       q: "How does the digital membership pass work?",
-      a: "Once enrolled, your membership pass is immediately active in your account (/me/membership) with a secure verification QR code. Show it at events for discounted entry, priority lane access, and member verification."
+      a: "Once enrolled, your membership pass is immediately active in your account (/me/membership) with a secure verification QR code. Door staff scan it at events to confirm your membership."
     },
     {
       q: "What leadership opportunities are available to members?",
@@ -87,7 +86,7 @@ export default function Join() {
     },
     {
       q: "Can non-members still attend Skyline events?",
-      a: "Yes, non-members can purchase tickets at standard guest rates. However, members receive priority seating, up to 40% discount, and free access to internal technical workshops."
+      a: "Yes. Non-members buy the standard ticket. Members pay the member price wherever an event offers one, and can also register for members-only events."
     }
   ];
 
@@ -115,13 +114,13 @@ export default function Join() {
               <span className="size-2.5 rounded-full bg-[#47725e]"></span>
               <span>Built for every year and discipline</span>
             </div>
-            <div className="h-3 w-px bg-slate-200"></div>
+            <div className="h-3 w-px bg-border"></div>
             <div className="flex items-center gap-1.5 text-primary">
               <HeartHandshake className="size-4" />
               <span>One community, year-round</span>
             </div>
-            <div className="h-3 w-px bg-slate-200"></div>
-            <div className="flex items-center gap-1 text-slate-600">
+            <div className="h-3 w-px bg-border"></div>
+            <div className="flex items-center gap-1 text-muted-foreground">
               <ShieldCheck className="size-4 text-primary" />
               <span>Secure digital membership pass</span>
             </div>
@@ -177,7 +176,7 @@ export default function Join() {
 
                   <div>
                     <div className="flex items-center justify-between">
-                      <h3 className="text-2xl font-display font-black text-slate-900 tracking-tight">
+                      <h3 className="text-2xl font-display font-black text-foreground tracking-tight">
                         {tier.name}
                       </h3>
                       <Badge variant={isRecommended ? "primary" : "secondary"}>
@@ -185,45 +184,45 @@ export default function Join() {
                       </Badge>
                     </div>
 
-                    <p className="mt-2 text-xs text-slate-600 leading-relaxed min-h-[36px]">
+                    <p className="mt-2 text-xs text-muted-foreground leading-relaxed min-h-[36px]">
                       {tier.description || "Full privileges in all Skyline clubs, hackathons, and social events."}
                     </p>
 
                     {/* Price Anchor */}
                     <div className="mt-6 flex items-baseline gap-2">
-                      <span className="text-4xl sm:text-5xl font-display font-black text-slate-900 tracking-tight tabular-nums">
+                      <span className="text-4xl sm:text-5xl font-display font-black text-foreground tracking-tight tabular-nums">
                         {formatINR(price)}
                       </span>
-                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         / {durationLabel}
                       </span>
                     </div>
 
-                    <div className="mt-2 text-[11px] text-emerald-600 font-bold flex items-center gap-1">
+                    <div className="mt-2 text-[11px] text-success font-bold flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       Save on events, merchandise, and workshop admissions
                     </div>
 
-                    <div className="h-px bg-slate-100 my-6"></div>
+                    <div className="h-px bg-muted my-6"></div>
 
                     {/* Perks Checklist */}
-                    <div className="space-y-3 text-xs text-slate-700">
+                    <div className="space-y-3 text-xs text-foreground">
                       <div className="flex items-center gap-2.5 font-medium">
-                        <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 font-bold text-[11px]">
+                        <div className="w-5 h-5 rounded-full bg-secondary text-primary flex items-center justify-center shrink-0 font-bold text-[11px]">
                           ✓
                         </div>
                         <span>Eligible to apply & run for Club Leadership & Executive posts</span>
                       </div>
 
                       <div className="flex items-center gap-2.5 font-medium">
-                        <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 font-bold text-[11px]">
+                        <div className="w-5 h-5 rounded-full bg-secondary text-primary flex items-center justify-center shrink-0 font-bold text-[11px]">
                           ✓
                         </div>
-                        <span>Up to 40% discount on event tickets and technical workshops</span>
+                        <span>Member prices on event tickets wherever an event offers them</span>
                       </div>
 
                       <div className="flex items-center gap-2.5 font-medium">
-                        <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 font-bold text-[11px]">
+                        <div className="w-5 h-5 rounded-full bg-secondary text-primary flex items-center justify-center shrink-0 font-bold text-[11px]">
                           ✓
                         </div>
                         <span>Exclusive member pricing on official club merchandise</span>
@@ -231,16 +230,16 @@ export default function Join() {
 
 
                       <div className="flex items-center gap-2.5 font-medium">
-                        <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 font-bold text-[11px]">
+                        <div className="w-5 h-5 rounded-full bg-secondary text-primary flex items-center justify-center shrink-0 font-bold text-[11px]">
                           ✓
                         </div>
-                        <span>In-app digital membership pass with instant QR verification</span>
+                        <span>Digital membership pass, verified by QR at the door</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Checkout CTA */}
-                  <div className="mt-8 pt-6 border-t border-slate-100">
+                  <div className="mt-8 pt-6 border-t border-border">
                     <Button
                       variant={isRecommended ? "default" : "outline"}
                       size="lg"
@@ -248,8 +247,8 @@ export default function Join() {
                       onClick={() => handleCheckout(tier)}
                       className={`w-full text-sm font-bold shadow-md cursor-pointer ${
                         isRecommended 
-                          ? "bg-blue-600 hover:bg-blue-700 text-white" 
-                          : "border-slate-300 hover:bg-slate-50"
+                          ? "bg-primary hover:bg-primary text-white" 
+                          : "border-border hover:bg-muted"
                       }`}
                     >
                       {loadingCheckout && selectedTier?.id === tier.id ? (
@@ -260,7 +259,7 @@ export default function Join() {
                         </span>
                       )}
                     </Button>
-                    <p className="mt-2 text-[10px] text-center text-slate-400">
+                    <p className="mt-2 text-[10px] text-center text-muted-foreground">
                       Instant pass activation upon payment confirmation
                     </p>
                   </div>
@@ -273,126 +272,48 @@ export default function Join() {
 
       {/* Feature Comparison Matrix */}
       <section className="max-w-4xl mx-auto px-4 py-12 sm:px-6">
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8">
-          <h3 className="text-xl font-display font-extrabold text-slate-900 tracking-tight mb-6 text-center">
+        <div className="bg-white rounded-3xl border border-border/80 shadow-xs p-6 sm:p-8">
+          <h3 className="text-xl font-display font-extrabold text-foreground tracking-tight mb-6 text-center">
             Guest Student vs. Verified Skyline Member
           </h3>
 
-          <div className="divide-y divide-slate-100 text-xs sm:text-sm">
-            <div className="grid grid-cols-12 py-3 font-bold text-slate-400 uppercase text-[10px] tracking-wider">
+          <div className="divide-y divide-border text-xs sm:text-sm">
+            <div className="grid grid-cols-12 py-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">
               <div className="col-span-6">Benefit / Capability</div>
               <div className="col-span-3 text-center">Guest Student</div>
-              <div className="col-span-3 text-center text-blue-600">Skyline Member</div>
+              <div className="col-span-3 text-center text-primary">Skyline Member</div>
             </div>
 
             <div className="grid grid-cols-12 py-3.5 items-center">
-              <div className="col-span-6 font-medium text-slate-800">Club Leadership & Executive Candidacy</div>
-              <div className="col-span-3 text-center text-red-500">✕ Ineligible</div>
-              <div className="col-span-3 text-center font-bold text-emerald-600">✓ Fully Eligible</div>
+              <div className="col-span-6 font-medium text-foreground">Club Leadership & Executive Candidacy</div>
+              <div className="col-span-3 text-center text-destructive">✕ Ineligible</div>
+              <div className="col-span-3 text-center font-bold text-success">✓ Fully Eligible</div>
             </div>
 
-            <div className="grid grid-cols-12 py-3.5 items-center bg-slate-50/50">
-              <div className="col-span-6 font-medium text-slate-800">Event Ticket Pricing</div>
-              <div className="col-span-3 text-center text-slate-500">Full Standard Price</div>
-              <div className="col-span-3 text-center font-bold text-emerald-600">Up to 40% Off</div>
-            </div>
-
-            <div className="grid grid-cols-12 py-3.5 items-center">
-              <div className="col-span-6 font-medium text-slate-800">Venue Entry & Check-in</div>
-              <div className="col-span-3 text-center text-slate-500">General QR Line</div>
-              <div className="col-span-3 text-center font-bold text-blue-600">Priority Member QR Lane</div>
-            </div>
-
-            <div className="grid grid-cols-12 py-3.5 items-center bg-slate-50/50">
-              <div className="col-span-6 font-medium text-slate-800">Official Club Merch</div>
-              <div className="col-span-3 text-center text-slate-500">Standard Retail Price</div>
-              <div className="col-span-3 text-center font-bold text-emerald-600">Exclusive Member Pricing</div>
+            <div className="grid grid-cols-12 py-3.5 items-center bg-muted/50">
+              <div className="col-span-6 font-medium text-foreground">Event Ticket Pricing</div>
+              <div className="col-span-3 text-center text-muted-foreground">Full Standard Price</div>
+              <div className="col-span-3 text-center font-bold text-success">Member price</div>
             </div>
 
             <div className="grid grid-cols-12 py-3.5 items-center">
-              <div className="col-span-6 font-medium text-slate-800">Hands-on Workshops & Masterclasses</div>
-              <div className="col-span-3 text-center text-slate-500">Subject to availability</div>
-              <div className="col-span-3 text-center font-bold text-emerald-600">Priority Seating & Free Access</div>
+              <div className="col-span-6 font-medium text-foreground">Members-only events</div>
+              <div className="col-span-3 text-center text-destructive">✕ Not eligible</div>
+              <div className="col-span-3 text-center font-bold text-success">✓ Eligible</div>
+            </div>
+
+            <div className="grid grid-cols-12 py-3.5 items-center bg-muted/50">
+              <div className="col-span-6 font-medium text-foreground">Official Club Merch</div>
+              <div className="col-span-3 text-center text-muted-foreground">Standard Retail Price</div>
+              <div className="col-span-3 text-center font-bold text-success">Exclusive Member Pricing</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Student Testimonials */}
-      <section className="max-w-5xl mx-auto px-4 py-12 sm:px-6">
-        <div className="text-center mb-10">
-          <Badge variant="secondary" className="mb-2">Student Voices</Badge>
-          <h3 className="text-2xl font-display font-extrabold text-slate-900 tracking-tight">
-            Hear From Our Community
-          </h3>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="rounded-2xl border-slate-200/80 shadow-xs">
-            <CardContent className="pt-6">
-              <div className="flex text-amber-400 gap-1 mb-3">
-                <Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" />
-              </div>
-              <p className="text-xs text-slate-600 italic leading-relaxed">
-                "The member discount on Gala alone paid for my entire year's pass. Plus, getting to lead the robotics exhibition was the highlight of my resume."
-              </p>
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-xs">
-                  PP
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-900">Priya Patel</div>
-                  <div className="text-[10px] text-slate-400">Computer Eng, 3rd Year</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl border-slate-200/80 shadow-xs">
-            <CardContent className="pt-6">
-              <div className="flex text-amber-400 gap-1 mb-3">
-                <Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" />
-              </div>
-              <p className="text-xs text-slate-600 italic leading-relaxed">
-                "Having the digital membership pass on my phone made check-in at the tech symposium effortless. No paper tickets, no line holdups."
-              </p>
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-800 font-bold flex items-center justify-center text-xs">
-                  RS
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-900">Rohan Shah</div>
-                  <div className="text-[10px] text-slate-400">Mechanical Eng, 2nd Year</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl border-slate-200/80 shadow-xs">
-            <CardContent className="pt-6">
-              <div className="flex text-amber-400 gap-1 mb-3">
-                <Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" /><Star className="w-4 h-4 fill-amber-400" />
-              </div>
-              <p className="text-xs text-slate-600 italic leading-relaxed">
-                "I joined as a volunteer, got promoted to Event Head, and managed a ₹2.5 Lakh budget with real faculty oversight. Invaluable experience."
-              </p>
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs">
-                  AJ
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-900">Aarav Joshi</div>
-                  <div className="text-[10px] text-slate-400">Civil Eng, 4th Year</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
       {/* Frequently Asked Questions */}
       <section className="max-w-3xl mx-auto px-4 py-12 sm:px-6">
-        <h3 className="text-2xl font-display font-extrabold text-slate-900 tracking-tight text-center mb-8">
+        <h3 className="text-2xl font-display font-extrabold text-foreground tracking-tight text-center mb-8">
           Frequently Asked Questions
         </h3>
 
@@ -400,17 +321,17 @@ export default function Join() {
           {faqs.map((faq, i) => (
             <div 
               key={i} 
-              className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-2xs transition-all"
+              className="bg-white rounded-2xl border border-border/80 overflow-hidden shadow-2xs transition-all"
             >
               <button
                 onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                className="w-full text-left px-5 py-4 flex items-center justify-between text-xs sm:text-sm font-bold text-slate-900 hover:text-blue-700 transition-colors"
+                className="w-full text-left px-5 py-4 flex items-center justify-between text-xs sm:text-sm font-bold text-foreground hover:text-primary transition-colors"
               >
                 <span>{faq.q}</span>
-                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openFaq === i ? "rotate-180 text-blue-600" : ""}`} />
+                <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${openFaq === i ? "rotate-180 text-primary" : ""}`} />
               </button>
               {openFaq === i && (
-                <div className="px-5 pb-4 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                <div className="px-5 pb-4 text-xs text-muted-foreground leading-relaxed border-t border-border pt-3">
                   {faq.a}
                 </div>
               )}

@@ -32,6 +32,13 @@
   --input: #cbd0de;
   --ring: #4544a8;
   --radius: 0.625rem;
+  /* Status colours: text on white passes AA; pair with the matching -soft fill. */
+  --success: #1f7a4d;
+  --success-soft: #e3f3ea;
+  --warning: #9a5b0b;
+  --warning-soft: #fdf1dc;
+  --info: #2f5f9e;
+  --info-soft: #e4edf8;
   
   /* Additional custom colors used by legacy/mockup components */
   --color-ink: var(--foreground);
@@ -40,10 +47,9 @@
   --color-surface: var(--background);
   --color-line: var(--border);
   --color-paper: var(--card);
-  --color-ok: #16a34a;
+  --color-ok: var(--success);
   --color-stop: var(--destructive);
-  --color-wait: #d97706;
-  --color-info: #2563eb;
+  --color-wait: var(--warning);
   --color-neutral: #64748b;
 }
 
@@ -66,6 +72,12 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -243,11 +255,10 @@
   --color-muted: var(--muted);
   --color-line: var(--border);
 
-  --color-ok: #10b981;
-  --color-wait: #f59e0b;
-  --color-stop: #ef4444;
-  --color-info: #3b82f6;
-  --color-neutral: #64748b;
+  --color-ok: var(--success);
+  --color-wait: var(--warning);
+  --color-stop: var(--destructive);
+  --color-neutral: var(--muted-foreground);
 
   --font-display:
     "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, sans-serif;

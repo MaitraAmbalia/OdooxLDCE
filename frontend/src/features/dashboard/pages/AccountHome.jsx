@@ -80,7 +80,7 @@ export default function AccountHome() {
                 <span className="text-lg font-semibold">Active member</span>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                {user.membership.expiresAt ? `Valid until ${new Date(user.membership.expiresAt).toLocaleDateString()}` : 'Full access unlocked'}
+                {user.membership.expiresAt ? `Valid until ${new Date(user.membership.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}` : 'Full access unlocked'}
               </p>
             </div>
           ) : (
@@ -99,16 +99,16 @@ export default function AccountHome() {
           <p className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary-foreground/80"><Ticket className="size-3.5" /> My event passes</p>
           {nextTicket ? (
             <div>
-              <p className="font-bold truncate" title={nextTicket.event?.title || "Event"}>
-                {nextTicket.event?.title || "Upcoming Event"}
+              <p className="line-clamp-2 font-bold leading-snug" title={nextTicket.event?.title || "Event"}>
+                {nextTicket.event?.title}
               </p>
               <p className="text-xs text-primary-foreground/75 mt-2">
-                {nextTicket.event?.startAt ? new Date(nextTicket.event.startAt).toLocaleDateString() : 'Pass ready'}
+                {nextTicket.event?.startAt ? new Date(nextTicket.event.startAt).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }) : "Pass ready"} · Open pass &rarr;
               </p>
             </div>
           ) : (
             <div>
-              <p className="font-bold text-lg">0 Tickets</p>
+              <p className="font-bold text-lg">No passes yet</p>
               <p className="text-xs text-primary-foreground/80 mt-2 font-medium">Browse events &rarr;</p>
             </div>
           )}
@@ -118,7 +118,7 @@ export default function AccountHome() {
         <Link to="/shop" className="block rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
           <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"><ShoppingBag className="size-3.5" /> Shop</p>
           <div className="flex items-end gap-2">
-            <span className="text-3xl font-display font-bold text-slate-900 leading-none">{activeOrdersCount}</span>
+            <span className="text-3xl font-display font-bold text-foreground leading-none">{activeOrdersCount}</span>
             <span className="text-xs text-muted-foreground mb-1">active orders</span>
           </div>
           <p className="text-xs text-primary mt-2 font-medium">Browse merch &rarr;</p>
@@ -129,11 +129,11 @@ export default function AccountHome() {
           <Link to="/volunteer" className="block rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
             <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"><HeartHandshake className="size-3.5" /> Volunteering</p>
             <div className="flex items-end gap-2">
-              <span className="text-3xl font-display font-bold text-slate-900 leading-none">
-                {user?.isVolunteer ? 'Active' : 'Open'}
+              <span className="text-3xl font-display font-bold text-foreground leading-none">
+                {user?.isVolunteer ? 'Active' : 'Join in'}
               </span>
             </div>
-            <p className="text-xs text-primary mt-2 font-medium">Open portal &rarr;</p>
+            <p className="text-xs text-primary mt-2 font-medium">{user?.isVolunteer ? "Tasks, duties and claims" : "Help run events"} &rarr;</p>
           </Link>
         )}
       </div>
@@ -142,7 +142,7 @@ export default function AccountHome() {
       <div className="grid gap-4 sm:grid-cols-3">
         <Link to="/events" className="flex items-center justify-between rounded-xl border border-border bg-card p-4 transition hover:border-primary/30">
           <div>
-            <div className="font-bold text-sm text-slate-900">Upcoming Events</div>
+            <div className="font-bold text-sm text-foreground">Upcoming Events</div>
             <div className="text-xs text-muted-foreground">Register with member discount</div>
           </div>
           <CalendarDays className="size-5 text-primary" />
@@ -150,7 +150,7 @@ export default function AccountHome() {
 
         <Link to="/selection" className="flex items-center justify-between rounded-xl border border-border bg-card p-4 transition hover:border-primary/30">
           <div>
-            <div className="font-bold text-sm text-slate-900">Leadership Applications</div>
+            <div className="font-bold text-sm text-foreground">Leadership Applications</div>
             <div className="text-xs text-muted-foreground">Apply for executive roles</div>
           </div>
           <ArrowUpRight className="size-5 text-primary" />
@@ -158,7 +158,7 @@ export default function AccountHome() {
 
         <Link to="/announcements" className="flex items-center justify-between rounded-xl border border-border bg-card p-4 transition hover:border-primary/30">
           <div>
-            <div className="font-bold text-sm text-slate-900">Campus News & Feeds</div>
+            <div className="font-bold text-sm text-foreground">Campus News & Feeds</div>
             <div className="text-xs text-muted-foreground">Official organization notices</div>
           </div>
           <ArrowUpRight className="size-5 text-primary" />

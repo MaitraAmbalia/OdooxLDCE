@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, PackageCheck, Search } from "lucide-react";
+import { CheckCircle2, PackageCheck, Search, PackageCheck as PackageCheckIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
@@ -73,7 +73,7 @@ export default function FulfilmentQueue() {
         ) : isError ? (
           <div className="p-5"><ContentState error title="The fulfilment queue isn’t available." description="We couldn’t load these orders." action={refetch} /></div>
         ) : visibleOrders.length === 0 ? (
-          <div className="p-5"><ContentState title={searchTerm ? "No orders match your search." : "This queue is clear."} description={searchTerm ? "Try an order number, student name, or student ID." : "Orders will appear here when they reach this stage."} /></div>
+          <div className="p-5"><ContentState icon={PackageCheckIcon} title={searchTerm ? "No orders match your search." : "This queue is clear."} description={searchTerm ? "Try an order number, student name, or student ID." : "Orders will appear here when they reach this stage."} /></div>
         ) : (
           <>
             <div className="divide-y divide-border md:hidden">
@@ -90,7 +90,7 @@ export default function FulfilmentQueue() {
 }
 
 function OrderAction({ order, mutation, compact = false }) {
-  if (order.status === "COLLECTED") return <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700"><CheckCircle2 className="size-4" aria-hidden="true" /> Complete</span>;
+  if (order.status === "COLLECTED") return <span className="inline-flex items-center gap-1.5 text-sm font-medium text-success"><CheckCircle2 className="size-4" aria-hidden="true" /> Complete</span>;
   const nextStatus = order.status === "PAID" ? "READY" : "COLLECTED";
   return <Button size={compact ? "sm" : "default"} className={compact ? "" : "mt-5 w-full"} disabled={mutation.isPending} onClick={() => mutation.mutate({ orderId: order.id, status: nextStatus })}><PackageCheck aria-hidden="true" />{nextStatus === "READY" ? "Mark ready" : "Confirm handover"}</Button>;
 }

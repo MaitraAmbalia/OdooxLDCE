@@ -81,7 +81,7 @@ export default function AnnouncementDetail() {
               {announcement.corrections.map((corr, idx) => (
                 <div key={idx} className="rounded-xl border border-border bg-secondary/50 p-4 text-sm leading-6">
                   <span className="mr-2 font-semibold">
-                    Update ({new Date(corr.updatedAt).toLocaleDateString()}):
+                    Update ({new Date(corr.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}):
                   </span>
                   <span className="text-muted-foreground">{corr.text}</span>
                 </div>

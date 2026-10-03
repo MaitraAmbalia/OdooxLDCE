@@ -3,6 +3,10 @@ import { AppError } from '../../lib/AppError.js';
 import { parsePeriod } from '../../lib/period.js';
 import { createPageMeta, parsePagination, parseSort } from '../../lib/pagination.js';
 import { auditLog } from '../../utils/audit.js';
+import { notify, notifyMany } from '../../lib/notify.js';
+import { eventSpend } from '../events/events.service.js';
+
+const HIGH_VALUE_PAISE = 200000; // claims above ₹2,000 also need the President
 
 const notFound = () => new AppError('NOT_FOUND', 404, 'Ledger entry not found');
 // Posted by payments (DUES/TICKETS/MERCH) or via /budgets/allocations: never by hand.
@@ -14,7 +18,7 @@ const toPublic = (e) => ({
   sourceType: e.sourceType, sourceId: e.sourceId, eventId: e.eventId, projectId: e.projectId,
   description: e.description, occurredAt: e.occurredAt, recordedBy: e.recordedById,
   reversesEntryId: e.reversesEntryId, attachmentFileId: e.attachmentFileId, createdAt: e.createdAt,
-  date: e.occurredAt ? new Date(e.occurredAt).toISOString().split('T')[0] : new Date(e.createdAt).toISOString().split('T')[0],
+  date: new Date(e.occurredAt ?? e.createdAt).toLocaleDateString('en-CA'), // server-local YYYY-MM-DD
   type: e.direction === 'IN' ? 'INCOME' : 'EXPENSE',
 });
 const toAllocation = (a) => ({ id: a.id, period: a.period, amountPaise: Number(a.amountPaise), source: a.source, note: a.note, createdAt: a.createdAt });
@@ -224,25 +228,35 @@ export function createFinanceService({ prisma, files }) {
     }));
   }
 
+  // Totals plus where the money came from / went (tickets, merch, dues, claims...) for reconciliation.
   async function reportSummary(type = 'SUMMARY') {
     const baseWhere = {};
     if (type === 'EVENT') baseWhere.eventId = { not: null };
     if (type === 'PROJECT') baseWhere.projectId = { not: null };
 
-    const [incomeAgg, expenseAgg, rowCount] = await Promise.all([
-      prisma.ledgerEntry.aggregate({
-        where: { ...baseWhere, direction: 'IN' },
-        _sum: { amountPaise: true },
-      }),
-      prisma.ledgerEntry.aggregate({
-        where: { ...baseWhere, direction: 'OUT' },
-        _sum: { amountPaise: true },
-      }),
+    const [groups, rowCount, events] = await Promise.all([
+      prisma.ledgerEntry.groupBy({ by: ['category', 'direction'], where: baseWhere, _sum: { amountPaise: true } }),
       prisma.ledgerEntry.count({ where: baseWhere }),
+      type === 'EVENT'
+        ? prisma.ledgerEntry.groupBy({ by: ['eventId', 'direction'], where: baseWhere, _sum: { amountPaise: true } })
+        : [],
     ]);
+    const byCategory = {};
+    for (const g of groups) {
+      const row = (byCategory[g.category] ??= { category: g.category, inPaise: 0, outPaise: 0 });
+      row[g.direction === 'IN' ? 'inPaise' : 'outPaise'] += Number(g._sum.amountPaise ?? 0);
+    }
+    const totalIncomePaise = groups.filter((g) => g.direction === 'IN').reduce((n, g) => n + Number(g._sum.amountPaise ?? 0), 0);
+    const totalExpensePaise = groups.filter((g) => g.direction === 'OUT').reduce((n, g) => n + Number(g._sum.amountPaise ?? 0), 0);
 
-    const totalIncomePaise = Number(incomeAgg._sum.amountPaise || 0);
-    const totalExpensePaise = Number(expenseAgg._sum.amountPaise || 0);
+    let byEvent;
+    if (type === 'EVENT') {
+      const titles = await prisma.event.findMany({ where: { id: { in: [...new Set(events.map((e) => e.eventId))] } }, select: { id: true, title: true, approvedBudgetPaise: true } });
+      byEvent = titles.map((e) => {
+        const sum = (d) => Number(events.find((r) => r.eventId === e.id && r.direction === d)?._sum.amountPaise ?? 0);
+        return { eventId: e.id, title: e.title, inPaise: sum('IN'), outPaise: sum('OUT'), approvedBudgetPaise: e.approvedBudgetPaise != null ? Number(e.approvedBudgetPaise) : null };
+      });
+    }
 
     return {
       reportType: type,
@@ -250,12 +264,51 @@ export function createFinanceService({ prisma, files }) {
       totalExpensePaise,
       balancePaise: totalIncomePaise - totalExpensePaise,
       rowCount,
+      byCategory: Object.values(byCategory).sort((x, y) => x.category.localeCompare(y.category)),
+      byEvent,
     };
   }
 
-  async function listCashCollections(status, query = {}) {
+  // Reconciliation: every gateway payment next to its ledger entry. A PAID payment with no
+  // ledger row (or a ledger row for an unpaid payment) is a mismatch to investigate.
+  async function listPayments(q = {}) {
+    const page = parsePagination(q, { defaultLimit: 50 });
+    const where = { ...(q.status && { status: q.status }), ...(q.purpose && { purpose: q.purpose }) };
+    const [rows, total, summary] = await Promise.all([
+      prisma.payment.findMany({ where, orderBy: { createdAt: 'desc' }, skip: page.skip, take: page.take, include: { user: { select: { name: true, studentId: true } } } }),
+      prisma.payment.count({ where }),
+      prisma.payment.groupBy({ by: ['purpose', 'status'], _sum: { amountPaise: true }, _count: { _all: true } }),
+    ]);
+    const ledger = await prisma.ledgerEntry.findMany({ where: { sourceType: 'PAYMENT', sourceId: { in: rows.map((r) => r.id) } }, select: { sourceId: true, id: true } });
+    const ledgerBy = new Map(ledger.map((l) => [l.sourceId, l.id]));
+    const unledgered = await prisma.$queryRaw`
+      SELECT COUNT(*)::int AS n FROM payments p
+      WHERE p.status IN ('PAID', 'REFUNDED')
+        AND NOT EXISTS (SELECT 1 FROM ledger_entries l WHERE l.source_type = 'PAYMENT' AND l.source_id = p.id)`;
+    return {
+      data: rows.map((p) => {
+        const ledgerEntryId = ledgerBy.get(p.id) ?? null;
+        const settled = ['PAID', 'REFUNDED'].includes(p.status);
+        return {
+          id: p.id, purpose: p.purpose, status: p.status, provider: p.provider, amountPaise: Number(p.amountPaise),
+          payer: p.user ? `${p.user.name} / ${p.user.studentId}` : null, gatewayPaymentId: p.gatewayPaymentId,
+          paidAt: p.paidAt, createdAt: p.createdAt, ledgerEntryId, reconciled: settled === !!ledgerEntryId,
+        };
+      }),
+      meta: { ...createPageMeta(page, total), unreconciledCount: unledgered[0].n },
+      summary: summary.map((g) => ({ purpose: g.purpose, status: g.status, count: g._count._all, amountPaise: Number(g._sum.amountPaise ?? 0) })),
+    };
+  }
+
+  // ---------------------------------------------------------------- cash collections
+  const CASH_CATEGORY = { MEMBERSHIP: 'DUES', TICKET: 'TICKETS', MERCH: 'MERCH', FUNDRAISER: 'FUNDRAISER' };
+
+  async function listCashCollections(status, query = {}, collectedById = null) {
     const page = parsePagination(query, { defaultLimit: 50 });
-    const where = status ? { status: status === 'PENDING' ? 'PENDING_VERIFICATION' : status } : undefined;
+    const where = {
+      ...(status && { status: status === 'PENDING' ? 'PENDING_VERIFICATION' : status }),
+      ...(collectedById && { collectedById }),
+    };
     const [rows, total] = await Promise.all([
       prisma.cashCollection.findMany({
         where,
@@ -271,11 +324,12 @@ export function createFinanceService({ prisma, files }) {
     ]);
     const data = rows.map((c) => ({
       id: c.id,
-      operator: c.collectedBy?.name || 'Cash Operator',
-      payerInfo: c.payer ? `${c.payer.name} / ${c.payer.studentId}` : 'Student',
+      operator: c.collectedBy?.name ?? null,
+      payerInfo: c.payer ? `${c.payer.name} / ${c.payer.studentId}` : null,
       amountPaise: Number(c.amountPaise),
       purpose: c.purpose,
       status: c.status === 'PENDING_VERIFICATION' ? 'PENDING' : c.status,
+      rejectReason: c.rejectReason,
       recordedAt: c.createdAt,
     }));
     return { data, meta: createPageMeta(page, total) };
@@ -285,161 +339,238 @@ export function createFinanceService({ prisma, files }) {
     const row = await prisma.cashCollection.create({
       data: {
         collectedById: user.id,
-        purpose: input.purpose || 'MEMBERSHIP',
-        refId: input.refId || randomUUID(),
-        amountPaise: BigInt(input.amountPaise || 15000),
+        purpose: input.purpose,
+        refId: input.refId ?? randomUUID(),
+        payerUserId: input.payerUserId ?? null,
+        amountPaise: BigInt(input.amountPaise),
         status: 'PENDING_VERIFICATION',
       },
     });
     return { id: row.id, status: 'PENDING' };
   }
 
-  async function verifyCashCollection(verifier, id) {
-    const row = await prisma.cashCollection.update({
-      where: { id },
-      data: {
-        status: 'VERIFIED',
-        verifiedById: verifier.id,
-        verifiedAt: new Date(),
-      },
+  // Four-eyes: the collector can't verify their own cash. Verified cash is posted to the ledger in the same tx.
+  async function resolveCashCollection(verifier, id, { approve, reason }, req) {
+    return prisma.$transaction(async (tx) => {
+      const row = await tx.cashCollection.findUnique({ where: { id } });
+      if (!row) throw new AppError('NOT_FOUND', 404, 'Cash collection not found');
+      if (row.collectedById === verifier.id) throw new AppError('FORBIDDEN', 403, 'You cannot verify cash you collected yourself');
+      const { count } = await tx.cashCollection.updateMany({
+        where: { id, status: 'PENDING_VERIFICATION' },
+        data: { status: approve ? 'VERIFIED' : 'REJECTED', verifiedById: verifier.id, verifiedAt: new Date(), rejectReason: approve ? null : reason },
+      });
+      if (!count) throw new AppError('INVALID_STATE_TRANSITION', 409, 'This collection was already resolved');
+      if (approve) {
+        await postIncome({
+          category: CASH_CATEGORY[row.purpose], amountPaise: Number(row.amountPaise), sourceType: 'CASH_COLLECTION', sourceId: row.id,
+          description: `Cash ${row.purpose.toLowerCase()} collection verified`, recordedBy: verifier.id,
+        }, tx);
+      }
+      await auditLog({ actorId: verifier.id, action: approve ? 'CASH.VERIFY' : 'CASH.REJECT', entityType: 'cash_collection', entityId: id, after: { reason }, req }, tx);
+      await notify(tx, {
+        userId: row.collectedById, type: 'CASH_RESOLVED',
+        title: approve ? 'Cash collection verified' : 'Cash collection rejected',
+        body: approve ? `₹${Number(row.amountPaise) / 100} was verified by the Treasurer.` : `₹${Number(row.amountPaise) / 100}: ${reason}`,
+        link: '/cash-desk',
+      });
+      return { id, status: approve ? 'VERIFIED' : 'REJECTED' };
     });
-    return { id: row.id, status: 'VERIFIED' };
   }
 
-  async function listClaims(filter = {}) {
+  // ---------------------------------------------------------------- expense claims
+  // Routing: STANDARD -> Treasurer (L1). HIGH_VALUE (> ₹2,000) -> Treasurer (L1) then President (L2).
+  // TREASURER_SELF -> Mentor, so nobody approves their own spending. Approved claims are paid by the Treasurer.
+  const reviewers = (user) => ({
+    l1: user.permissions?.includes('claim.review'),
+    high: user.permissions?.includes('claim.review.high'),
+    self: user.permissions?.includes('claim.review.treasurer'),
+    pay: user.permissions?.includes('claim.pay'),
+  });
+  const isReviewer = (user) => Object.values(reviewers(user)).some(Boolean);
+
+  // Who may act on a claim next, and as what.
+  function nextStep(claim, user) {
+    if (claim.submittedById === user.id) return null;
+    const r = reviewers(user);
+    if (claim.status === 'SUBMITTED' && claim.route === 'TREASURER_SELF') return r.self ? { level: 'L1', final: true } : null;
+    if (claim.status === 'SUBMITTED') return r.l1 ? { level: 'L1', final: claim.route === 'STANDARD' } : null;
+    if (claim.status === 'APPROVED_L1') return r.high ? { level: 'L2', final: true } : null;
+    if (claim.status === 'APPROVED') return r.pay ? { level: 'PAY' } : null;
+    return null;
+  }
+
+  const awaitingWhere = (user) => {
+    const r = reviewers(user);
+    const or = [];
+    if (r.l1) or.push({ status: 'SUBMITTED', route: { in: ['STANDARD', 'HIGH_VALUE'] } });
+    if (r.self) or.push({ status: 'SUBMITTED', route: 'TREASURER_SELF' });
+    if (r.high) or.push({ status: 'APPROVED_L1' });
+    if (r.pay) or.push({ status: 'APPROVED' });
+    return { OR: or.length ? or : [{ id: '00000000-0000-0000-0000-000000000000' }], submittedById: { not: user.id } };
+  };
+
+  const claimInclude = {
+    submittedBy: { select: { id: true, name: true, studentId: true } },
+    event: { select: { id: true, title: true, approvedBudgetPaise: true } },
+    project: { select: { id: true, name: true } },
+    task: { select: { id: true, title: true } },
+    receipts: { select: { fileId: true, file: { select: { mime: true } } } },
+    decisions: { orderBy: { createdAt: 'asc' }, include: { decider: { select: { name: true } } } },
+  };
+
+  const toClaim = (c, user) => ({
+    id: c.id,
+    submitter: c.submittedBy?.name ?? null,
+    user: c.submittedBy,
+    amountPaise: Number(c.amountPaise),
+    description: c.description,
+    category: c.category,
+    status: c.status,
+    route: c.route,
+    eventId: c.eventId,
+    projectId: c.projectId,
+    link: c.event?.title ?? c.project?.name ?? c.task?.title ?? null,
+    dateSpent: c.spentAt,
+    createdAt: c.createdAt,
+    ageDays: Math.floor((Date.now() - new Date(c.createdAt).getTime()) / (24 * 3600 * 1000)),
+    receipts: c.receipts.map((r) => ({ url: `/api/v1/files/${r.fileId}`, mime: r.file.mime })),
+    receiptUrls: c.receipts.map((r) => `/api/v1/files/${r.fileId}`),
+    decisions: c.decisions.map((d) => ({ level: d.level, decision: d.decision, reason: d.reason, decider: d.decider.name, at: d.createdAt })),
+    paidMethod: c.paidMethod, paidReference: c.paidReference, paidAt: c.paidAt,
+    nextStep: user ? nextStep(c, user) : null,
+  });
+
+  async function listClaims(user, filter = {}) {
     const page = parsePagination(filter, { defaultLimit: 50 });
-    const where = {};
-    if (filter.userId) {
-      where.submittedById = filter.userId;
-    }
-    if (filter.status) {
-      where.status = filter.status;
-    }
+    const where = filter.mine ? { submittedById: user.id } : filter.awaitingMe === 'true' ? awaitingWhere(user) : {};
+    if (filter.status) where.status = filter.status;
     const [rows, total] = await Promise.all([
-      prisma.expenseClaim.findMany({
-        where,
-        include: {
-          submittedBy: { select: { id: true, name: true, studentId: true } },
-          event: { select: { id: true, title: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: page.skip,
-        take: page.take,
-      }),
+      prisma.expenseClaim.findMany({ where, include: claimInclude, orderBy: { createdAt: 'desc' }, skip: page.skip, take: page.take }),
       prisma.expenseClaim.count({ where }),
     ]);
-    const data = rows.map((c) => ({
-      id: c.id,
-      submitter: c.submittedBy?.name || 'Volunteer',
-      amountPaise: Number(c.amountPaise),
-      description: c.description,
-      status: c.status,
-      createdAt: c.createdAt,
-      link: c.event ? c.event.title : 'General Volunteer Expense',
-      ageDays: Math.floor((Date.now() - new Date(c.createdAt).getTime()) / (24 * 3600 * 1000)),
-      receiptUrls: [],
-    }));
-    return { data, meta: createPageMeta(page, total) };
+    return { data: rows.map((c) => toClaim(c, user)), meta: createPageMeta(page, total) };
+  }
+
+  // Submitter or reviewers only; others get 404. Includes the event budget so reviewers see headroom.
+  async function getClaim(user, id) {
+    const c = await prisma.expenseClaim.findUnique({ where: { id }, include: claimInclude });
+    if (!c || (c.submittedById !== user.id && !isReviewer(user))) throw new AppError('NOT_FOUND', 404, 'Claim not found');
+    const out = toClaim(c, user);
+    if (c.event && isReviewer(user)) out.eventBudget = await eventBudget(prisma, c.event, c.id);
+    return out;
+  }
+
+  // Approved budget vs money already spent and claims already in the pipeline (excluding `exceptClaimId`).
+  async function eventBudget(db, event, exceptClaimId) {
+    if (event.approvedBudgetPaise == null) return null;
+    const [spent, committed] = await Promise.all([
+      eventSpend(db, event.id),
+      db.expenseClaim.aggregate({ where: { eventId: event.id, id: { not: exceptClaimId }, status: { in: ['APPROVED_L1', 'APPROVED'] } }, _sum: { amountPaise: true } }),
+    ]);
+    const approvedPaise = Number(event.approvedBudgetPaise);
+    const committedPaise = Number(committed._sum.amountPaise ?? 0);
+    return { approvedPaise, spentPaise: spent, committedPaise, remainingPaise: approvedPaise - spent - committedPaise };
   }
 
   async function submitClaim(user, input) {
-    let cat = 'REIMBURSEMENT';
-    if (input.category) {
-      const up = input.category.toUpperCase().replace(/\s*&\s*/g, '_').trim();
-      const valid = ['DUES', 'TICKETS', 'MERCH', 'FUNDRAISER', 'BUDGET_ALLOCATION', 'SPONSORSHIP', 'REIMBURSEMENT', 'PURCHASE', 'REFUND', 'OTHER'];
-      if (valid.includes(up)) {
-        cat = up;
-      } else if (up === 'FOOD___BEV' || up === 'FOOD_BEV' || up === 'LOGISTICS' || up === 'TRAVEL') {
-        cat = 'PURCHASE';
-      }
+    const links = [input.eventId, input.projectId, input.taskId].filter(Boolean);
+    if (!links.length) throw new AppError('VALIDATION_ERROR', 400, 'Link the claim to an event, project or task');
+    if (input.eventId && !(await prisma.event.findUnique({ where: { id: input.eventId }, select: { id: true } }))) {
+      throw new AppError('VALIDATION_ERROR', 422, 'Unknown event');
     }
-    const amountPaise = BigInt(Math.max(1, Math.round(Number(input.amountPaise || 10000))));
-    const route = amountPaise > 200000n ? 'HIGH_VALUE' : 'STANDARD';
-    const spentAt = input.dateSpent && !isNaN(new Date(input.dateSpent).getTime())
-      ? new Date(input.dateSpent)
-      : new Date();
-
-    const row = await prisma.expenseClaim.create({
-      data: {
-        submittedById: user.id || user.sub,
-        amountPaise,
-        category: cat,
-        route,
-        description: input.description || 'Expense claim',
-        spentAt,
-        status: 'SUBMITTED',
-      },
-    });
-    return {
-      id: row.id,
-      status: 'SUBMITTED',
-      submittedById: row.submittedById,
-      amountPaise: Number(row.amountPaise),
-      description: row.description,
-    };
-  }
-
-  async function reviewClaim(user, id, { decision, reason }) {
-    const existing = await prisma.expenseClaim.findUnique({ where: { id } });
-    if (!existing) {
-      throw new AppError('NOT_FOUND', 404, 'Expense claim not found');
-    }
-    const status = decision === 'APPROVE' ? 'APPROVED' : 'REJECTED';
-    const row = await prisma.expenseClaim.update({
-      where: { id },
-      data: {
-        status,
-      },
-    });
-
-    try {
-      await prisma.claimDecision.create({
+    const route = user.roles?.includes('TREASURER') ? 'TREASURER_SELF' : input.amountPaise > HIGH_VALUE_PAISE ? 'HIGH_VALUE' : 'STANDARD';
+    const receiptFileIds = input.receiptFileIds ?? [];
+    const claim = await prisma.$transaction(async (tx) => {
+      if (receiptFileIds.length) await files.assertUsable(receiptFileIds, { ownerId: user.id, purpose: 'RECEIPT' }, tx);
+      const row = await tx.expenseClaim.create({
         data: {
-          claimId: id,
-          deciderId: user.id,
-          level: 'L1',
-          decision: decision === 'APPROVE' ? 'APPROVE' : 'REJECT',
-          reason: reason || null,
+          submittedById: user.id,
+          amountPaise: BigInt(input.amountPaise),
+          category: input.category,
+          description: input.description,
+          spentAt: new Date(input.dateSpent),
+          eventId: input.eventId ?? null,
+          projectId: input.projectId ?? null,
+          taskId: input.taskId ?? null,
+          route,
+          status: 'SUBMITTED',
+          receipts: { create: receiptFileIds.map((fileId) => ({ fileId })) },
         },
       });
-    } catch {
-      // non-blocking
-    }
+      if (receiptFileIds.length) await files.attach(receiptFileIds, { type: 'expense_claim', id: row.id }, tx);
+      const roles = route === 'TREASURER_SELF' ? ['MENTOR'] : ['TREASURER'];
+      const people = await tx.roleAssignment.findMany({ where: { role: { in: roles }, endedAt: null }, select: { userId: true } });
+      await notifyMany(tx, people.map((p) => p.userId).filter((id) => id !== user.id), {
+        type: 'CLAIM_SUBMITTED', title: 'Expense claim to review',
+        body: `${user.name ?? 'A volunteer'} claimed ₹${input.amountPaise / 100}: ${input.description}`,
+        link: `/manage/claims/${row.id}`,
+      });
+      return row;
+    });
+    return { id: claim.id, status: claim.status, route };
+  }
 
-    if (status === 'APPROVED') {
-      try {
-        await prisma.ledgerEntry.create({
-          data: {
-            direction: 'OUT',
-            category: row.category || 'REIMBURSEMENT',
-            amountPaise: row.amountPaise,
-            description: `Expense reimbursement: ${row.description}`,
-            sourceType: 'CLAIM',
-            sourceId: row.id,
-            eventId: row.eventId || null,
-            projectId: row.projectId || null,
-            occurredAt: new Date(),
-            recordedById: user.id,
-          },
-        });
-      } catch {
-        // Safe to ignore duplicate or foreign key errors
+  async function reviewClaim(user, id, { decision, reason }, req) {
+    if (!['APPROVE', 'REJECT'].includes(decision)) throw new AppError('VALIDATION_ERROR', 400, 'decision must be APPROVE or REJECT');
+    if (decision === 'REJECT' && !reason?.trim()) throw new AppError('VALIDATION_ERROR', 400, 'A reason is required to reject a claim');
+    return prisma.$transaction(async (tx) => {
+      const claim = await tx.expenseClaim.findUnique({ where: { id }, include: { event: true } });
+      if (!claim || (claim.submittedById !== user.id && !isReviewer(user))) throw new AppError('NOT_FOUND', 404, 'Claim not found');
+      if (claim.submittedById === user.id) throw new AppError('FORBIDDEN', 403, 'You cannot review your own claim');
+      const step = nextStep(claim, user);
+      if (!step || step.level === 'PAY') throw new AppError('INVALID_STATE_TRANSITION', 409, `This claim is ${claim.status.toLowerCase().replaceAll('_', ' ')} and is not awaiting your review`);
+
+      // An event's approved budget is a hard cap on what can be approved against it.
+      if (decision === 'APPROVE' && claim.event) {
+        const budget = await eventBudget(tx, claim.event, claim.id);
+        if (budget && Number(claim.amountPaise) > budget.remainingPaise) {
+          throw new AppError('EVENT_BUDGET_EXCEEDED', 409, `This claim exceeds the remaining budget for "${claim.event.title}" (₹${Math.max(0, budget.remainingPaise) / 100} left)`);
+        }
       }
-    }
+      const status = decision === 'REJECT' ? 'REJECTED' : step.final ? 'APPROVED' : 'APPROVED_L1';
+      const { count } = await tx.expenseClaim.updateMany({ where: { id, status: claim.status }, data: { status } });
+      if (!count) throw new AppError('INVALID_STATE_TRANSITION', 409, 'This claim changed while you were reviewing it');
+      await tx.claimDecision.create({ data: { claimId: id, deciderId: user.id, level: step.level, decision, reason: reason?.trim() || null } });
+      await auditLog({ actorId: user.id, action: `CLAIM.${decision}`, entityType: 'expense_claim', entityId: id, after: { status, reason }, req }, tx);
+      await notify(tx, {
+        userId: claim.submittedById, type: 'CLAIM_REVIEWED',
+        title: status === 'REJECTED' ? 'Expense claim rejected' : status === 'APPROVED' ? 'Expense claim approved' : 'Expense claim passed first review',
+        body: status === 'REJECTED' ? reason.trim() : status === 'APPROVED' ? 'The Treasurer will reimburse you shortly.' : 'It now needs the President’s approval.',
+        link: `/volunteer/claims/${id}`,
+      });
+      if (status === 'APPROVED_L1') {
+        const presidents = await tx.roleAssignment.findMany({ where: { role: 'PRESIDENT', endedAt: null }, select: { userId: true } });
+        await notifyMany(tx, presidents.map((p) => p.userId), { type: 'CLAIM_SUBMITTED', title: 'High-value claim to approve', body: claim.description, link: `/manage/claims/${id}` });
+      }
+      return { id, status };
+    });
+  }
 
-    return {
-      id: row.id,
-      status: row.status,
-      submittedById: existing.submittedById,
-      amountPaise: Number(row.amountPaise),
-      description: row.description,
-      reason: reason || null,
-    };
+  // Reimbursement: APPROVED -> PAID, with the ledger OUT entry (tagged to the event/project) in the same tx.
+  async function payClaim(user, id, { method, reference }, req) {
+    return prisma.$transaction(async (tx) => {
+      const claim = await tx.expenseClaim.findUnique({ where: { id } });
+      if (!claim) throw new AppError('NOT_FOUND', 404, 'Claim not found');
+      if (claim.submittedById === user.id) throw new AppError('FORBIDDEN', 403, 'You cannot pay out your own claim');
+      const { count } = await tx.expenseClaim.updateMany({
+        where: { id, status: 'APPROVED' },
+        data: { status: 'PAID', paidMethod: method, paidReference: reference, paidAt: new Date() },
+      });
+      if (!count) throw new AppError('INVALID_STATE_TRANSITION', 409, 'Only approved claims can be paid');
+      await postExpense({
+        category: claim.category, amountPaise: Number(claim.amountPaise), sourceType: 'CLAIM', sourceId: claim.id,
+        eventId: claim.eventId, projectId: claim.projectId, description: `Claim reimbursement: ${claim.description}`, recordedBy: user.id,
+      }, tx);
+      await auditLog({ actorId: user.id, action: 'CLAIM.PAY', entityType: 'expense_claim', entityId: id, after: { method, reference }, req }, tx);
+      await notify(tx, { userId: claim.submittedById, type: 'CLAIM_PAID', title: 'Reimbursement paid', body: `₹${Number(claim.amountPaise) / 100} via ${method} (ref ${reference}).`, link: `/volunteer/claims/${id}` });
+      return { id, status: 'PAID' };
+    });
+>>>>>>> origin/manthan
   }
 
   return {
     list, balance, get, createManual, reverse, allocate, listAllocations, setLimits, utilization,
-    budgetOverview, reportSummary, listCashCollections, createCashCollection, verifyCashCollection,
-    listClaims, submitClaim, reviewClaim,
+    budgetOverview, reportSummary, listPayments, listCashCollections, createCashCollection, resolveCashCollection,
+    listClaims, getClaim, submitClaim, reviewClaim, payClaim,
   };
 }

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, CalendarClock, UsersRound } from "lucide-react";
+import { ArrowUpRight, CalendarClock, UsersRound, ShieldCheck as ShieldCheckIcon } from "lucide-react";
 import { ContentState } from "@/components/common/ContentState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -62,7 +62,7 @@ export default function SelectionHub() {
         ) : isError ? (
           <ContentState error title="Opportunities are taking a little longer." description="We couldn’t load the current selection cycles." action={refetch} />
         ) : openCycles.length === 0 ? (
-          <ContentState title="No applications are open right now." description="New leadership opportunities will appear here when the next selection cycle begins." />
+          <ContentState icon={ShieldCheckIcon} title="No applications are open right now." description="New leadership opportunities will appear here when the next selection cycle begins." />
         ) : (
           openCycles.map(cycle => (
             <section key={cycle.id} className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -123,7 +123,7 @@ export default function SelectionHub() {
               {closedCycles.map(cycle => (
                 <div key={cycle.id} className="rounded-xl border border-border bg-card p-4">
                   <h4 className="font-semibold">{cycle.name}</h4>
-                  <p className="mt-1 text-xs text-muted-foreground">Closed {new Date(cycle.deadlineAt).toLocaleDateString()}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Closed {new Date(cycle.deadlineAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
                 </div>
               ))}
             </div>

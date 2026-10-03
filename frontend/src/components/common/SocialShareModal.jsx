@@ -533,7 +533,7 @@ export function SocialShareModal({
             {copiedKey === "direct_url" ? (
               <>
                 <Check className="size-3 text-emerald-600" />
-                <span>Copied</span>
+                <span>Copied!</span>
               </>
             ) : (
               <>

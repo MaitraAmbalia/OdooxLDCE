@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, CalendarDays, LockKeyhole } from "lucide-react";
+import { ArrowUpRight, CalendarDays, LockKeyhole, Megaphone as MegaphoneIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ContentState } from "@/components/common/ContentState";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,7 +37,7 @@ export default function AnnouncementFeed() {
       ) : isError ? (
         <ContentState error title="Updates are taking a little longer." description="We couldn’t load the feed. Try again in a moment." action={refetch} />
       ) : announcements.length === 0 ? (
-        <ContentState title="Nothing new—yet." description="Official updates will appear here as soon as they are published." />
+        <ContentState icon={MegaphoneIcon} title="Nothing new—yet." description="Official updates will appear here as soon as they are published." />
       ) : (
         <div className="grid gap-5 md:grid-cols-2">
           {announcements.map((announcement) => (

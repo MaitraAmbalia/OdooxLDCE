@@ -18,9 +18,9 @@ function responseStatus(invite) {
 }
 
 function responseClasses(status) {
-  if (status === "YES") return "bg-emerald-100 text-emerald-800";
-  if (status === "NO") return "bg-red-100 text-red-800";
-  return "bg-amber-100 text-amber-800";
+  if (status === "YES") return "bg-success-soft text-success";
+  if (status === "NO") return "bg-destructive/10 text-destructive";
+  return "bg-warning-soft text-warning";
 }
 
 export default function MeetingDetail() {
@@ -114,7 +114,7 @@ export default function MeetingDetail() {
             <div role="tabpanel">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div><h2 className="font-display text-xl font-semibold">Invite responses</h2><p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground"><Users className="size-4" aria-hidden="true" />{invites.length} invited</p></div>
-                <div className="flex flex-wrap gap-2 text-xs font-medium"><span className="rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-800">{counts.yes} attending</span><span className="rounded-full bg-red-100 px-2.5 py-1 text-red-800">{counts.no} declined</span><span className="rounded-full bg-amber-100 px-2.5 py-1 text-amber-800">{counts.pending} pending</span></div>
+                <div className="flex flex-wrap gap-2 text-xs font-medium"><span className="rounded-full bg-success-soft px-2.5 py-1 text-success">{counts.yes} attending</span><span className="rounded-full bg-destructive/10 px-2.5 py-1 text-destructive">{counts.no} declined</span><span className="rounded-full bg-warning-soft px-2.5 py-1 text-warning">{counts.pending} pending</span></div>
               </div>
 
               {invites.length === 0 ? (

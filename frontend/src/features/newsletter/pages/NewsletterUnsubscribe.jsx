@@ -48,7 +48,7 @@ export default function NewsletterUnsubscribe() {
 
         {status === "success" && (
           <div className="flex flex-col items-center gap-4">
-            <div className="flex size-14 items-center justify-center rounded-full bg-slate-100 text-slate-700">
+            <div className="flex size-14 items-center justify-center rounded-full bg-muted text-foreground">
               <CheckCircle2 className="size-8" />
             </div>
             <h1 className="font-display text-2xl font-semibold">Unsubscribed</h1>

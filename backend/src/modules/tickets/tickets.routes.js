@@ -6,7 +6,7 @@ export function createTicketsRouter({ service, authenticate, authorize }) {
 
   // POST /tickets/buy - Purchase/Issue ticket
   router.post('/tickets/buy', authenticate, async (req, res) => {
-    res.status(201).json({ data: await service.buyTicket(req.user.sub, req.body) });
+    res.status(201).json({ data: await service.buyTicket(req.user.sub, req.body, req.get('Idempotency-Key')) });
   });
 
   // GET /tickets/me - My tickets
@@ -26,7 +26,7 @@ export function createTicketsRouter({ service, authenticate, authorize }) {
 
   // POST /tickets/checkin - Fast Door Check-in (Volunteer / Staff), body { qr, eventId }
   router.post('/tickets/checkin', authenticate, async (req, res) => {
-    const result = await service.checkIn(req.user.sub, req.body.qr, req.body.eventId);
+    const result = await service.checkIn(req.user, req.body.qr, req.body.eventId);
     const io = getIO();
     if (io && result.eventId) {
       io.to(`event:${result.eventId}`).emit('checkin:attended', {

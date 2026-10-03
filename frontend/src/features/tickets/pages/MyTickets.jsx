@@ -1,13 +1,13 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Ticket as TicketIcon, Calendar, MapPin, QrCode,
-} from "lucide-react";
+  Ticket as TicketIcon, Calendar, MapPin, QrCode, History as HistoryIcon } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../components/ui/tabs";
 import { ContentState } from "../../../components/common/ContentState";
+import { StatusBadge } from "@/components/common/StatusBadge";
 import { usePageTitle } from "../../../hooks/usePageTitle";
 
 export default function MyTickets() {
@@ -24,6 +24,16 @@ export default function MyTickets() {
   const tickets = ticketsData?.data || [];
   const activeTickets = tickets.filter(t => t.status !== "CHECKED_IN" && t.status !== "CANCELLED");
   const pastTickets = tickets.filter(t => t.status === "CHECKED_IN" || t.status === "CANCELLED");
+  // Soonest first, grouped under month headings (e.g. "October 2026").
+  const activeGroups = Object.entries(
+    [...activeTickets]
+      .sort((a, b) => new Date(a.event?.startAt) - new Date(b.event?.startAt))
+      .reduce((groups, t) => {
+        const month = new Date(t.event?.startAt).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+        (groups[month] ??= []).push(t);
+        return groups;
+      }, {}),
+  );
 
   if (isPending) {
     return (
@@ -80,10 +90,14 @@ export default function MyTickets() {
         {/* ACTIVE PASSES */}
         <TabsContent value="active">
           {activeTickets.length === 0 ? (
-            <ContentState title="No active tickets right now." description="When you reserve a place at an event, your entrance pass will appear here." actionLabel="Explore events" action={() => window.location.assign("/events")} />
+            <ContentState icon={TicketIcon} to="/events" actionLabel="Browse events" title="No active tickets right now." description="When you reserve a place at an event, your entrance pass will appear here." />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {activeTickets.map(ticket => {
+            <div className="space-y-6">
+              {activeGroups.map(([month, list]) => (
+              <section key={month} aria-label={month}>
+              <h2 className="sticky top-16 z-10 -mx-1 mb-3 bg-background/95 px-1 py-2 text-sm font-semibold text-muted-foreground backdrop-blur">{month}</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {list.map(ticket => {
                 const event = ticket.event || {};
                 const eventDate = event.startDate ? new Date(event.startDate) : new Date();
 
@@ -102,9 +116,7 @@ export default function MyTickets() {
                           <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                             {ticket.ticketType?.name || "General Admission"}
                           </span>
-                          <Badge variant="success" className="text-[10px] uppercase font-bold py-0.5">
-                            Ready to Scan
-                          </Badge>
+                          <StatusBadge status={ticket.status} />
                         </div>
 
                         <h3 className="font-display text-lg font-semibold leading-snug transition-colors group-hover:text-primary">
@@ -135,6 +147,9 @@ export default function MyTickets() {
                   </Link>
                 );
               })}
+              </div>
+              </section>
+              ))}
             </div>
           )}
         </TabsContent>
@@ -142,7 +157,7 @@ export default function MyTickets() {
         {/* PAST PASSES */}
         <TabsContent value="past">
           {pastTickets.length === 0 ? (
-            <ContentState title="No past events yet." description="Your attended and cancelled event history will appear here." />
+            <ContentState icon={HistoryIcon} title="No past events yet." description="Your attended and cancelled event history will appear here." />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-80">
               {pastTickets.map(ticket => (

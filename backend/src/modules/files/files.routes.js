@@ -7,7 +7,7 @@ import { validate } from '../../middleware/validate.js';
 import { MAX_UPLOAD_BYTES, PURPOSES } from './files.service.js';
 
 const uploadBody = z.object({ purpose: z.enum(Object.keys(PURPOSES)) });
-const idParams = z.object({ id: z.uuid() });
+const idParams = z.object({ id: z.guid() });
 
 // Runs multer and turns its errors into our error envelope (413 too big, 400 otherwise).
 function parseUpload(req, res, next) {

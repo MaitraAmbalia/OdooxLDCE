@@ -2,16 +2,19 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Banknote, History } from "lucide-react";
+import { ArrowLeft, Banknote, History, Banknote as BanknoteIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatusBadge } from "@/components/common/StatusBadge";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const money = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" });
+
+export const PURPOSE_LABEL = { MEMBERSHIP: "Membership dues", TICKET: "Event ticket", MERCH: "Merchandise", FUNDRAISER: "Fundraiser" };
 
 export default function CashDesk() {
   usePageTitle("Cash desk");
@@ -35,7 +38,7 @@ export default function CashDesk() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ purpose: data.purpose, refId: data.refId.trim(), amountPaise: Math.round(Number(data.amount) * 100) }),
+        body: JSON.stringify({ purpose: data.purpose, ...(data.refId.trim() ? { refId: data.refId.trim() } : {}), amountPaise: Math.round(Number(data.amount) * 100) }),
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error?.message || "Could not record cash");
@@ -75,16 +78,16 @@ export default function CashDesk() {
             <fieldset>
               <legend className="mb-3 text-sm font-medium">Purpose</legend>
               <div className="grid gap-3 sm:grid-cols-2">
-                {[{ id: "MEMBERSHIP", label: "Membership dues" }, { id: "EVENT_TICKET", label: "Event ticket" }].map((purpose) => (
+                {Object.entries(PURPOSE_LABEL).map(([id, label]) => ({ id, label })).map((purpose) => (
                   <label key={purpose.id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-4 transition hover:bg-secondary/30 has-[:checked]:border-primary has-[:checked]:bg-primary/5"><input type="radio" value={purpose.id} {...register("purpose")} className="accent-primary" /><span className="text-sm font-medium">{purpose.label}</span></label>
                 ))}
               </div>
             </fieldset>
 
             <div>
-              <label htmlFor="cash-reference" className="mb-2 block text-sm font-medium">Membership or ticket reference ID</label>
-              <Input id="cash-reference" placeholder="00000000-0000-0000-0000-000000000000" aria-invalid={!!errors.refId} {...register("refId", { required: "Reference ID is required", pattern: { value: UUID_PATTERN, message: "Enter a valid membership or ticket reference ID" } })} />
-              <p className="mt-2 text-xs leading-5 text-muted-foreground">Use the UUID shown on the member or ticket record so the receipt can be reconciled.</p>
+              <label htmlFor="cash-reference" className="mb-2 block text-sm font-medium">Membership or ticket reference ID (optional)</label>
+              <Input id="cash-reference" placeholder="00000000-0000-0000-0000-000000000000" aria-invalid={!!errors.refId} {...register("refId", { pattern: { value: UUID_PATTERN, message: "Enter a valid membership or ticket reference ID" } })} />
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">If the cash is for a specific record, paste its reference so it can be reconciled.</p>
               {errors.refId && <p className="mt-2 text-sm text-destructive" role="alert">{errors.refId.message}</p>}
             </div>
 
@@ -94,7 +97,7 @@ export default function CashDesk() {
               {errors.amount && <p className="mt-2 text-sm text-destructive" role="alert">{errors.amount.message}</p>}
             </div>
 
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"><strong>Confirm before recording:</strong> this entry is linked to your account and remains pending until the Treasurer verifies the handover.</div>
+            <div className="rounded-xl border border-warning/30 bg-warning-soft p-4 text-sm leading-6 text-warning"><strong>Confirm before recording:</strong> this entry is linked to your account and remains pending until the Treasurer verifies the handover.</div>
             <Button type="submit" size="lg" className="w-full" disabled={recordCash.isPending}>{recordCash.isPending ? "Recording…" : "Record cash receipt"}</Button>
           </form>
         </section>
@@ -108,10 +111,10 @@ export default function CashDesk() {
           ) : historyError ? (
             <ContentState error title="Collection history isn’t available." description="We couldn’t load recent receipts." action={refetch} />
           ) : collections.length === 0 ? (
-            <ContentState title="No cash has been recorded." description="Completed receipts will appear here after the first collection." />
+            <ContentState icon={BanknoteIcon} title="No cash has been recorded." description="Completed receipts will appear here after the first collection." />
           ) : (
             <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-              {collections.map((collection) => <div key={collection.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-medium">{collection.purpose === "EVENT_TICKET" ? "Event ticket" : "Membership dues"}</p><span className={"rounded-full px-2.5 py-1 text-xs font-semibold " + (collection.status === "VERIFIED" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>{collection.status === "VERIFIED" ? "Verified" : "Pending"}</span></div><p className="mt-2 text-xs text-muted-foreground">{collection.operator} · {new Date(collection.recordedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</p></div><p className="font-mono text-lg font-semibold tabular-nums">{money.format(Number(collection.amountPaise || 0) / 100)}</p></div>)}
+              {collections.map((collection) => <div key={collection.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-medium">{PURPOSE_LABEL[collection.purpose] ?? collection.purpose}</p><StatusBadge status={collection.status} />{collection.rejectReason && <span className="text-xs text-destructive">{collection.rejectReason}</span>}</div><p className="mt-2 text-xs text-muted-foreground">{collection.operator} · {new Date(collection.recordedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</p></div><p className="font-mono text-lg font-semibold tabular-nums">{money.format(Number(collection.amountPaise || 0) / 100)}</p></div>)}
             </div>
           )}
         </section>

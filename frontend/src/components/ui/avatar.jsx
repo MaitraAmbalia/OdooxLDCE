@@ -5,7 +5,7 @@ export function Avatar({ className, children, ...props }) {
   return (
     <div
       className={cn(
-        "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full ring-2 ring-slate-200/80 shadow-2xs",
+        "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full ring-2 ring-border shadow-2xs",
         className
       )}
       {...props}
@@ -35,7 +35,7 @@ export function AvatarFallback({ className, children, ...props }) {
   return (
     <div
       className={cn(
-        "flex h-full w-full items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700 font-mono uppercase",
+        "flex h-full w-full items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground font-mono uppercase",
         className
       )}
       {...props}

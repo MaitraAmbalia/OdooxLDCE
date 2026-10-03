@@ -17,16 +17,8 @@ export function validate(schemas) {
         }));
         return next(new AppError('VALIDATION_ERROR', 400, 'Request validation failed', errors));
       }
-      try {
-        req[key] = result.data;
-      } catch {
-        Object.defineProperty(req, key, {
-          value: result.data,
-          writable: true,
-          configurable: true,
-          enumerable: true,
-        });
-      }
+      // Express 5 makes req.query a getter, so redefine it rather than assign.
+      Object.defineProperty(req, key, { value: result.data, writable: true, configurable: true, enumerable: true });
       validated[key] = result.data;
     }
 

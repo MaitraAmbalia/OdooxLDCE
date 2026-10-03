@@ -291,7 +291,7 @@ export default function EventCalendar() {
                 {categories.map((value) => <option key={value} value={value}>{value === "ALL" ? "All categories" : categoryLabel(value)}</option>)}
               </select>
             </div>
-            {canManage && <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground"><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-primary" /> Published</span><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full border-2 border-dashed border-amber-600 bg-amber-100" /> Proposed</span></div>}
+            {canManage && <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground"><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-primary" /> Published</span><span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full border-2 border-dashed border-amber-600 bg-warning-soft" /> Proposed</span></div>}
           </div>
           <div className={cn("calendar-shell p-3 sm:p-5", isPending && "animate-pulse opacity-60")}>
             <FullCalendar
@@ -330,9 +330,9 @@ export default function EventCalendar() {
           </section>
 
           {canManage && pending.length > 0 && (
-            <section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5">
-              <div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-amber-800">Review queue</p><h2 className="mt-1 font-display text-xl font-semibold">{pending.length} pending</h2></div><Users className="size-5 text-amber-700" /></div>
-              <div className="mt-4 space-y-2">{pending.slice(0, 3).map((event) => <Link key={event.id} to={`/manage/events/${event.id}/review`} className="block rounded-xl border border-amber-200 bg-card p-3 transition hover:-translate-y-0.5 hover:shadow-sm"><span className="block truncate text-sm font-semibold">{event.title}</span><span className="mt-1 block text-xs text-muted-foreground">{eventRange(event)}</span></Link>)}</div>
+            <section className="rounded-2xl border border-warning/30 bg-warning-soft/70 p-5">
+              <div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-warning">Review queue</p><h2 className="mt-1 font-display text-xl font-semibold">{pending.length} pending</h2></div><Users className="size-5 text-warning" /></div>
+              <div className="mt-4 space-y-2">{pending.slice(0, 3).map((event) => <Link key={event.id} to={`/manage/events/${event.id}/review`} className="block rounded-xl border border-warning/30 bg-card p-3 transition hover:-translate-y-0.5 hover:shadow-sm"><span className="block truncate text-sm font-semibold">{event.title}</span><span className="mt-1 block text-xs text-muted-foreground">{eventRange(event)}</span></Link>)}</div>
             </section>
           )}
 
@@ -365,7 +365,7 @@ export default function EventCalendar() {
                 {!canManage && <Button variant={savedIds.includes(selected.id) ? "secondary" : "outline"} className="col-span-2" onClick={() => toggleSaved(selected.id)}><Bookmark className={cn(savedIds.includes(selected.id) && "fill-current")} />{savedIds.includes(selected.id) ? "Saved" : "Save event"}</Button>}
               </div>
               <Button asChild className="w-full"><Link to={selected.status === "PENDING_APPROVAL" && canManage ? `/manage/events/${selected.id}/review` : `/events/${selected.id}`}>{selected.status === "PENDING_APPROVAL" && canManage ? "Review proposal" : "View full event"}<ExternalLink /></Link></Button>
-              {selected.status === "PUBLISHED" && <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground"><CheckCircle2 className="size-3.5 text-emerald-600" /> Published and visible on the student calendar</p>}
+              {selected.status === "PUBLISHED" && <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground"><CheckCircle2 className="size-3.5 text-success" /> Published and visible on the student calendar</p>}
             </div>
           </>}
         </SheetContent>
