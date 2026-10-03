@@ -39,7 +39,7 @@ export default function AccountHome() {
         <div>
           <p className="mb-2 text-sm font-medium text-primary">Your Skyline</p>
           <h1 className="font-display text-4xl font-semibold tracking-tight">
-            Welcome back, {user?.name?.split(" ")[0] || "Student"}.
+            Welcome back, {user?.name || "Student"}.
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Student ID: {user?.studentId || "23BCE301"} • {user?.roles?.length ? user.roles.join(', ') : 'Student Member'}
@@ -87,17 +87,17 @@ export default function AccountHome() {
           <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"><Ticket className="size-3.5" /> Event passes</p>
           {nextTicket ? (
             <div>
-              <p className="font-bold text-[var(--color-ink)] truncate" title={nextTicket.event?.title || "Event"}>
+              <p className="font-bold text-slate-900 truncate" title={nextTicket.event?.title || "Event"}>
                 {nextTicket.event?.title || "Upcoming Event"}
               </p>
-              <p className="text-xs text-[var(--color-muted)] mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 {nextTicket.event?.startAt ? new Date(nextTicket.event.startAt).toLocaleDateString() : 'Pass ready'}
               </p>
             </div>
           ) : (
             <div>
-              <p className="font-bold text-[var(--color-ink)] text-lg">0 Tickets</p>
-              <p className="text-xs text-[var(--color-dusk)] mt-2 font-medium">Browse events &rarr;</p>
+              <p className="font-bold text-slate-900 text-lg">0 Tickets</p>
+              <p className="text-xs text-primary mt-2 font-medium">Browse events &rarr;</p>
             </div>
           )}
         </Link>
@@ -106,21 +106,21 @@ export default function AccountHome() {
         <Link to="/me/orders" className="block rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
           <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"><ShoppingBag className="size-3.5" /> Merch orders</p>
           <div className="flex items-end gap-2">
-            <span className="text-3xl font-display font-bold text-[var(--color-ink)] leading-none">0</span>
-            <span className="text-xs text-[var(--color-muted)] mb-1">active</span>
+            <span className="text-3xl font-display font-bold text-slate-900 leading-none">0</span>
+            <span className="text-xs text-muted-foreground mb-1">active</span>
           </div>
-          <p className="text-xs text-[var(--color-dusk)] mt-2 font-medium">View shop catalog &rarr;</p>
+          <p className="text-xs text-primary mt-2 font-medium">View shop catalog &rarr;</p>
         </Link>
 
         {/* Volunteer/Tasks Tile */}
         <Link to="/volunteer" className="block rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30 hover:shadow-md">
           <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"><HeartHandshake className="size-3.5" /> Volunteering</p>
           <div className="flex items-end gap-2">
-            <span className="text-3xl font-display font-bold text-[var(--color-ink)] leading-none">
+            <span className="text-3xl font-display font-bold text-slate-900 leading-none">
               {user?.isVolunteer ? 'Active' : 'Open'}
             </span>
           </div>
-          <p className="text-xs text-[var(--color-dusk)] mt-2 font-medium">Open portal &rarr;</p>
+          <p className="text-xs text-primary mt-2 font-medium">Open portal &rarr;</p>
         </Link>
       </div>
 
@@ -128,24 +128,24 @@ export default function AccountHome() {
       <div className="grid gap-4 sm:grid-cols-3">
         <Link to="/events" className="flex items-center justify-between rounded-xl border border-border bg-card p-4 transition hover:border-primary/30">
           <div>
-            <div className="font-bold text-sm text-[var(--color-ink)]">Upcoming Events</div>
-            <div className="text-xs text-[var(--color-muted)]">Register with member discount</div>
+            <div className="font-bold text-sm text-slate-900">Upcoming Events</div>
+            <div className="text-xs text-muted-foreground">Register with member discount</div>
           </div>
           <CalendarDays className="size-5 text-primary" />
         </Link>
 
         <Link to="/selection" className="flex items-center justify-between rounded-xl border border-border bg-card p-4 transition hover:border-primary/30">
           <div>
-            <div className="font-bold text-sm text-[var(--color-ink)]">Leadership Applications</div>
-            <div className="text-xs text-[var(--color-muted)]">Apply for executive roles</div>
+            <div className="font-bold text-sm text-slate-900">Leadership Applications</div>
+            <div className="text-xs text-muted-foreground">Apply for executive roles</div>
           </div>
           <ArrowUpRight className="size-5 text-primary" />
         </Link>
 
         <Link to="/announcements" className="flex items-center justify-between rounded-xl border border-border bg-card p-4 transition hover:border-primary/30">
           <div>
-            <div className="font-bold text-sm text-[var(--color-ink)]">Campus News & Feeds</div>
-            <div className="text-xs text-[var(--color-muted)]">Official organization notices</div>
+            <div className="font-bold text-sm text-slate-900">Campus News & Feeds</div>
+            <div className="text-xs text-muted-foreground">Official organization notices</div>
           </div>
           <ArrowUpRight className="size-5 text-primary" />
         </Link>

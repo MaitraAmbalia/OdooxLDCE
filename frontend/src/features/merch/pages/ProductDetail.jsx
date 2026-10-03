@@ -253,11 +253,11 @@ export default function ProductDetail() {
                           isSoldOut
                             ? "bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed line-through"
                             : isSelected
-                            ? "scale-[1.02] border-primary bg-primary text-primary-foreground"
-                            : "border-border bg-card text-foreground hover:border-primary/30 hover:bg-secondary/30"
+                            ? "scale-[1.02] border-primary bg-primary text-white"
+                            : "border-slate-200 bg-white text-slate-900 hover:border-primary/30 hover:bg-slate-50"
                         }`}
                       >
-                        <div>{v.name}</div>
+                        <div>{v.size || v.name || "Size"}</div>
                         {stock > 0 && stock <= 5 && (
                           <div className={`text-[9px] font-normal ${isSelected ? "text-blue-200" : "text-amber-600"}`}>
                             {stock} left

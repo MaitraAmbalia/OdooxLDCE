@@ -215,20 +215,6 @@ export default function EventDetail() {
                 {event.description || "Join the Skyline Student Association for our flagship celebration. Network with alumni founders, senior professors, industry leaders, and student innovators across engineering disciplines."}
               </p>
 
-              <div className="pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                <div className="p-3 bg-slate-50 rounded-xl">
-                  <div className="font-bold text-slate-900">Admission Includes</div>
-                  <div className="text-slate-500 mt-0.5">Dinner buffet, welcome kit & keynotes</div>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-xl">
-                  <div className="font-bold text-slate-900">Dress Code</div>
-                  <div className="text-slate-500 mt-0.5">Formal / Traditional Indian attire</div>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-xl">
-                  <div className="font-bold text-slate-900">Check-in Gate</div>
-                  <div className="text-slate-500 mt-0.5">Gate B (Fast-pass 1.2s scanner)</div>
-                </div>
-              </div>
             </div>
 
           </div>
@@ -372,7 +358,7 @@ export default function EventDetail() {
               venue: event.location || event.venue || "LDCE Campus",
               price: selectedTicket 
                 ? formatINR(selectedTicket.pricePaise / 100) 
-                : (tickets?.length ? `From ${formatINR(tickets[0].pricePaise / 100)}` : "Free Entry"),
+                : (ticketTypes?.length ? `From ${formatINR(ticketTypes[0].pricePaise / 100)}` : "Free Entry"),
               organizer: event.organizer?.name || "Skyline LDCE",
               url: typeof window !== "undefined" ? window.location.href : "",
             }}
