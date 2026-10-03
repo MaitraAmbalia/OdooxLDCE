@@ -46,6 +46,7 @@ import CycleBuilder from "./features/selection/pages/manage/CycleBuilder";
 import ApplicationReview from "./features/selection/pages/manage/ApplicationReview";
 import ManageHome from "./features/dashboard/pages/ManageHome";
 import AccountHome from "./features/dashboard/pages/AccountHome";
+import Home from "./pages/Home";
 
 function App() {
   return (
@@ -56,7 +57,7 @@ function App() {
 
       <Route path="/" element={<PublicLayout />}>
         {/* Public Routes */}
-        <Route index element={<div className="p-8"><h1 className="text-3xl font-display font-bold text-[var(--color-ink)]">Skyline Home</h1></div>} />
+        <Route index element={<Home />} />
         <Route path="join" element={<Join />} />
 
         {/* Auth Routes */}
