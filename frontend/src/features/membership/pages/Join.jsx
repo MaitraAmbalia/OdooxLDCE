@@ -152,8 +152,10 @@ export default function Join() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto items-stretch">
             {tiers.map((tier, idx) => {
+              const isSemester = tier.durationType === "SEMESTER" || tier.name?.toLowerCase().includes("semester");
               const isRecommended = idx === 0 || tier.name?.toLowerCase().includes("standard") || tier.name?.toLowerCase().includes("patron");
               const price = tier.pricePaise ? tier.pricePaise / 100 : 299;
+              const durationLabel = isSemester ? "Semester" : "Academic Year";
 
               return (
                 <div 
@@ -193,7 +195,7 @@ export default function Join() {
                         {formatINR(price)}
                       </span>
                       <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                        / Academic Year
+                        / {durationLabel}
                       </span>
                     </div>
 
