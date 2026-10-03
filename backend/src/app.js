@@ -41,6 +41,8 @@ import { createFilesRouter } from './modules/files/files.routes.js';
 import { createGovernanceRouter } from './modules/governance/governance.routes.js';
 import { createApprovalsService } from './modules/approvals/approvals.service.js';
 import { createApprovalsRouter } from './modules/approvals/approvals.routes.js';
+import { createDashboardsService } from './modules/dashboards/dashboards.service.js';
+import { createDashboardsRouter } from './modules/dashboards/dashboards.routes.js';
 
 function createCorsOptions(config) {
   return {
@@ -142,6 +144,9 @@ export function createApp(options = {}) {
 
   const approvalsService = createApprovalsService({ prisma });
   app.use('/api/v1', createApprovalsRouter({ service: approvalsService, authenticate: auth, requirePermission: authorize }));
+
+  const dashboardsService = createDashboardsService({ prisma });
+  app.use('/api/v1', createDashboardsRouter({ service: dashboardsService, authenticate: auth }));
 
   // 8. Governance, Elections & Meetings
   app.use('/api/v1', createGovernanceRouter({ prisma, authenticate: auth }));
