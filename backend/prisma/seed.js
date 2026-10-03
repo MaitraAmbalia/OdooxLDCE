@@ -223,6 +223,35 @@ async function main() {
     },
   });
 
+  // 6. Seed Official Announcements
+  await prisma.announcement.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000010' },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000010',
+      title: 'Welcome to the New Skyline Organization Platform!',
+      bodyMd: 'We are thrilled to launch the new centralized platform for LDCE & Nirma students. Access digital membership cards, discounted event tickets, official hoodies, and transparent student governance all in one place.',
+      audience: 'PUBLIC',
+      status: 'PUBLISHED',
+      publishedAt: new Date(),
+      authorId: createdUsers['president@nirmauni.ac.in'].id,
+    },
+  });
+
+  await prisma.announcement.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000011' },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000011',
+      title: 'Spring Gala 2026 Ticket Sales Now Live',
+      bodyMd: 'Early bird tickets for the flagship Spring Gala 2026 are now open for verified members at 50% discount. Make sure to claim your tickets early before quotas fill up.',
+      audience: 'MEMBERS',
+      status: 'PUBLISHED',
+      publishedAt: new Date(),
+      authorId: createdUsers['eventhead@nirmauni.ac.in'].id,
+    },
+  });
+
   console.log('Seeding completed successfully!');
   console.log(`Demo user accounts created (default password: "${defaultPassword}"):`);
   console.log('  - Mentor:     mentor@nirmauni.ac.in');

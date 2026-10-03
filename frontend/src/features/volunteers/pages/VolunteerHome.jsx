@@ -1,5 +1,4 @@
 import React from "react";
-import { Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -73,7 +72,7 @@ export default function VolunteerHome() {
 
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-[var(--color-muted)] flex items-center gap-2">
-                          <Calendar className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" />Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date'}
+                          📅 Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date'}
                         </span>
                         <span className="text-[var(--color-dusk)] font-medium">Open Task & Chat &rarr;</span>
                       </div>
@@ -113,7 +112,7 @@ export default function VolunteerHome() {
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-mono font-bold">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(claim.amountPaise / 100)}</p>
-                          <p className={`text-[11px] uppercase font-bold tracking-wider mt-1 ${
+                          <p className={`text-[10px] uppercase font-bold tracking-wider mt-1 ${
                             claim.status === 'PAID' || claim.status === 'APPROVED' ? 'text-[var(--color-ok)]' :
                             claim.status === 'REJECTED' ? 'text-[var(--color-stop)]' : 'text-[var(--color-wait)]'
                           }`}>{claim.status.replace('_', ' ')}</p>

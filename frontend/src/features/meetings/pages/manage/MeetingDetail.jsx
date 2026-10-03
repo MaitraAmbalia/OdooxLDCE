@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Calendar, MapPin } from "lucide-react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -37,8 +36,8 @@ export default function MeetingDetail() {
           <div>
             <h1 className="text-3xl font-display font-extrabold text-[var(--color-ink)] mb-2">{meeting.title}</h1>
             <p className="text-sm text-[var(--color-muted)] flex items-center gap-4">
-              <span><Calendar className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" />{new Date(meeting.scheduledAt).toLocaleString(undefined, { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-              <span><MapPin className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" />{meeting.location}</span>
+              <span>📅 {new Date(meeting.scheduledAt).toLocaleString(undefined, { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+              <span>📍 {meeting.location}</span>
             </p>
           </div>
           {meeting.isRequired && (

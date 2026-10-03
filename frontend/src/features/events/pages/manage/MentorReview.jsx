@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import { GraduationCap, Zap } from "lucide-react";
-import { toast } from "sonner";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 
@@ -71,11 +69,11 @@ export default function MentorReview() {
       return res.json();
     },
     onSuccess: () => {
-      toast.success("Decision recorded");
+      alert("Event authorization decision recorded successfully in the organization ledger!");
       navigate("/manage");
     },
     onError: (err) => {
-      toast.error(err.message || "Failed to submit decision");
+      alert(err.message || "Failed to submit decision");
     }
   });
 
@@ -83,7 +81,7 @@ export default function MentorReview() {
     e.preventDefault();
     if (!decision) return;
     if ((decision === 'REQUEST_CHANGES' || decision === 'REJECT') && !comment.trim()) {
-      toast.error("A comment is required for this decision.");
+      alert("A comment is required for this decision.");
       return;
     }
 
@@ -122,7 +120,7 @@ export default function MentorReview() {
       {!isMentor && (
         <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-3">
-            <GraduationCap className="w-6 h-6 text-blue-600" aria-hidden="true" />
+            <span className="text-2xl">🎓</span>
             <div>
               <h4 className="text-sm font-bold text-amber-900">Faculty Mentor Authorization</h4>
               <p className="text-xs text-amber-700">
@@ -137,7 +135,7 @@ export default function MentorReview() {
             onClick={handleQuickMentorLogin}
             className="px-4 py-2 bg-[var(--color-dusk)] text-white text-xs font-bold rounded-lg hover:bg-opacity-90 transition-all shadow-sm whitespace-nowrap self-start sm:self-center"
           >
-            <Zap className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" />Quick Log In as Mentor
+            ⚡ Quick Log In as Mentor
           </button>
         </div>
       )}
@@ -192,7 +190,7 @@ export default function MentorReview() {
                   <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)] text-xs font-medium">
                     <div>
                       <span className="font-bold text-[var(--color-ink)]">{t.name}</span>
-                      <span className="ml-2 text-[11px] uppercase font-bold text-[var(--color-dusk)] bg-blue-50 px-2 py-0.5 rounded">
+                      <span className="ml-2 text-[10px] uppercase font-bold text-[var(--color-dusk)] bg-blue-50 px-2 py-0.5 rounded">
                         {t.audience}
                       </span>
                     </div>
@@ -303,7 +301,7 @@ export default function MentorReview() {
                     onChange={(e) => setApprovedBudget(Number(e.target.value))}
                     className="w-full px-3 py-2 border border-[var(--color-line)] rounded-lg text-sm font-mono font-bold focus:border-[var(--color-dusk)] focus:outline-none"
                   />
-                  <p className="text-[11px] text-[var(--color-muted)] mt-1">Pre-filled with proposal total. Adjust if needed.</p>
+                  <p className="text-[10px] text-[var(--color-muted)] mt-1">Pre-filled with proposal total. Adjust if needed.</p>
                 </div>
               )}
 

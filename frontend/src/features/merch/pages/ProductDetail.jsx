@@ -182,7 +182,7 @@ export default function ProductDetail() {
             
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Badge variant="secondary" className="text-[11px] uppercase font-bold tracking-wider">
+                <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider">
                   Skyline Signature Line
                 </Badge>
                 <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
@@ -238,7 +238,7 @@ export default function ProductDetail() {
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
                     Select Size
                   </span>
-                  <span className="text-xs text-slate-500">Regular Unisex Fit</span>
+                  <span className="text-xs text-slate-400">Regular Unisex Fit</span>
                 </div>
 
                 <div className="grid grid-cols-5 gap-2.5">

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Flashlight } from "lucide-react";
 import { useParams, Link } from "react-router-dom";
 import { Html5QrcodeScanner } from "html5-qrcode";
 
@@ -64,7 +63,7 @@ export default function DoorScanner() {
           412 / 500
         </div>
         <button className="text-white hover:text-gray-300 px-2 py-1 rounded bg-black/50 backdrop-blur-sm">
-          <Flashlight className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" />Torch
+          🔦 Torch
         </button>
       </div>
 
@@ -85,7 +84,7 @@ export default function DoorScanner() {
             <div className="text-7xl mb-6">
               {scanResult.status === 'OK' ? '✓' : scanResult.status === 'WARN' ? '!' : '✗'}
             </div>
-            <h1 className="text-4xl font-display font-bold mb-2">{scanResult.status === 'OK' ? 'Checked in' : scanResult.status === 'WARN' ? 'Already checked in' : 'Invalid'}</h1>
+            <h2 className="text-4xl font-display font-bold mb-2">{scanResult.status === 'OK' ? 'Checked in' : scanResult.status === 'WARN' ? 'Already checked in' : 'Invalid'}</h2>
             <p className="text-2xl font-medium mb-1">{scanResult.name}</p>
             <p className="text-lg opacity-90">{scanResult.message}</p>
             

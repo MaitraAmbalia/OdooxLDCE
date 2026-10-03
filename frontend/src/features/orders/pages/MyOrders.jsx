@@ -84,21 +84,21 @@ export default function MyOrders() {
                 {/* Order Top Bar */}
                 <div className="bg-slate-50 p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs">
                   <div>
-                    <div className="text-[11px] uppercase font-mono text-slate-400">Date Placed</div>
+                    <div className="text-[10px] uppercase font-mono text-slate-400">Date Placed</div>
                     <div className="font-semibold text-slate-800">
                       {orderDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-[11px] uppercase font-mono text-slate-400">Total Amount</div>
+                    <div className="text-[10px] uppercase font-mono text-slate-400">Total Amount</div>
                     <div className="font-display font-black text-slate-900 text-sm tabular-nums">
                       {formatINR(order.totalPaise / 100)}
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-[11px] uppercase font-mono text-slate-400">Order ID</div>
+                    <div className="text-[10px] uppercase font-mono text-slate-400">Order ID</div>
                     <div className="font-mono text-slate-600">
                       {String(order.id).slice(0, 10).toUpperCase()}
                     </div>
@@ -114,7 +114,7 @@ export default function MyOrders() {
                 <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
                   {/* Items List */}
                   <div className="md:col-span-7 space-y-4">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       Purchased Items
                     </h4>
                     
@@ -137,7 +137,7 @@ export default function MyOrders() {
 
                   {/* Pickup Progress & Instructions */}
                   <div className="md:col-span-5 md:border-l md:border-slate-100 md:pl-6 space-y-4">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       Fulfillment Milestone
                     </h4>
 

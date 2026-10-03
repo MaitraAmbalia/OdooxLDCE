@@ -77,7 +77,7 @@ export default function ApplicationReview() {
                   {new Date(app.submittedAt).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <span className={`inline-flex px-2 py-1 text-[11px] font-bold uppercase rounded ${
+                  <span className={`inline-flex px-2 py-1 text-[10px] font-bold uppercase rounded ${
                     app.status === 'APPOINTED' ? 'bg-[var(--color-ok)] text-white' :
                     app.status === 'REJECTED' ? 'bg-[var(--color-stop)] text-white' :
                     app.status === 'INTERVIEW' ? 'bg-[var(--color-info)] text-white' :

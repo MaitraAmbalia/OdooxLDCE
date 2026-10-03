@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Search } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function FulfilmentQueue() {
@@ -64,7 +63,7 @@ export default function FulfilmentQueue() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-3 py-2 border border-[var(--color-line)] rounded-[6px] text-sm focus:outline-none focus:border-[var(--color-dusk)]"
             />
-            <span className="absolute left-3 top-2 text-[var(--color-muted)] text-sm"><Search className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" /></span>
+            <span className="absolute left-3 top-2 text-[var(--color-muted)] text-sm">🔍</span>
           </div>
         </div>
 

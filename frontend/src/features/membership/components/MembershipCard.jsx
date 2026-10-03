@@ -71,7 +71,7 @@ export default function MembershipCard({ membership }) {
                   <Wifi className="w-5 h-5 text-slate-400 rotate-90" title="Contactless NFC Enabled" />
                   <Badge 
                     variant={isActive ? "success" : isLapsed ? "destructive" : "warning"}
-                    className="text-[11px] uppercase font-bold tracking-wider py-0.5 px-2"
+                    className="text-[10px] uppercase font-bold tracking-wider py-0.5 px-2"
                   >
                     {membership.status || "ACTIVE"}
                   </Badge>
@@ -80,7 +80,7 @@ export default function MembershipCard({ membership }) {
 
               {/* Student Identity Section */}
               <div className="my-6">
-                <div className="text-[11px] font-mono tracking-widest text-slate-400 uppercase">Registered Student</div>
+                <div className="text-[10px] font-mono tracking-widest text-slate-400 uppercase">Registered Student</div>
                 <div className="text-2xl font-display font-extrabold text-white tracking-tight mt-0.5">
                   {membership.user?.name || "Student Member"}
                 </div>
@@ -110,7 +110,7 @@ export default function MembershipCard({ membership }) {
               {/* Footer: Expiration & Verification */}
               <div className="flex items-end justify-between border-t border-slate-800/80 pt-4 mt-4">
                 <div>
-                  <div className="text-[11px] font-mono uppercase text-slate-400">Valid Until</div>
+                  <div className="text-[10px] font-mono uppercase text-slate-400">Valid Until</div>
                   <div className="text-xs font-semibold text-slate-200">
                     {membership.validUntil 
                       ? new Date(membership.validUntil).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })
@@ -119,7 +119,7 @@ export default function MembershipCard({ membership }) {
                 </div>
 
                 <div className="text-right">
-                  <div className="text-[11px] font-mono uppercase text-slate-400">Security Gate</div>
+                  <div className="text-[10px] font-mono uppercase text-slate-400">Security Gate</div>
                   <div className="text-xs font-semibold text-emerald-400 flex items-center justify-end gap-1">
                     <ShieldCheck className="w-3.5 h-3.5" />
                     Verified Fast-Pass
@@ -136,13 +136,13 @@ export default function MembershipCard({ membership }) {
                     <ShieldCheck className="w-4 h-4 text-blue-400" />
                     Member Verification
                   </div>
-                  <span className="text-[11px] font-mono text-slate-400">Tap to flip back</span>
+                  <span className="text-[10px] font-mono text-slate-400">Tap to flip back</span>
                 </div>
 
                 <div className="mt-4 space-y-3 text-xs">
                   <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 flex justify-between items-center">
                     <div>
-                      <div className="text-[11px] uppercase font-mono text-slate-400">Cryptographic Token</div>
+                      <div className="text-[10px] uppercase font-mono text-slate-400">Cryptographic Token</div>
                       <div className="font-mono text-xs text-blue-300 font-bold truncate max-w-[200px]">{memberCode}</div>
                     </div>
                     <button 
@@ -155,7 +155,7 @@ export default function MembershipCard({ membership }) {
                   </div>
 
                   <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-1">
-                    <div className="text-[11px] uppercase font-mono text-slate-400">Privileges Included</div>
+                    <div className="text-[10px] uppercase font-mono text-slate-400">Privileges Included</div>
                     <ul className="text-slate-300 space-y-1 text-[11px]">
                       <li>✓ Priority entry at all campus auditorium events</li>
                       <li>✓ Member discounts on official club merchandise</li>
@@ -167,7 +167,7 @@ export default function MembershipCard({ membership }) {
               </div>
 
               <div className="text-center pt-4 border-t border-slate-800">
-                <p className="text-[11px] text-slate-400 font-mono">
+                <p className="text-[10px] text-slate-500 font-mono">
                   Issued by Skyline Student Association • LDCE Autonomous
                 </p>
               </div>

@@ -1,58 +1,20 @@
-import React from "react";
-import { cn } from "../../lib/utils";
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
-export const Input = React.forwardRef(({
-  className,
-  type = "text",
-  error,
-  ...props
-}, ref) => {
-  const errorId = React.useId();
+function Input({ className, type, ...props }) {
   return (
-    <div className="w-full">
-      <input
-        type={type}
-        className={cn(
-          "flex h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus:border-[var(--color-dusk)] focus:outline-none focus:ring-4 focus:ring-blue-500/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-50",
-          error && "border-red-400 focus:border-red-500 focus:ring-red-500/10",
-          className
-        )}
-        ref={ref}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? errorId : undefined}
-        {...props}
-      />
-      {error && <p id={errorId} role="alert" className="mt-1.5 text-xs font-medium text-red-600">{error}</p>}
-    </div>
+    <input
+      type={type}
+      data-slot="input"
+      className={cn(
+        "h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30",
+        "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40",
+        className,
+      )}
+      {...props}
+    />
   );
-});
+}
 
-Input.displayName = "Input";
-
-export const Textarea = React.forwardRef(({
-  className,
-  error,
-  rows = 3,
-  ...props
-}, ref) => {
-  const errorId = React.useId();
-  return (
-    <div className="w-full">
-      <textarea
-        rows={rows}
-        className={cn(
-          "flex w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus:border-[var(--color-dusk)] focus:outline-none focus:ring-4 focus:ring-blue-500/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-50",
-          error && "border-red-400 focus:border-red-500 focus:ring-red-500/10",
-          className
-        )}
-        ref={ref}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? errorId : undefined}
-        {...props}
-      />
-      {error && <p id={errorId} role="alert" className="mt-1.5 text-xs font-medium text-red-600">{error}</p>}
-    </div>
-  );
-});
-
-Textarea.displayName = "Textarea";
+export { Input };

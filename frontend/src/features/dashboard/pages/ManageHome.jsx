@@ -1,5 +1,4 @@
 import React from "react";
-import { BarChart3, Calendar, HandHelping, Landmark, Megaphone, Ticket } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -121,7 +120,7 @@ export default function ManageHome() {
               <div className={`bg-[var(--color-surface)] border-l-4 ${strip.color} border-y border-r border-[var(--color-line)] rounded-r-xl p-5 shadow-sm hover:shadow-md transition-all h-full flex flex-col justify-between`}>
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted)] px-2 py-0.5 rounded bg-[var(--color-paper)] border border-[var(--color-line)]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)] px-2 py-0.5 rounded bg-[var(--color-paper)] border border-[var(--color-line)]">
                       {strip.badge}
                     </span>
                     <span className="text-xs text-[var(--color-dusk)] group-hover:translate-x-0.5 transition-transform font-bold">
@@ -144,7 +143,7 @@ export default function ManageHome() {
         {/* 1. Governance & Oversight (Mentor / President) */}
         <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            <Landmark className="w-5 h-5 text-blue-600" aria-hidden="true" />
+            <span className="text-xl">🏛️</span>
             <div>
               <h3 className="font-bold text-[var(--color-ink)] text-base">Governance & Mentorship</h3>
               <p className="text-xs text-[var(--color-muted)]">Faculty oversight & elections</p>
@@ -173,7 +172,7 @@ export default function ManageHome() {
         {/* 2. Executive Leadership & Meetings (President) */}
         <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            <Calendar className="w-5 h-5 text-blue-600" aria-hidden="true" />
+            <span className="text-xl">📅</span>
             <div>
               <h3 className="font-bold text-[var(--color-ink)] text-base">Executive & Meetings</h3>
               <p className="text-xs text-[var(--color-muted)]">Presidential agenda & coordination</p>
@@ -198,7 +197,7 @@ export default function ManageHome() {
         {/* 3. Finance & Ledgers (Treasurer) */}
         <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-5 h-5 text-blue-600" aria-hidden="true" />
+            <span className="text-xl">📊</span>
             <div>
               <h3 className="font-bold text-[var(--color-ink)] text-base">Treasury & Accounting</h3>
               <p className="text-xs text-[var(--color-muted)]">Double-entry ledger & reimbursements</p>
@@ -227,7 +226,7 @@ export default function ManageHome() {
         {/* 4. Events & Ticketing (Event Head) */}
         <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            <Ticket className="w-5 h-5 text-blue-600" aria-hidden="true" />
+            <span className="text-xl">🎟️</span>
             <div>
               <h3 className="font-bold text-[var(--color-ink)] text-base">Events & Ticketing</h3>
               <p className="text-xs text-[var(--color-muted)]">Proposals, quotas & door check-in</p>
@@ -252,7 +251,7 @@ export default function ManageHome() {
         {/* 5. Fundraisers & Projects (Volunteer Head) */}
         <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            <HandHelping className="w-5 h-5 text-blue-600" aria-hidden="true" />
+            <span className="text-xl">🤝</span>
             <div>
               <h3 className="font-bold text-[var(--color-ink)] text-base">Projects & Volunteers</h3>
               <p className="text-xs text-[var(--color-muted)]">Kanban task boards & delegation</p>
@@ -277,7 +276,7 @@ export default function ManageHome() {
         {/* 6. Communications & Store (Marketing Head) */}
         <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            <Megaphone className="w-5 h-5 text-blue-600" aria-hidden="true" />
+            <span className="text-xl">📢</span>
             <div>
               <h3 className="font-bold text-[var(--color-ink)] text-base">Comms & Store</h3>
               <p className="text-xs text-[var(--color-muted)]">Announcements, newsletters & merch</p>

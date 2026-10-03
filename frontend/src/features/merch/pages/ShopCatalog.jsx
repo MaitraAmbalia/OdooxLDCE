@@ -1,7 +1,10 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ShoppingBag, Sparkles, Flame, ShieldCheck, Tag, ArrowRight, CheckCircle2, Filter, Layers, Zap } from "lucide-react";
+import { 
+  ShoppingBag, Sparkles, Flame, ShieldCheck, Tag, 
+  ArrowRight, CheckCircle2, Filter, Layers 
+} from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 import { Skeleton } from "../../../components/ui/skeleton";
@@ -63,7 +66,8 @@ export default function ShopCatalog() {
 
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-              <Zap className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" />            </div>
+              ⚡
+            </div>
             <div>
               <div className="font-bold text-slate-900">Campus Pickup Desk</div>
               <div className="text-[11px] text-slate-500">Direct collect at Student Center Desk</div>
@@ -97,7 +101,7 @@ export default function ShopCatalog() {
           <div className="py-20 text-center bg-white rounded-3xl border border-slate-200/80 p-8">
             <ShoppingBag className="w-12 h-12 text-slate-300 mx-auto mb-3" />
             <h3 className="text-base font-bold text-slate-800">New batch arriving soon</h3>
-            <p className="text-xs text-slate-500 mt-1">Pre-orders for the winter drop open next Monday.</p>
+            <p className="text-xs text-slate-400 mt-1">Pre-orders for the winter drop open next Monday.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -130,12 +134,12 @@ export default function ShopCatalog() {
                       {/* Overlays */}
                       <div className="absolute top-3 left-3 flex flex-col gap-1.5">
                         {product.isPreorder && (
-                          <Badge variant="primary" className="text-[11px] font-black uppercase tracking-wider py-0.5 shadow-sm">
+                          <Badge variant="primary" className="text-[10px] font-black uppercase tracking-wider py-0.5 shadow-sm">
                             Pre-Order Batch
                           </Badge>
                         )}
                         {hasDiscount && (
-                          <Badge variant="gold" className="text-[11px] font-black uppercase tracking-wider py-0.5 shadow-sm">
+                          <Badge variant="gold" className="text-[10px] font-black uppercase tracking-wider py-0.5 shadow-sm">
                             Member Special
                           </Badge>
                         )}
@@ -143,7 +147,7 @@ export default function ShopCatalog() {
 
                       {/* Stock Urgency */}
                       <div className="absolute bottom-3 left-3">
-                        <span className="text-[11px] font-bold bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full text-slate-800 shadow-2xs border border-white/60 flex items-center gap-1">
+                        <span className="text-[10px] font-bold bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full text-slate-800 shadow-2xs border border-white/60 flex items-center gap-1">
                           <Flame className="w-3 h-3 text-amber-500 fill-amber-500" /> Limited Stock
                         </span>
                       </div>
@@ -163,7 +167,7 @@ export default function ShopCatalog() {
                   {/* Pricing Anchor Footer */}
                   <div className="p-5 pt-3 border-t border-slate-100 flex items-end justify-between bg-slate-50/40">
                     <div>
-                      <div className="text-[11px] font-mono uppercase text-slate-400">Member Price</div>
+                      <div className="text-[10px] font-mono uppercase text-slate-400">Member Price</div>
                       <div className="flex items-baseline gap-2">
                         <span className="text-lg font-display font-black text-slate-900 tabular-nums">
                           {formatINR(memberPrice)}

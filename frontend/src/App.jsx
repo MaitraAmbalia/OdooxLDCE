@@ -1,73 +1,68 @@
-import React, { lazy, Suspense } from "react";
+import React from "react";
 import { Routes, Route } from "react-router-dom";
 import PublicLayout from "./app/layouts/PublicLayout";
-import NotFound from "./pages/NotFound";
-const Login = lazy(() => import("./features/auth/pages/Login"));
-const Register = lazy(() => import("./features/auth/pages/Register"));
-const VerifyEmail = lazy(() => import("./features/auth/pages/VerifyEmail"));
-const ForgotPassword = lazy(() => import("./features/auth/pages/ForgotPassword"));
-const ResetPassword = lazy(() => import("./features/auth/pages/ResetPassword"));
-const Join = lazy(() => import("./features/membership/pages/Join"));
-const MyMembership = lazy(() => import("./features/membership/pages/MyMembership"));
-const CheckoutStatus = lazy(() => import("./features/payments/pages/CheckoutStatus"));
-const EventList = lazy(() => import("./features/events/pages/EventList"));
-const EventDetail = lazy(() => import("./features/events/pages/EventDetail"));
-const MyTickets = lazy(() => import("./features/tickets/pages/MyTickets"));
-const TicketPass = lazy(() => import("./features/tickets/pages/TicketPass"));
-const DoorScanner = lazy(() => import("./features/checkin/pages/DoorScanner"));
-const EventProposalStepper = lazy(() => import("./features/events/pages/manage/EventProposalStepper"));
-const MentorReview = lazy(() => import("./features/events/pages/manage/MentorReview"));
-const SubmitClaim = lazy(() => import("./features/claims/pages/SubmitClaim"));
-const ClaimQueue = lazy(() => import("./features/claims/pages/manage/ClaimQueue"));
-const ClaimDetail = lazy(() => import("./features/claims/pages/manage/ClaimDetail"));
-const CashDesk = lazy(() => import("./features/cash/pages/CashDesk"));
-const CashVerificationQueue = lazy(() => import("./features/cash/pages/manage/CashVerificationQueue"));
-const Ledger = lazy(() => import("./features/finance/pages/manage/Ledger"));
-const Budget = lazy(() => import("./features/finance/pages/manage/Budget"));
-const Reports = lazy(() => import("./features/finance/pages/manage/Reports"));
-const VolunteerHome = lazy(() => import("./features/volunteers/pages/VolunteerHome"));
-const ProjectList = lazy(() => import("./features/projects/pages/manage/ProjectList"));
-const ProjectKanban = lazy(() => import("./features/projects/pages/manage/ProjectKanban"));
-const TaskDetail = lazy(() => import("./features/tasks/pages/TaskDetail"));
-const ShopCatalog = lazy(() => import("./features/merch/pages/ShopCatalog"));
-const ProductDetail = lazy(() => import("./features/merch/pages/ProductDetail"));
-const MyOrders = lazy(() => import("./features/orders/pages/MyOrders"));
-const FulfilmentQueue = lazy(() => import("./features/orders/pages/manage/FulfilmentQueue"));
-const AnnouncementFeed = lazy(() => import("./features/announcements/pages/AnnouncementFeed"));
-const AnnouncementDetail = lazy(() => import("./features/announcements/pages/AnnouncementDetail"));
-const AnnouncementComposer = lazy(() => import("./features/announcements/pages/manage/AnnouncementComposer"));
-const NotificationList = lazy(() => import("./features/notifications/pages/NotificationList"));
-const NewsletterDashboard = lazy(() => import("./features/newsletter/pages/manage/NewsletterDashboard"));
-const MeetingList = lazy(() => import("./features/meetings/pages/manage/MeetingList"));
-const MeetingBuilder = lazy(() => import("./features/meetings/pages/manage/MeetingBuilder"));
-const MeetingDetail = lazy(() => import("./features/meetings/pages/manage/MeetingDetail"));
-const SelectionHub = lazy(() => import("./features/selection/pages/SelectionHub"));
-const ApplicationForm = lazy(() => import("./features/selection/pages/ApplicationForm"));
-const CycleBuilder = lazy(() => import("./features/selection/pages/manage/CycleBuilder"));
-const ApplicationReview = lazy(() => import("./features/selection/pages/manage/ApplicationReview"));
-const ManageHome = lazy(() => import("./features/dashboard/pages/ManageHome"));
-const AccountHome = lazy(() => import("./features/dashboard/pages/AccountHome"));
-const Home = lazy(() => import("./pages/Home"));
-
-function PageLoader() {
-  return (
-    <div className="flex-1 flex items-center justify-center py-32" role="status" aria-label="Loading page">
-      <span className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-blue-600 animate-spin" />
-    </div>
-  );
-}
+import DiscoveryLayout from "./app/layouts/DiscoveryLayout";
+import Login from "./features/auth/pages/Login";
+import Register from "./features/auth/pages/Register";
+import VerifyEmail from "./features/auth/pages/VerifyEmail";
+import ForgotPassword from "./features/auth/pages/ForgotPassword";
+import ResetPassword from "./features/auth/pages/ResetPassword";
+import Join from "./features/membership/pages/Join";
+import MyMembership from "./features/membership/pages/MyMembership";
+import CheckoutStatus from "./features/payments/pages/CheckoutStatus";
+import EventList from "./features/events/pages/EventList";
+import EventDetail from "./features/events/pages/EventDetail";
+import MyTickets from "./features/tickets/pages/MyTickets";
+import TicketPass from "./features/tickets/pages/TicketPass";
+import DoorScanner from "./features/checkin/pages/DoorScanner";
+import EventProposalStepper from "./features/events/pages/manage/EventProposalStepper";
+import MentorReview from "./features/events/pages/manage/MentorReview";
+import SubmitClaim from "./features/claims/pages/SubmitClaim";
+import ClaimQueue from "./features/claims/pages/manage/ClaimQueue";
+import ClaimDetail from "./features/claims/pages/manage/ClaimDetail";
+import CashDesk from "./features/cash/pages/CashDesk";
+import CashVerificationQueue from "./features/cash/pages/manage/CashVerificationQueue";
+import Ledger from "./features/finance/pages/manage/Ledger";
+import Budget from "./features/finance/pages/manage/Budget";
+import Reports from "./features/finance/pages/manage/Reports";
+import VolunteerHome from "./features/volunteers/pages/VolunteerHome";
+import ProjectList from "./features/projects/pages/manage/ProjectList";
+import ProjectKanban from "./features/projects/pages/manage/ProjectKanban";
+import TaskDetail from "./features/tasks/pages/TaskDetail";
+import ShopCatalog from "./features/merch/pages/ShopCatalog";
+import ProductDetail from "./features/merch/pages/ProductDetail";
+import MyOrders from "./features/orders/pages/MyOrders";
+import FulfilmentQueue from "./features/orders/pages/manage/FulfilmentQueue";
+import AnnouncementFeed from "./features/announcements/pages/AnnouncementFeed";
+import AnnouncementDetail from "./features/announcements/pages/AnnouncementDetail";
+import AnnouncementComposer from "./features/announcements/pages/manage/AnnouncementComposer";
+import NotificationList from "./features/notifications/pages/NotificationList";
+import NewsletterDashboard from "./features/newsletter/pages/manage/NewsletterDashboard";
+import MeetingList from "./features/meetings/pages/manage/MeetingList";
+import MeetingBuilder from "./features/meetings/pages/manage/MeetingBuilder";
+import MeetingDetail from "./features/meetings/pages/manage/MeetingDetail";
+import SelectionHub from "./features/selection/pages/SelectionHub";
+import ApplicationForm from "./features/selection/pages/ApplicationForm";
+import CycleBuilder from "./features/selection/pages/manage/CycleBuilder";
+import ApplicationReview from "./features/selection/pages/manage/ApplicationReview";
+import ManageHome from "./features/dashboard/pages/ManageHome";
+import AccountHome from "./features/dashboard/pages/AccountHome";
+import Home from "./pages/Home";
 
 function App() {
   return (
-    <Suspense fallback={<PageLoader />}>
     <Routes>
       {/* Full Screen / Focus Routes */}
       <Route path="/door/:eventId" element={<DoorScanner />} />
       <Route path="/cash-desk" element={<CashDesk />} />
 
+      <Route element={<DiscoveryLayout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/events" element={<EventList />} />
+      </Route>
+
       <Route path="/" element={<PublicLayout />}>
         {/* Public Routes */}
-        <Route index element={<Home />} />
         <Route path="join" element={<Join />} />
 
         {/* Auth Routes */}
@@ -86,7 +81,6 @@ function App() {
         <Route path="checkout/status/:paymentId" element={<CheckoutStatus />} />
 
         {/* Phase 3: Events & Ticketing */}
-        <Route path="events" element={<EventList />} />
         <Route path="events/:id" element={<EventDetail />} />
         <Route path="me/tickets" element={<MyTickets />} />
         <Route path="me/tickets/:id" element={<TicketPass />} />
@@ -135,11 +129,8 @@ function App() {
 
         <Route path="manage/selection/:id/edit" element={<CycleBuilder />} />
         <Route path="manage/selection/:id/applications" element={<ApplicationReview />} />
-
-        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
-    </Suspense>
   );
 }
 

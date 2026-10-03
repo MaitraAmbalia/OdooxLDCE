@@ -1,45 +1,65 @@
-import React from "react";
-import { cn } from "../../lib/utils";
+import * as React from "react";
+import { cva } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+import { Slot } from "radix-ui";
 
-export const Button = React.forwardRef(({
+const buttonVariants = cva(
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive:
+          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
+        outline:
+          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+        secondary:
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost:
+          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        link: "text-primary underline-offset-4 hover:underline",
+        gold: "bg-amber-400 text-slate-950 hover:bg-amber-300",
+        dark: "bg-slate-900 text-white hover:bg-slate-800",
+      },
+      size: {
+        default: "h-9 px-4 py-2 has-[>svg]:px-3",
+        md: "h-10 px-4 py-2",
+        xs: "h-6 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-8 gap-1.5 rounded-md px-3 has-[>svg]:px-2.5",
+        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
+        icon: "size-9",
+        "icon-xs": "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
+        "icon-sm": "size-8",
+        "icon-lg": "size-10",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  },
+);
+
+function Button({
   className,
   variant = "default",
-  size = "md",
-  disabled,
-  children,
-  type = "button",
+  size = "default",
+  asChild = false,
+  type,
   ...props
-}, ref) => {
-  const baseStyles = "inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 cursor-pointer select-none";
-  
-  const variants = {
-    default: "bg-[var(--color-dusk)] text-white hover:bg-[var(--color-dusk-hover)] focus:ring-[var(--color-dusk)] shadow-sm hover:shadow",
-    secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200 focus:ring-slate-300",
-    outline: "border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 hover:border-slate-400 focus:ring-slate-300 shadow-2xs",
-    ghost: "text-slate-700 hover:bg-slate-100 focus:ring-slate-300",
-    destructive: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm",
-    gold: "bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-slate-950 font-bold hover:brightness-105 shadow-md shadow-amber-500/20 focus:ring-amber-400",
-    dark: "bg-slate-900 text-white hover:bg-slate-800 focus:ring-slate-700 shadow-sm",
-  };
-
-  const sizes = {
-    sm: "text-sm min-h-9 px-3 py-1.5 gap-1.5",
-    md: "text-sm min-h-11 px-4 py-2.5 gap-2",
-    lg: "text-base min-h-12 px-6 py-3 gap-2.5",
-    icon: "w-10 h-10 p-0",
-  };
+}) {
+  const Comp = asChild ? Slot.Root : "button";
 
   return (
-    <button
-      ref={ref}
-      type={type}
-      disabled={disabled}
-      className={cn(baseStyles, variants[variant], sizes[size], className)}
+    <Comp
+      data-slot="button"
+      type={asChild ? undefined : type || "button"}
+      data-variant={variant}
+      data-size={size}
+      className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    >
-      {children}
-    </button>
+    />
   );
-});
+}
 
-Button.displayName = "Button";
+export { Button, buttonVariants };

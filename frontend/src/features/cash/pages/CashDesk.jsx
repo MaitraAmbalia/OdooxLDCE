@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -21,7 +20,7 @@ export default function CashDesk() {
       return { success: true };
     },
     onSuccess: () => {
-      toast.success("Cash collection recorded");
+      alert("Cash recorded successfully!");
       reset();
       queryClient.invalidateQueries({ queryKey: ['cashCollections', 'me'] });
     }

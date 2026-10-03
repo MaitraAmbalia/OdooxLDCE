@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { toast } from "sonner";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -49,7 +48,7 @@ export default function CycleBuilder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['selection', 'cycles'] });
-      toast.success("Cycle updated successfully.");
+      alert("Cycle updated successfully.");
     }
   });
 

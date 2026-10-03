@@ -39,7 +39,7 @@ export default function TicketPass() {
         <div className="w-16 h-16 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-4">
           <AlertCircle className="w-8 h-8" />
         </div>
-        <h1 className="text-xl font-display font-bold text-slate-900">Ticket Pass Not Found</h1>
+        <h2 className="text-xl font-display font-bold text-slate-900">Ticket Pass Not Found</h2>
         <p className="text-xs text-slate-500 mt-2">
           This ticket ID may not exist or belongs to another student account.
         </p>
@@ -117,16 +117,16 @@ export default function TicketPass() {
 
             <Badge 
               variant={isCheckedIn ? "success" : "default"}
-              className="text-[11px] uppercase font-bold tracking-wider bg-white/20 text-white backdrop-blur-sm border-white/20"
+              className="text-[10px] uppercase font-bold tracking-wider bg-white/20 text-white backdrop-blur-sm border-white/20"
             >
               {isCheckedIn ? "Checked In ✓" : "Valid Entry"}
             </Badge>
           </div>
 
           <div className="relative z-10">
-            <h1 className="text-2xl font-display font-black tracking-tight text-white leading-snug">
+            <h2 className="text-2xl font-display font-black tracking-tight text-white leading-snug">
               {event.title || "Skyline Annual Campus Gala"}
-            </h1>
+            </h2>
 
             <div className="mt-4 space-y-2 text-xs text-blue-100/90 font-medium">
               <div className="flex items-center gap-2">
@@ -175,7 +175,7 @@ export default function TicketPass() {
               level="H"
               includeMargin={false}
             />
-            <div className="mt-2 text-[11px] font-mono text-slate-500 font-bold uppercase tracking-wider">
+            <div className="mt-2 text-[10px] font-mono text-slate-500 font-bold uppercase tracking-wider">
               {shortId} • SCAN AT ENTRANCE
             </div>
           </div>
@@ -199,28 +199,28 @@ export default function TicketPass() {
           {/* Attendee Metadata */}
           <div className="grid grid-cols-2 gap-3 text-left border-t border-slate-100 pt-4 mt-2">
             <div>
-              <div className="text-[11px] font-mono uppercase text-slate-400">Pass Holder</div>
+              <div className="text-[10px] font-mono uppercase text-slate-400">Pass Holder</div>
               <div className="text-xs font-bold text-slate-900 truncate">
                 {ticket.holderName || ticket.user?.name || "Student Attendee"}
               </div>
             </div>
 
             <div>
-              <div className="text-[11px] font-mono uppercase text-slate-400">Admission Tier</div>
+              <div className="text-[10px] font-mono uppercase text-slate-400">Admission Tier</div>
               <div className="text-xs font-bold text-blue-700">
                 {ticket.ticketType?.name || "General Admission"}
               </div>
             </div>
 
             <div>
-              <div className="text-[11px] font-mono uppercase text-slate-400">Seat / Gate</div>
+              <div className="text-[10px] font-mono uppercase text-slate-400">Seat / Gate</div>
               <div className="text-xs font-bold text-slate-800">
                 Gate A (Main Porch)
               </div>
             </div>
 
             <div>
-              <div className="text-[11px] font-mono uppercase text-slate-400">Verification</div>
+              <div className="text-[10px] font-mono uppercase text-slate-400">Verification</div>
               <div className="text-xs font-bold text-emerald-600 flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5" /> Fast Pass Active
               </div>

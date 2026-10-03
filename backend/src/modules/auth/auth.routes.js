@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { validate } from '../../middleware/validate.js';
-import { rateLimit } from '../../middleware/rateLimit.js';
 import { requireJson } from '../../middleware/requireJson.js';
 import { registerSchema, loginSchema, emailSchema, resetSchema, verifySchema } from './auth.schemas.js';
 
@@ -36,13 +35,12 @@ function setSessionCookies(res, session, config) {
 export function createAuthRouter({ service, authenticate, config }) {
   const router = Router();
 
-  const publicWrite = (schema, limit = 10, windowMs = 15 * 60000) => [
-    rateLimit({ limit, windowMs }),
+  const publicWrite = (schema) => [
     requireJson,
     validate(schema),
   ];
 
-  router.post('/auth/register', ...publicWrite(registerSchema, 5, 3600000), async (req, res) => {
+  router.post('/auth/register', ...publicWrite(registerSchema), async (req, res) => {
     const user = await service.register(req.validated.body, { ip: req.ip });
     return res.status(201).json({ data: { message: 'Registration successful', user } });
   });
@@ -53,7 +51,7 @@ export function createAuthRouter({ service, authenticate, config }) {
     return res.json({ data: session.data });
   });
 
-  router.post('/auth/refresh', rateLimit({ limit: 60 }), async (req, res) => {
+  router.post('/auth/refresh', async (req, res) => {
     try {
       const session = await service.refresh(req.cookies.refresh_token, { ip: req.ip });
       setSessionCookies(res, session, config);
@@ -64,7 +62,7 @@ export function createAuthRouter({ service, authenticate, config }) {
     }
   });
 
-  router.post('/auth/logout', rateLimit({ limit: 60 }), async (req, res) => {
+  router.post('/auth/logout', async (req, res) => {
     await service.logout(req.cookies.refresh_token);
     clearSessionCookies(res, config);
     return res.json({ data: { loggedOut: true } });

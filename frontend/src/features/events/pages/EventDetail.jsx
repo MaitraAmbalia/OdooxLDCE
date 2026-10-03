@@ -246,7 +246,7 @@ export default function EventDetail() {
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">Instant delivery to your digital wallet</p>
                 </div>
-                <Badge variant="primary" className="text-[11px] uppercase font-bold">
+                <Badge variant="primary" className="text-[10px] uppercase font-bold">
                   Instant QR
                 </Badge>
               </div>
@@ -287,7 +287,7 @@ export default function EventDetail() {
                             {formatINR(price)}
                           </div>
                           {ticket.memberOnly && (
-                            <span className="text-[11px] text-amber-700 font-bold bg-amber-50 px-1 rounded">
+                            <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1 rounded">
                               Member Rate
                             </span>
                           )}
@@ -347,7 +347,7 @@ export default function EventDetail() {
                 )}
               </Button>
 
-              <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400 font-medium">
+              <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 font-medium">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Instant QR pass generated • Valid for single scan entry</span>
               </div>

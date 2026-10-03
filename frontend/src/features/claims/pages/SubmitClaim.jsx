@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import { Camera } from "lucide-react";
-import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -42,7 +40,7 @@ export default function SubmitClaim() {
 
   const onSubmit = (data) => {
     if (receipts.length === 0) {
-      toast.error("Please upload at least one receipt image.");
+      alert("Please upload at least one receipt image.");
       return;
     }
     submitClaim.mutate(data);
@@ -61,7 +59,7 @@ export default function SubmitClaim() {
         {/* Receipt Capture */}
         <div className="bg-[var(--color-surface)] border border-[var(--color-line)] rounded-[10px] p-4 text-center">
           <label className="block cursor-pointer">
-            <span className="text-[var(--color-dusk)] font-medium block mb-2"><Camera className="w-4 h-4 inline-block shrink-0 -mt-0.5 mr-1" aria-hidden="true" />Add Receipt (up to 5)</span>
+            <span className="text-[var(--color-dusk)] font-medium block mb-2">📸 Add Receipt (up to 5)</span>
             <input 
               type="file" 
               accept="image/*,application/pdf" 

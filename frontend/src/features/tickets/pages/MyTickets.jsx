@@ -61,13 +61,13 @@ export default function MyTickets() {
         <TabsList className="mb-6">
           <TabsTrigger value="active" className="gap-2">
             Active Passes
-            <Badge variant="primary" className="py-0 px-1.5 text-[11px]">
+            <Badge variant="primary" className="py-0 px-1.5 text-[10px]">
               {activeTickets.length}
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="past" className="gap-2">
             Past Events
-            <Badge variant="secondary" className="py-0 px-1.5 text-[11px]">
+            <Badge variant="secondary" className="py-0 px-1.5 text-[10px]">
               {pastTickets.length}
             </Badge>
           </TabsTrigger>
@@ -112,10 +112,10 @@ export default function MyTickets() {
                     <div className="p-5 pl-6 flex flex-col justify-between h-full">
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
                             {ticket.ticketType?.name || "General Admission"}
                           </span>
-                          <Badge variant="success" className="text-[11px] uppercase font-bold py-0.5">
+                          <Badge variant="success" className="text-[10px] uppercase font-bold py-0.5">
                             Ready to Scan
                           </Badge>
                         </div>
@@ -157,7 +157,7 @@ export default function MyTickets() {
         {/* PAST PASSES */}
         <TabsContent value="past">
           {pastTickets.length === 0 ? (
-            <div className="bg-white rounded-3xl border border-slate-200/80 p-8 text-center text-xs text-slate-500">
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-8 text-center text-xs text-slate-400">
               No attended past events found in your history.
             </div>
           ) : (
