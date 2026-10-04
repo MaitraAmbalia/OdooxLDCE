@@ -10,11 +10,11 @@ import { formatINR } from "@/lib/utils";
 const ALL_MODULES = [
   {
     title: "Events",
-    perms: ["event.propose", "event.approve", "event.report.read"],
+    perms: ["event.propose", "event.approve", "event.report.read", "event.publish"],
     description: "Proposals, reviews, door staff, and post-event analytics.",
     icon: CalendarDays,
     links: [
-      { label: "Event console", to: "/manage/events" },
+      { label: "Event console", to: "/manage/events", anyPermission: ["event.propose", "event.approve", "event.report.read", "event.publish"] },
       { label: "Propose an event", to: "/manage/events/new", requiredPermission: "event.propose" },
       { label: "Browse events", to: "/events" },
     ],
@@ -24,20 +24,22 @@ const ALL_MODULES = [
     perms: ["sponsorship.crm.read", "sponsorship.crm.manage"],
     description: "Send approved event opportunities to Odoo CRM and reconcile received funds.",
     icon: HandCoins,
-    links: [{ label: "Open sponsorship workspace", to: "/manage/sponsorship" }],
+    links: [
+      { label: "Open sponsorship workspace", to: "/manage/sponsorship", anyPermission: ["sponsorship.crm.read", "sponsorship.crm.manage"] },
+    ],
   },
   {
     title: "Finance",
-    perms: ["ledger.read", "claim.review", "claim.review.high", "claim.review.treasurer", "cash.verify"],
+    perms: ["ledger.read", "claim.review", "claim.review.high", "claim.review.treasurer", "cash.verify", "budget.limit.manage", "budget.allocate", "finance.report.read", "member.read.any", "membership.tier.manage"],
     description: "Claims, cash, dues, budgets, and reporting.",
     icon: Banknote,
     links: [
-      { label: "Expense claims", to: "/manage/claims" },
-      { label: "Cash verification", to: "/manage/cash" },
-      { label: "Membership dues", to: "/manage/memberships" },
-      { label: "Budget", to: "/manage/budget" },
-      { label: "General ledger", to: "/manage/finance/ledger" },
-      { label: "Reports & reconciliation", to: "/manage/finance/reports" },
+      { label: "Expense claims", to: "/manage/claims", anyPermission: ["claim.review", "claim.review.high", "claim.review.treasurer", "claim.pay"] },
+      { label: "Cash verification", to: "/manage/cash", requiredPermission: "cash.verify" },
+      { label: "Membership dues", to: "/manage/memberships", anyPermission: ["member.read.any", "membership.tier.manage"] },
+      { label: "Budget", to: "/manage/budget", anyPermission: ["budget.limit.manage", "budget.allocate"] },
+      { label: "General ledger", to: "/manage/finance/ledger", requiredPermission: "ledger.read" },
+      { label: "Reports & reconciliation", to: "/manage/finance/reports", requiredPermission: "finance.report.read" },
     ],
   },
   {
@@ -46,7 +48,7 @@ const ALL_MODULES = [
     description: "Task boards and volunteer delivery.",
     icon: UsersRound,
     links: [
-      { label: "Project portfolio", to: "/manage/projects" },
+      { label: "Project portfolio", to: "/manage/projects", anyPermission: ["project.manage", "volunteer.manage"] },
       { label: "Volunteer workspace", to: "/volunteer" },
     ],
   },
@@ -56,8 +58,8 @@ const ALL_MODULES = [
     description: "Announcements and publishing history.",
     icon: Megaphone,
     links: [
-      { label: "New announcement", to: "/manage/announcements/new" },
-      { label: "Communications history", to: "/manage/newsletter" },
+      { label: "New announcement", to: "/manage/announcements/new", requiredPermission: "announcement.publish" },
+      { label: "Communications history", to: "/manage/newsletter", anyPermission: ["newsletter.send", "newsletter.stats.read"] },
     ],
   },
   {
@@ -66,8 +68,8 @@ const ALL_MODULES = [
     description: "Schedules, agendas, and invite responses.",
     icon: ClipboardCheck,
     links: [
-      { label: "Meeting schedule", to: "/manage/meetings" },
-      { label: "Schedule a meeting", to: "/manage/meetings/new" },
+      { label: "Meeting schedule", to: "/manage/meetings", requiredPermission: "meeting.manage" },
+      { label: "Schedule a meeting", to: "/manage/meetings/new", requiredPermission: "meeting.manage" },
     ],
   },
   {
@@ -76,18 +78,18 @@ const ALL_MODULES = [
     description: "Pack and hand over merchandise orders.",
     icon: PackageCheck,
     links: [
-      { label: "Order fulfilment", to: "/manage/orders" },
+      { label: "Order fulfilment", to: "/manage/orders", requiredPermission: "order.fulfil" },
       { label: "View shop", to: "/shop" },
     ],
   },
   {
     title: "Leadership Selection",
-    perms: ["selection.manage"],
+    perms: ["selection.manage", "selection.review"],
     description: "Recruit executives and heads.",
     icon: ShieldCheck,
     links: [
-      { label: "Create selection cycle", to: "/manage/selection/new/edit" },
-      { label: "Manage current cycles", to: "/manage/selection/cycles" },
+      { label: "Create selection cycle", to: "/manage/selection/new/edit", requiredPermission: "selection.manage" },
+      { label: "Manage current cycles", to: "/manage/selection/cycles", anyPermission: ["selection.manage", "selection.review"] },
     ],
   },
 ];
@@ -236,7 +238,11 @@ export default function ManageHome() {
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {ALL_MODULES.filter((module) => can(module.perms)).map((module) => {
             const Icon = module.icon;
-            const visibleLinks = module.links.filter((l) => !l.requiredPermission || userPermissions.includes(l.requiredPermission));
+            const visibleLinks = module.links.filter((l) => {
+              if (l.requiredPermission && !userPermissions.includes(l.requiredPermission)) return false;
+              if (l.anyPermission && !l.anyPermission.some((p) => userPermissions.includes(p))) return false;
+              return true;
+            });
             if (!visibleLinks.length) return null;
             return (
               <article key={module.title} className="rounded-2xl border border-border bg-card p-5 sm:p-6">
