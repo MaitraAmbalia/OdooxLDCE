@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CalendarDays, LockKeyhole, MessageSquareText, ReceiptIndianRupee } from "lucide-react";
+import { ArrowLeft, CalendarDays, LockKeyhole, MessageSquareText, ReceiptIndianRupee, Users, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
@@ -9,11 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { getSocket } from "@/lib/socket";
+import AssignVolunteersModal from "@/features/tasks/components/AssignVolunteersModal";
 
 export default function TaskDetail() {
   const { id } = useParams();
   const queryClient = useQueryClient();
   const [chatMessage, setChatMessage] = useState("");
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const messagesEndRef = useRef(null);
 
   // Fetch current user
@@ -224,6 +226,49 @@ export default function TaskDetail() {
               </div>
 
               <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Users className="size-3.5 text-primary" /> Assigned Volunteers
+                  </p>
+                  {task.canManage && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAssignModalOpen(true)}
+                      className="text-xs text-primary font-medium hover:underline inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <UserPlus className="size-3" /> Assign
+                    </button>
+                  )}
+                </div>
+                {task.assignees?.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {task.assignees.map((a) => (
+                      <span
+                        key={a.id || a.user?.id || a.userId}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-secondary text-foreground border border-border"
+                      >
+                        {a.user?.name || "Volunteer"}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-1 flex items-center justify-between p-2 rounded-lg bg-secondary/30 text-xs text-muted-foreground">
+                    <span>Unassigned</span>
+                    {task.canManage && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setIsAssignModalOpen(true)}
+                        className="h-6 text-[11px] px-2 cursor-pointer"
+                      >
+                        Assign now
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div>
                 <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Update status
                 </p>
@@ -344,6 +389,14 @@ export default function TaskDetail() {
         </div>
 
       </div>
+
+      <AssignVolunteersModal
+        open={isAssignModalOpen}
+        onOpenChange={setIsAssignModalOpen}
+        taskId={id}
+        taskTitle={task?.title}
+        initialAssigneeUserIds={(task?.assignees || []).map((a) => a.userId || a.user?.id).filter(Boolean)}
+      />
     </div>
   );
 }
