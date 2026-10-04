@@ -199,11 +199,11 @@ export function createEventsService({ prisma }) {
       return events.map((e) => ({ ...serialize(e), checkedIn: e._count.tickets, latestReview: e.reviews[0] ?? null }));
     },
 
-    // Post-event analytics: sales vs door check-ins per ticket type, revenue, and budget use.
+    // Post-event analytics: sales vs door check-ins per ticket type, revenue, budget use, and demographics.
     async report(id) {
       const event = await prisma.event.findUnique({ where: { id }, include: { ticketTypes: true, budgetLines: true } });
       if (!event) throw new AppError('NOT_FOUND', 404, 'Event was not found');
-      const [byType, spend, committed] = await Promise.all([
+      const [byType, spend, committed, checkedInTickets] = await Promise.all([
         prisma.ticket.groupBy({
           by: ['ticketTypeId', 'status'],
           where: { eventId: id },
@@ -212,6 +212,10 @@ export function createEventsService({ prisma }) {
         }),
         eventSpend(prisma, id),
         prisma.expenseClaim.groupBy({ by: ['status'], where: { eventId: id, status: { in: ['SUBMITTED', 'APPROVED_L1', 'APPROVED'] } }, _sum: { amountPaise: true } }),
+        prisma.ticket.findMany({
+          where: { eventId: id, status: 'CHECKED_IN' },
+          include: { user: { select: { studentId: true, memberships: { select: { createdAt: true } } } } }
+        })
       ]);
       const ticketTypes = event.ticketTypes.map((t) => {
         const rows = byType.filter((r) => r.ticketTypeId === t.id);
@@ -228,6 +232,44 @@ export function createEventsService({ prisma }) {
       // Committed = approved but not yet paid out; pending = still awaiting review.
       const claimSum = (statuses) => committed.filter((g) => statuses.includes(g.status)).reduce((n, g) => n + Number(g._sum.amountPaise ?? 0), 0);
       const committedPaise = claimSum(['APPROVED_L1', 'APPROVED']);
+
+      // Analytics logic
+      const timelineMap = {};
+      const branchMap = {};
+      const batchMap = {};
+      let conversionCount = 0;
+
+      for (const t of checkedInTickets) {
+        if (!t.checkedInAt) continue;
+        
+        const min = t.checkedInAt.getMinutes();
+        const block = Math.floor(min / 15) * 15;
+        const timeKey = new Date(t.checkedInAt);
+        timeKey.setMinutes(block, 0, 0);
+        const tkStr = timeKey.toISOString();
+        timelineMap[tkStr] = (timelineMap[tkStr] || 0) + 1;
+        
+        const sidMatch = t.user.studentId.match(/^(\d{2})([A-Z]+)\d+$/i);
+        if (sidMatch) {
+            const [, batch, branch] = sidMatch;
+            const bYear = `20${batch}`;
+            batchMap[bYear] = (batchMap[bYear] || 0) + 1;
+            const br = branch.toUpperCase();
+            branchMap[br] = (branchMap[br] || 0) + 1;
+        }
+
+        if (t.user.memberships?.length > 0) {
+           const becameMemberAfter = t.user.memberships.some(m => new Date(m.createdAt) > new Date(event.startAt));
+           if (becameMemberAfter) conversionCount++;
+        }
+      }
+
+      const timeline = Object.entries(timelineMap).sort((a,b) => a[0].localeCompare(b[0])).map(([time, count]) => ({ time, count }));
+      const demographics = {
+          branches: Object.entries(branchMap).map(([name, count]) => ({ name, count })).sort((a,b) => b.count - a.count),
+          batches: Object.entries(batchMap).map(([name, count]) => ({ name, count })).sort((a,b) => b.name.localeCompare(a.name))
+      };
+
       return {
         event: { id: event.id, title: event.title, status: event.status, startAt: event.startAt, endAt: event.endAt, venue: event.venue, capacity: event.capacity },
         ticketTypes,
@@ -237,6 +279,11 @@ export function createEventsService({ prisma }) {
           remainingPaise: approvedPaise == null ? null : approvedPaise - spend - committedPaise,
           lines: event.budgetLines.map((b) => ({ id: b.id, category: b.category, amountPaise: Number(b.amountPaise), note: b.note })),
         },
+        analytics: {
+          timeline,
+          demographics,
+          conversionCount
+        }
       };
     },
 

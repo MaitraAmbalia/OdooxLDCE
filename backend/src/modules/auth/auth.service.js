@@ -9,14 +9,16 @@ const invalidSession = () => new AppError('UNAUTHENTICATED', 401, 'A valid sessi
 export function createAuthService({ prisma, config }) {
   async function claimsFor(tx, user, now = new Date()) {
     const instant = now.getTime();
-    const [membership, assignments, volunteer] = await Promise.all([
-      tx.membership.findFirst({
+    const [memberships, assignments, volunteer] = await Promise.all([
+      tx.membership.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: 'desc' },
       }),
       tx.roleAssignment.findMany({ where: { userId: user.id } }),
       tx.volunteer.findUnique({ where: { userId: user.id } }),
     ]);
+
+    const membership = memberships.find((m) => m.status === 'ACTIVE' && (!m.expiresAt || new Date(m.expiresAt).getTime() > instant)) || memberships[0];
 
     const validTermRoles = new Set(['MENTOR', 'PRESIDENT', 'TREASURER', 'EVENT_HEAD', 'VOLUNTEER_HEAD', 'MARKETING_HEAD', 'SPONSORSHIP_HEAD']);
     const roles = [

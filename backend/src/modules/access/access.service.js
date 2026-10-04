@@ -54,7 +54,7 @@ export function createAccessService({ prisma }) {
 
         // Check active membership
         const activeMembership = await tx.membership.findFirst({
-          where: { userId: input.userId, status: 'ACTIVE' },
+          where: { userId: input.userId, status: 'ACTIVE', OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
         });
         if (!activeMembership && process.env.NODE_ENV === 'production') {
           throw new AppError('MEMBERSHIP_LAPSED', 409, 'Target must be an active member');

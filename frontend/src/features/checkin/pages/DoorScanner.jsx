@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, CheckCircle2, CircleAlert, Keyboard, QrCode, RotateCcw, Search, UserCheck, Users, X, XCircle } from "lucide-react";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -118,12 +118,36 @@ export default function DoorScanner() {
   }, [clearResult, eventId]);
 
   useEffect(() => {
-    const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 240, height: 240 }, rememberLastUsedCamera: true }, false);
-    scanner.render((decodedText) => processTicket(decodedText), () => {});
-    scannerRef.current = scanner;
+    let html5QrCode;
+    let isComponentMounted = true;
+
+    const startScanner = async () => {
+      try {
+        html5QrCode = new Html5Qrcode("reader");
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 260, height: 260 } },
+          (decodedText) => {
+            if (isComponentMounted) processTicket(decodedText);
+          },
+          () => {}
+        );
+        scannerRef.current = html5QrCode;
+      } catch (err) {
+        if (isComponentMounted) {
+          setCameraError("Camera access denied or unavailable. Please allow camera permissions or enter the ticket ID manually.");
+        }
+      }
+    };
+
+    startScanner();
+
     return () => {
+      isComponentMounted = false;
       clearTimeout(resetTimerRef.current);
-      scanner.clear().catch(() => {});
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().catch(() => {});
+      }
       scannerRef.current = null;
     };
   }, [processTicket]);
@@ -174,34 +198,12 @@ export default function DoorScanner() {
       </header>
 
       <section className="relative min-h-0 flex-1 overflow-hidden bg-black" aria-label="Ticket scanner">
-        <div id="reader" className="h-full w-full" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-6 z-10 mx-auto w-fit rounded-full bg-black/70 px-4 py-2 text-xs text-slate-200 backdrop-blur">
-          Hold the ticket QR code inside the frame
-        </div>
+        <div id="reader" className="h-full w-full [&_video]:object-cover" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-6 z-10 mx-auto w-fit rounded-full bg-black/70 px-5 py-2.5 text-xs font-medium text-slate-200 backdrop-blur-md shadow-lg border border-white/10">Hold the ticket QR code inside the frame</div>
 
-        {cameraError && (
-          <div className="absolute inset-x-4 top-4 z-20 rounded-xl border border-red-400/30 bg-red-950/90 p-4 text-sm" role="alert">
-            {cameraError}
-          </div>
-        )}
+        {cameraError && <div className="absolute inset-x-4 top-4 z-20 rounded-xl border border-red-400/30 bg-red-950/90 p-4 text-sm shadow-xl backdrop-blur-sm animate-in fade-in slide-in-from-top-4" role="alert">{cameraError}</div>}
 
-        {scanResult && (
-          <div className={"absolute inset-0 z-50 flex flex-col items-center justify-center p-6 text-center " + resultStyle} aria-live="assertive">
-            <ResultIcon className="size-20" aria-hidden="true" />
-            <h2 className="mt-6 font-display text-4xl font-semibold">{scanResult.title}</h2>
-            {scanResult.name && <p className="mt-3 text-2xl font-medium">{scanResult.name}</p>}
-            <p className="mt-2 max-w-md text-base text-white/90">{scanResult.message}</p>
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              className="mt-8 border-white/50 bg-white text-slate-950 hover:bg-white/90"
-              onClick={() => { clearTimeout(resetTimerRef.current); clearResult(); }}
-            >
-              <RotateCcw aria-hidden="true" /> Scan next ticket
-            </Button>
-          </div>
-        )}
+        {scanResult && <div className={"absolute inset-0 z-50 flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in-95 duration-200 " + resultStyle} aria-live="assertive"><ResultIcon className="size-24 drop-shadow-md" aria-hidden="true" /><h2 className="mt-8 font-display text-4xl font-semibold tracking-tight">{scanResult.title}</h2>{scanResult.name && <p className="mt-3 text-2xl font-medium">{scanResult.name}</p>}<p className="mt-3 max-w-md text-base text-white/90 leading-relaxed">{scanResult.message}</p><Button type="button" variant="outline" size="lg" className="mt-10 border-transparent bg-white/20 text-white hover:bg-white/30 hover:text-white backdrop-blur-md" onClick={() => { clearTimeout(resetTimerRef.current); clearResult(); }}><RotateCcw aria-hidden="true" /> Scan next ticket</Button></div>}
       </section>
 
       {/* Live Attendees Drawer */}

@@ -5,7 +5,7 @@ const map = {
   EVENT_HEAD: ['membership.verify', 'event.propose', 'event.publish', 'event.door.assign', 'event.report.read', 'ticket.checkin', 'claim.submit'],
   VOLUNTEER_HEAD: ['member.read.any', 'claim.submit', 'volunteer.manage', 'project.manage', 'chat.oversee'],
   MARKETING_HEAD: ['member.stats.read', 'event.report.read', 'claim.submit', 'merch.manage', 'order.fulfil', 'announcement.publish', 'newsletter.send', 'newsletter.stats.read'],
-  SPONSORSHIP_HEAD: ['event.report.read', 'claim.submit', 'sponsorship.crm.read', 'sponsorship.crm.manage'],
+  SPONSORSHIP_HEAD: ['claim.submit', 'sponsorship.crm.read', 'sponsorship.crm.manage'],
 };
 
 export const rolePermissions = Object.freeze(Object.fromEntries(
