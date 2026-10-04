@@ -179,9 +179,25 @@ export default function EventProposalStepper() {
 
   const onSubmit = (data) => {
     if (currentStep < STEPS.length) {
-      if (currentStep === 2 && new Date(data.endAt) <= new Date(data.startAt)) {
-        toast.error("End time must be after the start time.");
-        return;
+      if (currentStep === 1) {
+        if (!data.title || data.title.trim().length < 3) {
+          toast.error("Event title must be at least 3 characters.");
+          return;
+        }
+        if (!data.description || data.description.trim().length < 10) {
+          toast.error("Event description must be at least 10 characters.");
+          return;
+        }
+      }
+      if (currentStep === 2) {
+        if (!data.venue || data.venue.trim().length < 2) {
+          toast.error("Venue must be at least 2 characters.");
+          return;
+        }
+        if (new Date(data.endAt) <= new Date(data.startAt)) {
+          toast.error("End time must be after the start time.");
+          return;
+        }
       }
       if (currentStep === 3 && allocatedQuota > Number(data.capacity)) {
         toast.error("Ticket quotas cannot exceed the event capacity.");
@@ -195,6 +211,21 @@ export default function EventProposalStepper() {
       return;
     }
 
+    if (!data.title || data.title.trim().length < 3) {
+      toast.error("Event title must be at least 3 characters.");
+      setCurrentStep(1);
+      return;
+    }
+    if (!data.description || data.description.trim().length < 10) {
+      toast.error("Event description must be at least 10 characters.");
+      setCurrentStep(1);
+      return;
+    }
+    if (!data.venue || data.venue.trim().length < 2) {
+      toast.error("Venue must be at least 2 characters.");
+      setCurrentStep(2);
+      return;
+    }
     if (new Date(data.endAt) <= new Date(data.startAt)) {
       toast.error("End time must be after the start time.");
       setCurrentStep(2);
@@ -287,13 +318,21 @@ export default function EventProposalStepper() {
         {currentStep === 1 && (
           <div className="space-y-5">
             <div>
-              <label htmlFor="event-title" className="mb-2 block text-sm font-medium">
-                Event title
-              </label>
+              <div className="mb-2 flex items-center justify-between">
+                <label htmlFor="event-title" className="block text-sm font-medium">
+                  Event title
+                </label>
+                <span className="text-xs text-muted-foreground">Min. 3 characters</span>
+              </div>
               <Input
                 id="event-title"
                 aria-invalid={!!errors.title}
-                {...register("title", { required: "Event title is required" })}
+                placeholder="e.g. Annual Tech Symposium 2026"
+                {...register("title", {
+                  required: "Event title is required",
+                  minLength: { value: 3, message: "Event title must be at least 3 characters" },
+                  maxLength: { value: 150, message: "Event title cannot exceed 150 characters" },
+                })}
               />
               {errors.title && <p className="mt-2 text-sm text-destructive">{errors.title.message}</p>}
             </div>
@@ -332,14 +371,22 @@ export default function EventProposalStepper() {
             </div>
 
             <div>
-              <label htmlFor="event-description" className="mb-2 block text-sm font-medium">
-                Description
-              </label>
+              <div className="mb-2 flex items-center justify-between">
+                <label htmlFor="event-description" className="block text-sm font-medium">
+                  Description
+                </label>
+                <span className="text-xs text-muted-foreground">Min. 10 characters</span>
+              </div>
               <textarea
                 id="event-description"
                 rows={6}
                 aria-invalid={!!errors.description}
-                {...register("description", { required: "Description is required" })}
+                placeholder="Provide an overview of the event, activities, speakers, and goals (at least 10 characters)..."
+                {...register("description", {
+                  required: "Description is required",
+                  minLength: { value: 10, message: "Description must be at least 10 characters" },
+                  maxLength: { value: 10000, message: "Description cannot exceed 10,000 characters" },
+                })}
                 className="w-full resize-y rounded-xl border border-input bg-background px-4 py-3 text-sm leading-6 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
               />
               {errors.description && <p className="mt-2 text-sm text-destructive">{errors.description.message}</p>}
@@ -379,13 +426,21 @@ export default function EventProposalStepper() {
             </div>
 
             <div>
-              <label htmlFor="event-venue" className="mb-2 block text-sm font-medium">
-                Venue
-              </label>
+              <div className="mb-2 flex items-center justify-between">
+                <label htmlFor="event-venue" className="block text-sm font-medium">
+                  Venue
+                </label>
+                <span className="text-xs text-muted-foreground">Min. 2 characters</span>
+              </div>
               <Input
                 id="event-venue"
                 aria-invalid={!!errors.venue}
-                {...register("venue", { required: "Venue is required" })}
+                placeholder="e.g. Auditorium Hall B / LDCE Campus"
+                {...register("venue", {
+                  required: "Venue is required",
+                  minLength: { value: 2, message: "Venue must be at least 2 characters" },
+                  maxLength: { value: 200, message: "Venue cannot exceed 200 characters" },
+                })}
               />
               {errors.venue && <p className="mt-2 text-sm text-destructive">{errors.venue.message}</p>}
             </div>

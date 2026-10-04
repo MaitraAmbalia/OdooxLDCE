@@ -37,29 +37,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSession } from "@/hooks/useSession";
+import { isLeadershipUser } from "@/lib/access";
+import { getWorkspaceNavigation, isNavigationActive, PUBLIC_NAVIGATION } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
-
-const manageNavigationItems = [
-  { to: "/manage", label: "Overview" },
-  { to: "/calendar", label: "Calendar" },
-  { to: "/manage/events", label: "Events", anyPermission: ["event.propose", "event.approve", "event.report.read", "event.publish"] },
-  { to: "/manage/sponsorship", label: "Sponsorship", anyPermission: ["sponsorship.crm.read", "sponsorship.crm.manage"] },
-  { to: "/manage/claims", label: "Claims", anyPermission: ["claim.review", "claim.review.high", "claim.review.treasurer", "claim.pay"] },
-  { to: "/manage/cash", label: "Cash", anyPermission: ["cash.verify"] },
-  { to: "/manage/memberships", label: "Dues", anyPermission: ["member.read.any", "membership.tier.manage"] },
-  { to: "/manage/finance/ledger", label: "Ledger", anyPermission: ["ledger.read"] },
-  { to: "/manage/budget", label: "Budgets", anyPermission: ["budget.limit.manage", "budget.allocate"] },
-  { to: "/manage/finance/reports", label: "Reports", anyPermission: ["finance.report.read"] },
-  { to: "/manage/projects", label: "Projects", anyPermission: ["project.manage", "volunteer.manage"] },
-  { to: "/manage/orders", label: "Orders", anyPermission: ["order.fulfil"] },
-  { to: "/manage/newsletter", label: "Newsletter", anyPermission: ["newsletter.send", "newsletter.stats.read"] },
-  { to: "/manage/selection/new/edit", label: "Leadership", anyPermission: ["selection.manage"] },
-];
-
-const volunteerNavigation = [
-  ["/volunteer", "My work"],
-  ["/volunteer/claims/new", "Submit a claim"],
-];
 
 export function Brand() {
   return (
@@ -87,165 +67,13 @@ export default function DiscoveryLayout() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const userPermissions = user?.permissions || [];
-  const filteredManageNav = useMemo(() => {
-    return manageNavigationItems
-      .filter((item) => !item.anyPermission || item.anyPermission.some((perm) => userPermissions.includes(perm)))
-      .map((item) => [item.to, item.label]);
-  }, [userPermissions]);
-
-  const isLeadership = Boolean(
-    user && user.roles?.some((role) =>
-      [
-        "PRESIDENT",
-        "TREASURER",
-        "EVENT_HEAD",
-        "VOLUNTEER_HEAD",
-        "MARKETING_HEAD",
-        "SPONSORSHIP_HEAD",
-        "MENTOR",
-      ].includes(role)
-    )
-  );
-
-  // Option 3: Role-Aware Dynamic Top Navigation
-  const primaryNavigation = useMemo(() => {
-    if (!user) {
-      return [
-        ["/", "Home"],
-        ["/events", "Events"],
-        ["/calendar", "Calendar"],
-        ["/shop", "Shop"],
-        ["/announcements", "Updates"],
-        ["/selection", "Apply"],
-      ];
-    }
-
-    const roles = user.roles || [];
-    const isVolunteer = Boolean(user.isVolunteer || roles.includes("VOLUNTEER"));
-
-    // 1. MENTOR (Supervisory Governance)
-    if (roles.includes("MENTOR")) {
-      return [
-        ["/manage", "Console"],
-        ["/manage/events", "Review Proposals"],
-        ["/manage/budget", "Budgets & Limits"],
-        ["/manage/finance/ledger", "Ledger Audit"],
-        ["/manage/selection/new/edit", "Elections"],
-        ["/events", "Campus View"],
-      ];
-    }
-
-    // 2. PRESIDENT (Executive Oversight)
-    if (roles.includes("PRESIDENT")) {
-      return [
-        ["/manage", "Console"],
-        ["/manage/events", "Events Console"],
-        ["/manage/sponsorship", "Sponsorship"],
-        ["/manage/claims", "Claims Review"],
-        ["/manage/finance/ledger", "Ledger"],
-        ["/manage/projects", "Projects"],
-        ["/events", "Campus View"],
-      ];
-    }
-
-    // 3. TREASURER (Finance & Accounts)
-    if (roles.includes("TREASURER")) {
-      return [
-        ["/manage", "Console"],
-        ["/manage/claims", "Claims Queue"],
-        ["/manage/finance/ledger", "General Ledger"],
-        ["/cash-desk", "Cash Desk"],
-        ["/manage/memberships", "Dues Collection"],
-        ["/manage/budget", "Budgets"],
-        ["/events", "Campus View"],
-      ];
-    }
-
-    // 4. EVENT_HEAD (Event Operations & Ticketing)
-    if (roles.includes("EVENT_HEAD")) {
-      return [
-        ["/manage/events", "Event Console"],
-        ["/manage/events/new", "Propose Event"],
-        ["/events", "Public Events"],
-        ["/calendar", "Calendar"],
-        ["/volunteer", "Door Duties"],
-        ["/shop", "Shop"],
-      ];
-    }
-
-    // 5. SPONSORSHIP_HEAD (Odoo CRM & Corporate Partnerships)
-    if (roles.includes("SPONSORSHIP_HEAD")) {
-      return [
-        ["/manage/sponsorship", "Sponsorship CRM"],
-        ["/events", "Approved Events"],
-        ["/calendar", "Calendar"],
-        ["/shop", "Shop"],
-        ["/announcements", "Updates"],
-      ];
-    }
-
-    // 6. VOLUNTEER_HEAD (Volunteers & Project Tasks)
-    if (roles.includes("VOLUNTEER_HEAD")) {
-      return [
-        ["/manage", "Console"],
-        ["/manage/projects", "Projects & Tasks"],
-        ["/volunteer", "Volunteer Space"],
-        ["/events", "Events"],
-        ["/calendar", "Calendar"],
-      ];
-    }
-
-    // 7. MARKETING_HEAD (Merch, Campaigns & Bulletins)
-    if (roles.includes("MARKETING_HEAD")) {
-      return [
-        ["/manage", "Console"],
-        ["/manage/orders", "Fulfilment"],
-        ["/manage/newsletter", "Newsletter"],
-        ["/announcements", "Announcements"],
-        ["/shop", "Shop"],
-        ["/events", "Events"],
-      ];
-    }
-
-    // 8. VOLUNTEER (Event Door & Operational Crew)
-    if (isVolunteer) {
-      return [
-        ["/volunteer", "My Duties"],
-        ["/volunteer/claims/new", "Submit Claim"],
-        ["/events", "Events"],
-        ["/calendar", "Calendar"],
-        ["/me/tickets", "My Passes"],
-        ["/shop", "Shop"],
-      ];
-    }
-
-    // 9. Standard Student / Member
-    return [
-      ["/", "Home"],
-      ["/events", "Events"],
-      ["/calendar", "Calendar"],
-      ["/shop", "Shop"],
-      ["/me/tickets", "My Passes"],
-      ["/announcements", "Updates"],
-      ["/selection", "Apply"],
-    ];
-  }, [user]);
-
-  const section = location.pathname.startsWith("/manage") && isLeadership
-    ? {
-        label: "Manage Skyline",
-        icon: BriefcaseBusiness,
-        links: filteredManageNav,
-      }
-    : location.pathname.startsWith("/volunteer") && (user?.isVolunteer || isLeadership)
-      ? {
-          label: "Volunteer space",
-          icon: HeartHandshake,
-          links: volunteerNavigation,
-        }
-      : null;
-  const SectionIcon = section?.icon;
+  const isLeadership = isLeadershipUser(user);
+  const workspace = useMemo(() => getWorkspaceNavigation(user), [user]);
+  const WorkspaceIcon = workspace?.kind === "leadership"
+    ? BriefcaseBusiness
+    : workspace?.kind === "volunteer"
+      ? HeartHandshake
+      : UserRound;
   useEffect(() => {
     setOpen(false);
     window.scrollTo(0, 0);
@@ -417,11 +245,10 @@ export default function DiscoveryLayout() {
             aria-label="Main navigation"
             className="hidden items-center gap-1 lg:flex"
           >
-            {primaryNavigation.map(([to, label]) => (
+            {PUBLIC_NAVIGATION.map(([to, label]) => (
               <NavLink
                 key={to}
                 to={to}
-                end={to === "/"}
                 className={({ isActive }) =>
                   cn(
                     "rounded-md px-3.5 py-2 text-sm font-medium transition-colors hover:text-primary",
@@ -455,12 +282,12 @@ export default function DiscoveryLayout() {
                 <SheetDescription>Your campus, connected.</SheetDescription>
               </SheetHeader>
               <nav
-                aria-label="Mobile navigation"
+                aria-label="Public navigation"
                 className="flex flex-col gap-1 px-4"
               >
-                {primaryNavigation.map(([to, label]) => (
+                <p className="px-3 pb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Explore</p>
+                {PUBLIC_NAVIGATION.map(([to, label]) => (
                   <NavLink
-                    end={to === "/"}
                     key={to}
                     to={to}
                     onClick={() => setOpen(false)}
@@ -477,6 +304,28 @@ export default function DiscoveryLayout() {
                   </NavLink>
                 ))}
               </nav>
+              {workspace ? (
+                <>
+                  <div className="mx-6 border-t border-border" />
+                  <nav aria-label={`${workspace.label} navigation`} className="flex flex-col gap-1 px-4">
+                    <p className="px-3 pb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">{workspace.label}</p>
+                    {workspace.links.map(([to, label]) => (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        end={["/manage", "/volunteer", "/me"].includes(to)}
+                        onClick={() => setOpen(false)}
+                        className={({ isActive }) => cn(
+                          "rounded-md px-3 py-3 text-base font-medium",
+                          isActive ? "bg-primary/10 text-primary" : "hover:bg-secondary",
+                        )}
+                      >
+                        {label}
+                      </NavLink>
+                    ))}
+                  </nav>
+                </>
+              ) : null}
               <div className="mx-6 border-t border-border" />
               <div className="flex flex-col gap-2 px-6 pb-6">
                 {user ? (
@@ -510,21 +359,18 @@ export default function DiscoveryLayout() {
           </Sheet>
         </div>
       </header>
-      {section ? (
+      {workspace ? (
         <nav
-          aria-label={`${section.label} navigation`}
+          aria-label={`${workspace.label} navigation`}
           className="border-b border-border bg-[#272747] text-white"
         >
           <div className="page-container flex h-12 items-center gap-2 overflow-x-auto">
             <span className="mr-2 flex shrink-0 items-center gap-2 text-xs font-semibold text-[#c6c3f3]">
-              <SectionIcon className="size-4" aria-hidden="true" />
-              {section.label}
+              <WorkspaceIcon className="size-4" aria-hidden="true" />
+              {workspace.label}
             </span>
-            {section.links.map(([to, label]) => {
-              const active =
-                to === "/manage" || to === "/volunteer"
-                  ? location.pathname === to
-                  : location.pathname.startsWith(to);
+            {workspace.links.map(([to, label]) => {
+              const active = isNavigationActive(location.pathname, to);
               return (
                 <Link
                   key={to}

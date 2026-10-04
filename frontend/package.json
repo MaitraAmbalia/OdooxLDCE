@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/features/events/lib/events.test.js src/lib/access.test.js"
+    "test": "node --test src/features/events/lib/events.test.js src/lib/access.test.js src/lib/navigation.test.js"
   },
   "dependencies": {
     "@fontsource/bricolage-grotesque": "^5.3.0",
