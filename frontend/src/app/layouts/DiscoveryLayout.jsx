@@ -39,15 +39,6 @@ import {
 import { useSession } from "@/hooks/useSession";
 import { cn } from "@/lib/utils";
 
-const navigation = [
-  ["/", "Home"],
-  ["/events", "Events"],
-  ["/calendar", "Calendar"],
-  ["/shop", "Shop"],
-  ["/announcements", "Updates"],
-  ["/selection", "Leadership"],
-];
-
 const manageNavigationItems = [
   { to: "/manage", label: "Overview" },
   { to: "/calendar", label: "Calendar" },
@@ -117,6 +108,130 @@ export default function DiscoveryLayout() {
       ].includes(role)
     )
   );
+
+  // Option 3: Role-Aware Dynamic Top Navigation
+  const primaryNavigation = useMemo(() => {
+    if (!user) {
+      return [
+        ["/", "Home"],
+        ["/events", "Events"],
+        ["/calendar", "Calendar"],
+        ["/shop", "Shop"],
+        ["/announcements", "Updates"],
+        ["/selection", "Apply"],
+      ];
+    }
+
+    const roles = user.roles || [];
+    const isVolunteer = Boolean(user.isVolunteer || roles.includes("VOLUNTEER"));
+
+    // 1. MENTOR (Supervisory Governance)
+    if (roles.includes("MENTOR")) {
+      return [
+        ["/manage", "Console"],
+        ["/manage/events", "Review Proposals"],
+        ["/manage/budget", "Budgets & Limits"],
+        ["/manage/finance/ledger", "Ledger Audit"],
+        ["/manage/selection/new/edit", "Elections"],
+        ["/events", "Campus View"],
+      ];
+    }
+
+    // 2. PRESIDENT (Executive Oversight)
+    if (roles.includes("PRESIDENT")) {
+      return [
+        ["/manage", "Console"],
+        ["/manage/events", "Events Console"],
+        ["/manage/sponsorship", "Sponsorship"],
+        ["/manage/claims", "Claims Review"],
+        ["/manage/finance/ledger", "Ledger"],
+        ["/manage/projects", "Projects"],
+        ["/events", "Campus View"],
+      ];
+    }
+
+    // 3. TREASURER (Finance & Accounts)
+    if (roles.includes("TREASURER")) {
+      return [
+        ["/manage", "Console"],
+        ["/manage/claims", "Claims Queue"],
+        ["/manage/finance/ledger", "General Ledger"],
+        ["/cash-desk", "Cash Desk"],
+        ["/manage/memberships", "Dues Collection"],
+        ["/manage/budget", "Budgets"],
+        ["/events", "Campus View"],
+      ];
+    }
+
+    // 4. EVENT_HEAD (Event Operations & Ticketing)
+    if (roles.includes("EVENT_HEAD")) {
+      return [
+        ["/manage/events", "Event Console"],
+        ["/manage/events/new", "Propose Event"],
+        ["/events", "Public Events"],
+        ["/calendar", "Calendar"],
+        ["/volunteer", "Door Duties"],
+        ["/shop", "Shop"],
+      ];
+    }
+
+    // 5. SPONSORSHIP_HEAD (Odoo CRM & Corporate Partnerships)
+    if (roles.includes("SPONSORSHIP_HEAD")) {
+      return [
+        ["/manage/sponsorship", "Sponsorship CRM"],
+        ["/events", "Approved Events"],
+        ["/calendar", "Calendar"],
+        ["/shop", "Shop"],
+        ["/announcements", "Updates"],
+      ];
+    }
+
+    // 6. VOLUNTEER_HEAD (Volunteers & Project Tasks)
+    if (roles.includes("VOLUNTEER_HEAD")) {
+      return [
+        ["/manage", "Console"],
+        ["/manage/projects", "Projects & Tasks"],
+        ["/volunteer", "Volunteer Space"],
+        ["/events", "Events"],
+        ["/calendar", "Calendar"],
+      ];
+    }
+
+    // 7. MARKETING_HEAD (Merch, Campaigns & Bulletins)
+    if (roles.includes("MARKETING_HEAD")) {
+      return [
+        ["/manage", "Console"],
+        ["/manage/orders", "Fulfilment"],
+        ["/manage/newsletter", "Newsletter"],
+        ["/announcements", "Announcements"],
+        ["/shop", "Shop"],
+        ["/events", "Events"],
+      ];
+    }
+
+    // 8. VOLUNTEER (Event Door & Operational Crew)
+    if (isVolunteer) {
+      return [
+        ["/volunteer", "My Duties"],
+        ["/volunteer/claims/new", "Submit Claim"],
+        ["/events", "Events"],
+        ["/calendar", "Calendar"],
+        ["/me/tickets", "My Passes"],
+        ["/shop", "Shop"],
+      ];
+    }
+
+    // 9. Standard Student / Member
+    return [
+      ["/", "Home"],
+      ["/events", "Events"],
+      ["/calendar", "Calendar"],
+      ["/shop", "Shop"],
+      ["/me/tickets", "My Passes"],
+      ["/announcements", "Updates"],
+      ["/selection", "Apply"],
+    ];
+  }, [user]);
 
   const section = location.pathname.startsWith("/manage") && isLeadership
     ? {
@@ -204,6 +319,37 @@ export default function DiscoveryLayout() {
     </Button>
   ) : user ? (
     <div className="flex items-center gap-2">
+      {isLeadership && (
+        <Button
+          asChild
+          size="sm"
+          variant={location.pathname.startsWith("/manage") ? "default" : "outline"}
+          className={cn(
+            "hidden sm:inline-flex gap-1.5 font-semibold transition shadow-xs",
+            location.pathname.startsWith("/manage")
+              ? "bg-primary text-primary-foreground"
+              : "border-primary/40 text-primary hover:bg-primary/10"
+          )}
+        >
+          <Link to="/manage">
+            <BriefcaseBusiness className="size-3.5" />
+            <span>Console</span>
+          </Link>
+        </Button>
+      )}
+      {user.isVolunteer && !isLeadership && (
+        <Button
+          asChild
+          size="sm"
+          variant={location.pathname.startsWith("/volunteer") ? "default" : "outline"}
+          className="hidden sm:inline-flex gap-1.5 font-medium"
+        >
+          <Link to="/volunteer">
+            <HeartHandshake className="size-3.5 text-primary" />
+            <span>Volunteer Space</span>
+          </Link>
+        </Button>
+      )}
       <Link
         to="/me/notifications"
         aria-label="View notifications"
@@ -272,7 +418,7 @@ export default function DiscoveryLayout() {
             aria-label="Main navigation"
             className="hidden items-center gap-1 lg:flex"
           >
-            {navigation.map(([to, label]) => (
+            {primaryNavigation.map(([to, label]) => (
               <NavLink
                 key={to}
                 to={to}
@@ -313,7 +459,7 @@ export default function DiscoveryLayout() {
                 aria-label="Mobile navigation"
                 className="flex flex-col gap-1 px-4"
               >
-                {navigation.map(([to, label]) => (
+                {primaryNavigation.map(([to, label]) => (
                   <NavLink
                     end={to === "/"}
                     key={to}
