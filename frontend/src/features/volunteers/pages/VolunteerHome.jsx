@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Clock, MapPin, ReceiptIndianRupee, ShoppingBag, Ticket, ListTodo as ListTodoIcon, Plus, FolderKanban } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 
 export default function VolunteerHome() {
   usePageTitle("Volunteer space");
+  const queryClient = useQueryClient();
   const { data: sessionData } = useSession();
   const user = sessionData?.data;
 
@@ -22,6 +23,27 @@ export default function VolunteerHome() {
     user?.permissions?.includes("volunteer.manage") ||
     user?.permissions?.includes("project.manage")
   );
+
+  const isVolunteer = Boolean(user?.isVolunteer || isVolunteerHead || user?.roles?.includes("VOLUNTEER"));
+
+  const registerVolunteer = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/v1/volunteers/register", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skills: ["Event Support", "Logistics"] }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error?.message || "Failed to register");
+      return json.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+      toast.success("Welcome to the volunteer team! Your profile is now active.");
+    },
+    onError: (err) => toast.error(err.message || "Could not register as volunteer"),
+  });
 
   const { data: tasksData, isPending: tasksLoading, isError: tasksError, refetch: refetchTasks } = useQuery({
     queryKey: ['tasks', 'me'],
@@ -95,18 +117,22 @@ export default function VolunteerHome() {
   });
 
   // Door shifts the Event Head assigned to me.
-  const { data: doorData } = useQuery({ queryKey: ["door-duties", "me"], queryFn: () => getJson("/events/door-duties/me") });
-  const doorDuties = doorData?.data || [];
-  const tasks = tasksData?.data || [];
-  const claims = claimsData?.data || [];
-  const allEvents = eventsData?.data || [];
+  const { data: doorData } = useQuery({
+    queryKey: ["door-duties", "me"],
+    queryFn: () => getJson("/events/door-duties/me"),
+    retry: false,
+  });
+  const doorDuties = Array.isArray(doorData?.data) ? doorData.data : [];
+  const tasks = Array.isArray(tasksData?.data) ? tasksData.data : [];
+  const claims = Array.isArray(claimsData?.data) ? claimsData.data : [];
+  const allEvents = Array.isArray(eventsData?.data) ? eventsData.data : [];
 
   // Derive upcoming duties: active assignments for volunteer
   const upcomingDuties = tasks
-    .filter(task => task.status !== 'DONE')
-    .map(task => {
-      const linkedEvent = task.project?.event || allEvents.find(e =>
-        e.id === task.project?.eventId || e.title?.toLowerCase() === task.project?.name?.toLowerCase()
+    .filter((task) => task && task.status !== "DONE")
+    .map((task) => {
+      const linkedEvent = task.project?.event || allEvents.find((e) =>
+        e && (e.id === task.project?.eventId || e.title?.toLowerCase() === task.project?.name?.toLowerCase())
       );
       return { ...task, event: linkedEvent };
     })
@@ -182,6 +208,27 @@ export default function VolunteerHome() {
               </Button>
             </div>
           </div>
+        </div>
+      )}
+
+      {!isVolunteer && (
+        <div className="mb-8 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 via-card to-card p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-xs">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-primary/10 text-primary mb-2">
+              Volunteer Network
+            </div>
+            <h2 className="text-xl font-display font-semibold">Join the Volunteer Workforce</h2>
+            <p className="mt-1 text-sm text-muted-foreground max-w-xl">
+              Activate your volunteer profile to receive task assignments, volunteer for door shifts, and collaborate on club initiatives.
+            </p>
+          </div>
+          <Button
+            onClick={() => registerVolunteer.mutate()}
+            disabled={registerVolunteer.isPending}
+            className="shrink-0 font-semibold cursor-pointer shadow-sm"
+          >
+            {registerVolunteer.isPending ? "Activating profile…" : "Activate Volunteer Profile"}
+          </Button>
         </div>
       )}
 
@@ -332,12 +379,6 @@ export default function VolunteerHome() {
 
         </div>
       </div>
-
-      <AddAndAssignTaskModal
-        open={isTaskModalOpen}
-        onOpenChange={setIsTaskModalOpen}
-        onSuccess={() => refetchTasks()}
-      />
     </div>
   );
 }

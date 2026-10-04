@@ -199,7 +199,7 @@ function App() {
         <Route
           path="volunteer"
           element={
-            <ProtectedRoute requireAuth requireVolunteer unauthorizedMessage="Volunteer portal is only available to active volunteers and leadership.">
+            <ProtectedRoute requireAuth>
               <VolunteerHome />
             </ProtectedRoute>
           }
