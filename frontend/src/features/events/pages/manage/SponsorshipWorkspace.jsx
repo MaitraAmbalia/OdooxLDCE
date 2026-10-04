@@ -9,6 +9,7 @@ import { ContentState } from "@/components/common/ContentState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatINR } from "@/lib/utils";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useSession } from "@/hooks/useSession";
 
 let refreshPromise = null;
 
@@ -47,27 +48,25 @@ export default function SponsorshipWorkspace() {
   const [receiptLead, setReceiptLead] = useState(null);
   const [receipt, setReceipt] = useState({ amount: "", receivedAt: new Date().toISOString().slice(0, 10), paymentReference: "", note: "" });
 
-  const authQuery = useQuery({
-    queryKey: ["auth", "me"],
-    queryFn: () => api("/api/v1/auth/me"),
-    retry: false,
-  });
+  const { data: sessionData, isPending: isAuthPending } = useSession();
+  const user = sessionData?.data;
+
   const eventsQuery = useQuery({
     queryKey: ["sponsorship", "events"],
     queryFn: () => api("/api/v1/sponsorship/events"),
-    enabled: Boolean(authQuery.data),
+    enabled: Boolean(user),
   });
   const healthQuery = useQuery({
     queryKey: ["odoo", "health"],
     queryFn: () => api("/api/v1/integrations/odoo/health"),
-    enabled: Boolean(authQuery.data),
+    enabled: Boolean(user),
     retry: false,
   });
 
   const events = eventsQuery.data || [];
   const selectedEvent = useMemo(() => events.find((event) => event.id === selectedEventId), [events, selectedEventId]);
-  const canManage = authQuery.data?.permissions?.includes("sponsorship.crm.manage");
-  const canRecordReceipt = authQuery.data?.permissions?.includes("sponsorship.receipt.record");
+  const canManage = user?.permissions?.includes("sponsorship.crm.manage");
+  const canRecordReceipt = user?.permissions?.includes("sponsorship.receipt.record");
   const odooWebUrl = healthQuery.data?.webUrl;
 
   useEffect(() => {
@@ -145,9 +144,9 @@ export default function SponsorshipWorkspace() {
     setReceipt((current) => ({ ...current, amount: (lead.remainingAmountPaise / 100).toFixed(2) }));
   };
 
-  const canRead = authQuery.data?.permissions?.includes("sponsorship.crm.read") || authQuery.data?.permissions?.includes("sponsorship.crm.manage");
+  const canRead = user?.permissions?.includes("sponsorship.crm.read") || user?.permissions?.includes("sponsorship.crm.manage");
 
-  if (!authQuery.isPending && !authQuery.data) {
+  if (!isAuthPending && !user) {
     return (
       <div className="page-container py-16">
         <div className="mx-auto max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
@@ -166,7 +165,7 @@ export default function SponsorshipWorkspace() {
     );
   }
 
-  if (!authQuery.isPending && authQuery.data && !canRead) {
+  if (!isAuthPending && user && !canRead) {
     return (
       <div className="page-container py-16">
         <Button asChild variant="ghost" className="mb-6 -ml-3">

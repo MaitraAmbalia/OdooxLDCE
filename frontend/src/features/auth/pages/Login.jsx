@@ -46,6 +46,7 @@ export default function Login() {
         throw new Error(json.error?.message || json.message || "Invalid email or password");
       }
       const user = json.data;
+      queryClient.setQueryData(["auth", "me"], { data: user });
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
 
       navigate(getPostLoginPath(user, searchParams.get("redirect")), { replace: true });
