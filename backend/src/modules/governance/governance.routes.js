@@ -338,5 +338,55 @@ export function createGovernanceRouter({ prisma, authenticate, authorize }) {
     return res.status(201).json({ data: { ...created, date: created.startAt, venue: created.location, agenda: created.agendaItems } });
   });
 
+  router.get('/meetings/:id', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const canManageMeetings = req.user.permissions?.includes('meeting.manage');
+    const meeting = await prisma.meeting.findUnique({
+      where: { id },
+      include: {
+        agendaItems: { orderBy: { sortOrder: 'asc' }, include: { owner: { select: { id: true, name: true } } } },
+        invites: { include: { user: { select: { id: true, name: true, studentId: true } } } },
+        createdBy: { select: { id: true, name: true, email: true } },
+      },
+    });
+    if (!meeting) throw new AppError('NOT_FOUND', 404, 'Meeting not found');
+    const isInvited = meeting.invites.some((inv) => inv.userId === req.user.id);
+    if (!canManageMeetings && !isInvited && meeting.createdById !== req.user.id) {
+      throw new AppError('FORBIDDEN', 403, 'You do not have access to this meeting');
+    }
+    return res.json({
+      data: {
+        ...meeting,
+        date: meeting.startAt,
+        venue: meeting.location || meeting.meetingLink,
+        agenda: meeting.agendaItems,
+      },
+    });
+  });
+
+  router.post('/meetings/:id/rsvp', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const { rsvp, note } = req.body;
+    if (!['YES', 'NO', 'MAYBE'].includes(rsvp)) {
+      throw new AppError('VALIDATION_ERROR', 400, 'RSVP must be YES, NO, or MAYBE');
+    }
+    const invite = await prisma.meetingInvite.findUnique({
+      where: { meetingId_userId: { meetingId: id, userId: req.user.id } },
+    });
+    if (!invite) throw new AppError('NOT_FOUND', 404, 'You are not invited to this meeting');
+    if (invite.isRequired && rsvp === 'NO' && !note?.trim()) {
+      throw new AppError('NOTE_REQUIRED', 400, 'A reason is required when declining mandatory meetings');
+    }
+    const updated = await prisma.meetingInvite.update({
+      where: { meetingId_userId: { meetingId: id, userId: req.user.id } },
+      data: {
+        rsvp,
+        rsvpNote: note?.trim() || null,
+        respondedAt: new Date(),
+      },
+    });
+    return res.json({ data: updated });
+  });
+
   return router;
 }

@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, CalendarDays, MapPin, Users } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, CalendarDays, CheckCircle2, MapPin, Users, XCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useSession } from "@/hooks/useSession";
 
 function normalizeAgenda(agenda) {
   if (Array.isArray(agenda)) return agenda;
@@ -25,19 +27,42 @@ function responseClasses(status) {
 
 export default function MeetingDetail() {
   const { id } = useParams();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("AGENDA");
+  const { data: sessionData } = useSession();
+  const currentUser = sessionData?.data;
 
-  const { data: meetingsData, isPending, isError, refetch } = useQuery({
-    queryKey: ["meetings"],
+  const { data: meetingData, isPending, isError, refetch } = useQuery({
+    queryKey: ["meetings", id],
     queryFn: async () => {
-      const response = await fetch("/api/v1/meetings", { credentials: "include" });
+      const response = await fetch(`/api/v1/meetings/${id}`, { credentials: "include" });
       const json = await response.json();
-      if (!response.ok) throw new Error(json.error?.message || "Failed to fetch meetings");
+      if (!response.ok) throw new Error(json.error?.message || "Failed to fetch meeting");
       return json;
     },
   });
 
-  const meeting = meetingsData?.data?.find((entry) => entry.id === id);
+  const rsvpMutation = useMutation({
+    mutationFn: async ({ rsvp, note }) => {
+      const response = await fetch(`/api/v1/meetings/${id}/rsvp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ rsvp, note }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error?.message || "Failed to update RSVP");
+      return json;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["meetings", id] });
+      queryClient.invalidateQueries({ queryKey: ["meetings"] });
+      toast.success(variables.rsvp === "YES" ? "RSVP confirmed: Attending" : "RSVP recorded: Declined");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const meeting = meetingData?.data;
   usePageTitle(meeting?.title || "Meeting details");
 
   if (isPending) {
@@ -55,6 +80,7 @@ export default function MeetingDetail() {
   const scheduledAt = meeting.date || meeting.scheduledAt;
   const agenda = normalizeAgenda(meeting.agenda);
   const invites = meeting.rsvps || meeting.invites || [];
+  const myInvite = invites.find((inv) => inv.userId === currentUser?.id || inv.user?.id === currentUser?.id);
   const counts = {
     yes: invites.filter((invite) => responseStatus(invite) === "YES").length,
     no: invites.filter((invite) => responseStatus(invite) === "NO").length,
@@ -80,6 +106,41 @@ export default function MeetingDetail() {
           <p className="flex items-center gap-2"><MapPin className="size-4 text-primary" aria-hidden="true" />{meeting.venue || meeting.location || "Venue to be confirmed"}</p>
         </div>
       </div>
+
+      {myInvite && (
+        <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex items-center gap-3">
+            <span className={"inline-flex rounded-full px-2.5 py-1 text-xs font-semibold " + responseClasses(responseStatus(myInvite))}>
+              {responseStatus(myInvite) === "YES" ? "You are attending" : responseStatus(myInvite) === "NO" ? "You declined" : "RSVP pending"}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {myInvite.isRequired ? "Mandatory meeting attendance" : "Optional attendance"}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant={responseStatus(myInvite) === "YES" ? "default" : "outline"}
+              disabled={rsvpMutation.isPending}
+              onClick={() => rsvpMutation.mutate({ rsvp: "YES" })}
+            >
+              <CheckCircle2 className="size-4" /> Attending
+            </Button>
+            <Button
+              size="sm"
+              variant={responseStatus(myInvite) === "NO" ? "destructive" : "outline"}
+              disabled={rsvpMutation.isPending}
+              onClick={() => {
+                const note = myInvite.isRequired ? prompt("Please enter a reason for declining this mandatory meeting:") : null;
+                if (myInvite.isRequired && (!note || !note.trim())) return;
+                rsvpMutation.mutate({ rsvp: "NO", note: note?.trim() || null });
+              }}
+            >
+              <XCircle className="size-4" /> Decline
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card">
         <div className="flex border-b border-border bg-secondary/30" role="tablist" aria-label="Meeting information">

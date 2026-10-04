@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Clock, MapPin, ReceiptIndianRupee, ShoppingBag, Ticket, ListTodo as ListTodoIcon } from "lucide-react";
+import { CalendarDays, Clock, MapPin, ReceiptIndianRupee, ShoppingBag, Ticket, ListTodo as ListTodoIcon, Plus, FolderKanban } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
@@ -16,6 +16,12 @@ export default function VolunteerHome() {
   usePageTitle("Volunteer space");
   const { data: sessionData } = useSession();
   const user = sessionData?.data;
+
+  const isVolunteerHead = Boolean(
+    user?.roles?.includes("VOLUNTEER_HEAD") ||
+    user?.permissions?.includes("volunteer.manage") ||
+    user?.permissions?.includes("project.manage")
+  );
 
   const { data: tasksData, isPending: tasksLoading, isError: tasksError, refetch: refetchTasks } = useQuery({
     queryKey: ['tasks', 'me'],
@@ -119,6 +125,20 @@ export default function VolunteerHome() {
           <p className="mt-2 text-sm text-muted-foreground">Keep up with your tasks, duties, and expense claims.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
+          {isVolunteerHead && (
+            <>
+              <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm font-semibold">
+                <Link to="/manage/projects?action=new-task">
+                  <Plus className="size-4 mr-1.5" /> Add & Assign Task
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="border-border bg-card text-foreground hover:bg-secondary/70 font-medium">
+                <Link to="/manage/projects">
+                  <FolderKanban className="size-4 mr-1.5" /> Projects & Boards
+                </Link>
+              </Button>
+            </>
+          )}
           <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm font-semibold">
             <Link to="/me/tickets">
               <Ticket className="size-4" /> My event passes
@@ -137,12 +157,52 @@ export default function VolunteerHome() {
         </div>
       </div>
 
+      {isVolunteerHead && (
+        <div className="mb-8 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 via-card to-card p-5 sm:p-6 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-primary/10 text-primary mb-2">
+                Volunteer Head Operations
+              </div>
+              <h2 className="text-xl font-display font-semibold">Assign Work & Coordinate Volunteers</h2>
+              <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+                Create tasks with due dates and priorities, and dispatch work directly to active club volunteers with automated notification.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              <Button asChild className="font-semibold shadow-sm">
+                <Link to="/manage/projects?action=new-task">
+                  <Plus className="size-4 mr-1.5" /> Add & Assign Task
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/manage/projects">
+                  <FolderKanban className="size-4 mr-1.5" /> Project Boards
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         {/* Left Column: Tasks */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl font-semibold">My active tasks</h2>
+            {isVolunteerHead && (
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="text-xs font-semibold text-primary hover:text-primary"
+              >
+                <Link to="/manage/projects?action=new-task">
+                  <Plus className="size-3.5 mr-1" /> New Task
+                </Link>
+              </Button>
+            )}
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -272,6 +332,12 @@ export default function VolunteerHome() {
 
         </div>
       </div>
+
+      <AddAndAssignTaskModal
+        open={isTaskModalOpen}
+        onOpenChange={setIsTaskModalOpen}
+        onSuccess={() => refetchTasks()}
+      />
     </div>
   );
 }

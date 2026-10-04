@@ -44,7 +44,6 @@ const manageNavigationItems = [
   { to: "/calendar", label: "Calendar" },
   { to: "/manage/events", label: "Events", anyPermission: ["event.propose", "event.approve", "event.report.read", "event.publish"] },
   { to: "/manage/sponsorship", label: "Sponsorship", anyPermission: ["sponsorship.crm.read", "sponsorship.crm.manage"] },
-  { to: "/manage/meetings", label: "Meetings", anyPermission: ["meeting.manage"] },
   { to: "/manage/claims", label: "Claims", anyPermission: ["claim.review", "claim.review.high", "claim.review.treasurer", "claim.pay"] },
   { to: "/manage/cash", label: "Cash", anyPermission: ["cash.verify"] },
   { to: "/manage/memberships", label: "Dues", anyPermission: ["member.read.any", "membership.tier.manage"] },
@@ -141,7 +140,6 @@ export default function DiscoveryLayout() {
     if (roles.includes("PRESIDENT")) {
       return [
         ["/manage", "Console"],
-        ["/manage/meetings", "Meetings & Agendas"],
         ["/manage/events", "Events Console"],
         ["/manage/sponsorship", "Sponsorship"],
         ["/manage/claims", "Claims Review"],

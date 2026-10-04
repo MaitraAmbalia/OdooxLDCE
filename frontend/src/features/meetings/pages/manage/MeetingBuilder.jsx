@@ -34,6 +34,10 @@ export default function MeetingBuilder() {
           date: payload.scheduledAt,
           venue: payload.location,
           audience: payload.audienceType,
+          agendaItems: payload.agenda.map((item) => ({
+            topic: item.topic,
+            durationMin: Number(item.minutes || 15),
+          })),
           agenda: payload.agenda.map((item) => item.topic + " (" + item.minutes + "m" + (item.owner ? " · " + item.owner : "") + ")").join("\n"),
         }),
       });

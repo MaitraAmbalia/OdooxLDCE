@@ -109,3 +109,69 @@ test('Treasurer receipt posts to the existing sponsorship ledger using the authe
   assert.equal(insertedAudit.actorId, actorId);
   assert.equal(insertedAudit.action, 'SPONSORSHIP.RECEIPT_RECORDED');
 });
+
+test('Won sponsorships are marked done and notify Treasurer and Mentor idempotently', async () => {
+  const event = {
+    id: '22222222-2222-4222-8222-222222222222',
+    title: 'Demo Day',
+    venue: 'Auditorium',
+    startAt: new Date('2026-11-01T10:00:00.000Z'),
+    status: 'PUBLISHED',
+    sponsorshipRequired: true,
+    sponsorshipTargetPaise: 100000n,
+    sponsorshipDeadline: new Date('2026-10-20T10:00:00.000Z'),
+    sponsorshipPitch: 'Support student builders.',
+    sponsorshipPackages: ['Gold'],
+    sponsorBenefits: 'Brand placement',
+  };
+  const notificationWrites = [];
+  const prisma = {
+    event: { findUnique: async () => event },
+    ledgerEntry: { findMany: async () => [] },
+    roleAssignment: {
+      findMany: async () => [
+        { userId: '11111111-1111-4111-8111-111111111111' },
+        { userId: '33333333-3333-4333-8333-333333333333' },
+      ],
+    },
+    notification: {
+      createMany: async (input) => {
+        notificationWrites.push(input);
+        return { count: input.data.length };
+      },
+    },
+  };
+  const client = {
+    webUrl: 'http://odoo.test',
+    execute: async (model, method) => {
+      if (model === 'utm.campaign' && method === 'search_read') return [{ id: 44, name: '[SKYLINE:event] Demo Day' }];
+      if (model === 'crm.lead' && method === 'search_read') {
+        return [{
+          id: 73,
+          name: 'Example Sponsor - Gold',
+          partner_id: [9, 'Example Sponsor'],
+          expected_revenue: 1000,
+          probability: 100,
+          stage_id: [4, 'Won'],
+          active: true,
+        }];
+      }
+      throw new Error(`Unexpected Odoo call: ${model}.${method}`);
+    },
+  };
+  const service = createOdooService({ prisma, client });
+
+  const first = await service.summary(event.id);
+  const second = await service.summary(event.id);
+
+  assert.equal(first.won[0].status, 'DONE');
+  assert.equal(first.won[0].crmStatus, 'WON');
+  assert.equal(first.won[0].paymentStatus, 'COMMITTED');
+  assert.equal(notificationWrites[0].skipDuplicates, true);
+  assert.equal(notificationWrites[0].data.length, 2);
+  assert.deepEqual(
+    notificationWrites[0].data.map((row) => row.id),
+    notificationWrites[1].data.map((row) => row.id),
+  );
+  assert.equal(second.won[0].status, 'DONE');
+});

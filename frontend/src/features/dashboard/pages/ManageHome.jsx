@@ -49,6 +49,7 @@ const ALL_MODULES = [
     icon: UsersRound,
     links: [
       { label: "Project portfolio", to: "/manage/projects", anyPermission: ["project.manage", "volunteer.manage"] },
+      { label: "Add & assign task", to: "/manage/projects?action=new-task", anyPermission: ["project.manage", "volunteer.manage"] },
       { label: "Volunteer workspace", to: "/volunteer" },
     ],
   },
@@ -60,16 +61,6 @@ const ALL_MODULES = [
     links: [
       { label: "New announcement", to: "/manage/announcements/new", requiredPermission: "announcement.publish" },
       { label: "Communications history", to: "/manage/newsletter", anyPermission: ["newsletter.send", "newsletter.stats.read"] },
-    ],
-  },
-  {
-    title: "Meetings",
-    perms: ["meeting.manage"],
-    description: "Schedules, agendas, and invite responses.",
-    icon: ClipboardCheck,
-    links: [
-      { label: "Meeting schedule", to: "/manage/meetings", requiredPermission: "meeting.manage" },
-      { label: "Schedule a meeting", to: "/manage/meetings/new", requiredPermission: "meeting.manage" },
     ],
   },
   {
@@ -177,9 +168,9 @@ export default function ManageHome() {
           {user?.roles?.length > 0 && <p className="mt-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">{user.roles.join(" · ").replaceAll("_", " ")}</p>}
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
-          {can(["meeting.manage"]) && (
+          {can(["project.manage", "volunteer.manage"]) && (
             <Button asChild variant="outline">
-              <Link to="/manage/meetings/new"><Plus aria-hidden="true" /> Meeting</Link>
+              <Link to="/manage/projects?action=new-task"><Plus aria-hidden="true" /> Add task</Link>
             </Button>
           )}
           {can(["event.propose"]) && (

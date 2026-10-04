@@ -41,9 +41,6 @@ import NewsletterDashboard from "./features/newsletter/pages/manage/NewsletterDa
 import CampaignComposer from "./features/newsletter/pages/manage/CampaignComposer";
 import NewsletterConfirm from "./features/newsletter/pages/NewsletterConfirm";
 import NewsletterUnsubscribe from "./features/newsletter/pages/NewsletterUnsubscribe";
-import MeetingList from "./features/meetings/pages/manage/MeetingList";
-import MeetingBuilder from "./features/meetings/pages/manage/MeetingBuilder";
-import MeetingDetail from "./features/meetings/pages/manage/MeetingDetail";
 import SelectionHub from "./features/selection/pages/SelectionHub";
 import ApplicationForm from "./features/selection/pages/ApplicationForm";
 import CycleBuilder from "./features/selection/pages/manage/CycleBuilder";
@@ -168,6 +165,30 @@ function App() {
           element={
             <ProtectedRoute requireAuth anyPermission={["sponsorship.crm.read", "sponsorship.crm.manage"]} unauthorizedMessage="Sponsorship CRM is restricted to the Sponsorship Head and Treasurer.">
               <SponsorshipWorkspace />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="manage/meetings"
+          element={
+            <ProtectedRoute requireAuth requireLeadership unauthorizedMessage="Meetings portal is restricted to Executive Leadership.">
+              <MeetingList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="manage/meetings/new"
+          element={
+            <ProtectedRoute requireAuth anyPermission={["meeting.manage"]} unauthorizedMessage="Meeting scheduling is restricted to the Club President.">
+              <MeetingBuilder />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="manage/meetings/:id"
+          element={
+            <ProtectedRoute requireAuth requireLeadership unauthorizedMessage="Meeting access is restricted to Executive Leadership.">
+              <MeetingDetail />
             </ProtectedRoute>
           }
         />
@@ -317,31 +338,6 @@ function App() {
 
         <Route path="newsletter/confirm" element={<NewsletterConfirm />} />
         <Route path="newsletter/unsubscribe" element={<NewsletterUnsubscribe />} />
-
-        <Route
-          path="manage/meetings"
-          element={
-            <ProtectedRoute requireAuth anyPermission={["meeting.manage"]} unauthorizedMessage="Meeting scheduling is restricted to the President.">
-              <MeetingList />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="manage/meetings/new"
-          element={
-            <ProtectedRoute requireAuth anyPermission={["meeting.manage"]} unauthorizedMessage="Meeting scheduling is restricted to the President.">
-              <MeetingBuilder />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="manage/meetings/:id"
-          element={
-            <ProtectedRoute requireAuth anyPermission={["meeting.manage"]} unauthorizedMessage="Meeting scheduling is restricted to the President.">
-              <MeetingDetail />
-            </ProtectedRoute>
-          }
-        />
 
         <Route
           path="manage/selection/cycles"

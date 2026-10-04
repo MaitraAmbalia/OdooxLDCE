@@ -14,8 +14,16 @@ const server = http.createServer(app);
 
 initSocket(server, config, logger);
 
+server.on('error', (err) => {
+  logger.error({ err }, 'HTTP server error');
+  if (err.code === 'EADDRINUSE') {
+    logger.error(`Port ${config.port} is already in use.`);
+  }
+});
+
 server.listen(config.port, () => {
   logger.info({ port: config.port, environment: config.nodeEnv }, 'API server started with WebSocket support');
   startMailWorker({ prisma, logger });
 });
+
 

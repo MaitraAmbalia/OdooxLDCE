@@ -40,6 +40,34 @@ function publicLedgerEntry(entry) {
   };
 }
 
+async function notifyWonCommitments(prisma, event, wonLeads) {
+  if (!wonLeads.length) return;
+  const now = new Date();
+  const recipients = await prisma.roleAssignment.findMany({
+    where: {
+      role: { in: ['TREASURER', 'MENTOR'] },
+      termStart: { lte: now },
+      termEnd: { gt: now },
+      OR: [{ endedAt: null }, { endedAt: { gt: now } }],
+    },
+    select: { userId: true },
+  });
+  const userIds = [...new Set(recipients.map((recipient) => recipient.userId))];
+  if (!userIds.length) return;
+
+  await prisma.notification.createMany({
+    data: wonLeads.flatMap((lead) => userIds.map((userId) => ({
+      id: deterministicUuid(`odoo-won:${event.id}:${lead.id}:${userId}`),
+      userId,
+      type: 'SPONSORSHIP_WON',
+      title: 'Sponsorship won — committed',
+      body: `${lead.sponsor} committed ₹${(lead.expectedAmountPaise / 100).toLocaleString('en-IN')} for ${event.title}. Payment is pending Treasurer confirmation.`,
+      link: `/manage/sponsorship?event=${event.id}`,
+    }))),
+    skipDuplicates: true,
+  });
+}
+
 export function createOdooService({ prisma, client }) {
   async function requireEvent(eventId) {
     const event = await prisma.event.findUnique({
@@ -212,6 +240,8 @@ export function createOdooService({ prisma, client }) {
         wonCommitmentsPaise += expectedPaise;
         won.push({
           id: lead.id,
+          status: 'DONE',
+          crmStatus: 'WON',
           name: lead.name,
           sponsor: partnerName(lead.partner_id) || lead.contact_name || lead.email_from || 'Sponsor',
           expectedAmountPaise: expectedPaise,
@@ -224,6 +254,8 @@ export function createOdooService({ prisma, client }) {
         openPipelinePaise += expectedPaise;
       }
     }
+
+    await notifyWonCommitments(prisma, event, won);
 
     return {
       eventId,
