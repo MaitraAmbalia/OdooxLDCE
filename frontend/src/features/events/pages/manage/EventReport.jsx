@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Trash2, UserPlus } from "lucide-react";
+import { ArrowLeft, Trash2, UserPlus, Users, Activity, Target } from "lucide-react";
 import { toast } from "sonner";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
 import { Input } from "@/components/ui/input";
@@ -70,6 +71,84 @@ export default function EventReport() {
         <Stat label="No-shows" value={totals.noShows ?? "—"} hint={totals.noShows == null ? "Counted after the event ends" : undefined} />
         <Stat label="Ticket revenue" value={inr(totals.revenuePaise)} />
       </section>
+
+      {/* Analytics Dashboards */}
+      {r.analytics && (
+        <section className="mt-10 grid gap-6 lg:grid-cols-2" aria-labelledby="analytics-heading">
+          {/* Timeline Chart */}
+          {r.analytics.timeline.length > 0 && (
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-6">
+                <Activity className="size-5 text-primary" />
+                <h3 className="font-display text-xl font-semibold">Check-in flow</h3>
+              </div>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={r.analytics.timeline}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis 
+                      dataKey="time" 
+                      tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                    />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <Tooltip 
+                      labelFormatter={(l) => new Date(l).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
+                    />
+                    <Line type="monotone" dataKey="count" name="Check-ins" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 4, fill: 'hsl(var(--primary))' }} activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Demographics Bar Chart */}
+          {r.analytics.demographics.branches.length > 0 && (
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-6">
+                <Users className="size-5 text-emerald-500" />
+                <h3 className="font-display text-xl font-semibold">Audience branches</h3>
+              </div>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={r.analytics.demographics.branches.slice(0, 7)}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }} cursor={{ fill: 'hsl(var(--muted))' }} />
+                    <Bar dataKey="count" name="Attendees" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
+                      {r.analytics.demographics.branches.slice(0, 7).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={`hsl(var(--primary) / ${1 - index * 0.1})`} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* ROI & Conversion Highlights */}
+          <div className="lg:col-span-2 grid gap-4 sm:grid-cols-3">
+            <Stat 
+              label="Cost per Attendee" 
+              value={totals.checkedIn > 0 ? inr(Math.round(budget.spentPaise / totals.checkedIn)) : "—"} 
+              hint="Spent / Total Checked In" 
+            />
+            <Stat 
+              label="Net Profit / Margin" 
+              value={inr(totals.revenuePaise - budget.spentPaise)} 
+              hint="Ticket Revenue - Spent Budget" 
+            />
+            <Stat 
+              label="Membership Conversions" 
+              value={r.analytics.conversionCount} 
+              hint="Attendees who became members after" 
+            />
+          </div>
+        </section>
+      )}
 
       <section className="mt-10" aria-labelledby="types-heading">
         <h2 id="types-heading" className="font-display text-2xl font-semibold">Sold vs checked in, by ticket type</h2>
