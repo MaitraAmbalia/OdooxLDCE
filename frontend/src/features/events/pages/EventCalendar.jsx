@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useSession } from "@/hooks/useSession";
 import { useEvents } from "../hooks/useEvents";
-import { categoryLabel, eventDate } from "../lib/events";
+import { categoryLabel, eventDate, getEventCover } from "../lib/events";
 import { SocialShareModal } from "@/components/common/SocialShareModal";
 
 const LEAD_PERMISSIONS = ["event.approve", "event.propose", "event.publish"];
@@ -348,6 +348,15 @@ export default function EventCalendar() {
         <SheetContent className="w-[min(92vw,480px)] overflow-y-auto sm:max-w-[480px]">
           {selected && <>
             <SheetHeader className="border-b border-border px-6 pb-5 pt-8">
+              {getEventCover(selected) && (
+                <div className="relative mb-3 h-36 w-full overflow-hidden rounded-xl border border-border bg-muted">
+                  <img
+                    src={getEventCover(selected)}
+                    alt={selected.title}
+                    className="size-full object-cover"
+                  />
+                </div>
+              )}
               <div className="mb-3 flex flex-wrap items-center gap-2"><StatusBadge status={selected.status} /><span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-secondary-foreground">{categoryLabel(selected.category)}</span></div>
               <SheetTitle className="pr-8 font-display text-3xl leading-tight">{selected.title}</SheetTitle>
               <SheetDescription className="leading-6">{selected.description}</SheetDescription>
@@ -382,7 +391,7 @@ export default function EventCalendar() {
             date: selected.startAt || selected.startDate,
             venue: selected.venue,
             organizer: selected.proposedBy?.name || "Skyline LDCE",
-            imageUrl: selected.coverImageUrl || null,
+            imageUrl: getEventCover(selected) || null,
             url: `${window.location.origin}/events/${selected.id}`,
           }}
         />

@@ -78,3 +78,25 @@ export function filterEvents(
       return sort === "latest" ? bDate - aDate : aDate - bDate;
     });
 }
+
+export function getEventCover(event) {
+  if (!event) return null;
+  if (event.coverImageUrl) return event.coverImageUrl;
+  const title = (event.title || "").toLowerCase();
+  if (
+    event.id === "30000000-0000-0000-0000-000000000002" ||
+    title.includes("hackathon") ||
+    title.includes("codewave")
+  ) {
+    return "/banners/codewave_hackathon_2026.jpg";
+  }
+  if (
+    event.id === "00000000-0000-0000-0000-000000000001" ||
+    title.includes("gala") ||
+    title.includes("spring gala")
+  ) {
+    return "/banners/spring_gala_2026.jpg";
+  }
+  return null;
+}
+

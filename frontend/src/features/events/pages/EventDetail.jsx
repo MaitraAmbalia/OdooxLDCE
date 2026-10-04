@@ -17,6 +17,7 @@ import { usePageTitle } from "../../../hooks/usePageTitle";
 import { SocialShareModal } from "../../../components/common/SocialShareModal";
 import { useSession } from "../../../hooks/useSession";
 import { sendJson } from "../../../lib/api";
+import { getEventCover } from "../lib/events";
 
 export default function EventDetail() {
   const { id } = useParams();
@@ -169,9 +170,9 @@ export default function EventDetail() {
             
             {/* Cover Banner */}
             <div className="relative h-72 w-full overflow-hidden rounded-2xl border border-border bg-[#272747] sm:h-96">
-              {event.coverImageUrl ? (
+              {getEventCover(event) ? (
                 <img 
-                  src={event.coverImageUrl} 
+                  src={getEventCover(event)} 
                   alt={event.title} 
                   className="w-full h-full object-cover" 
                 />
@@ -472,7 +473,7 @@ export default function EventDetail() {
                 ? formatINR(selectedTicket.pricePaise / 100) 
                 : (ticketTypes?.length ? `From ${formatINR(ticketTypes[0].pricePaise / 100)}` : "Free Entry"),
               organizer: event.organizer?.name || "Skyline LDCE",
-              imageUrl: event.coverImageUrl || null,
+              imageUrl: getEventCover(event) || null,
               url: typeof window !== "undefined" ? window.location.href : "",
             }}
           />

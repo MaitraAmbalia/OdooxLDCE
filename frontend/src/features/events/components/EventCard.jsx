@@ -8,6 +8,7 @@ import {
   eventDate,
   eventPrice,
   formatEventDate,
+  getEventCover,
   isPastEvent,
 } from "../lib/events";
 
@@ -20,7 +21,7 @@ const posterStyles = {
 
 export function EventArtwork({ event, className, priority = false }) {
   const [failedSource, setFailedSource] = useState(null);
-  const cover = event.coverImageUrl;
+  const cover = getEventCover(event);
   const showImage = cover && failedSource !== cover;
   return (
     <div
