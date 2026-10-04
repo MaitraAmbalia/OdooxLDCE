@@ -45,7 +45,7 @@ export function createAuthService({ prisma, config }) {
       expiresAt: membership?.expiresAt?.toISOString(),
     };
 
-    const isVol = Boolean(volunteer && volunteer.status === 'ACTIVE' && normalizedMembership.status === 'ACTIVE');
+    const isVol = Boolean(volunteer && volunteer.status === 'ACTIVE');
     const iat = Math.floor(instant / 1000);
 
     return {
