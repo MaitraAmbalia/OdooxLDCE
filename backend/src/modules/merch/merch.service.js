@@ -5,10 +5,36 @@ import { registerApprovalHandler } from '../approvals/approvals.service.js';
 import { notify } from '../../lib/notify.js';
 
 export function createMerchService({ prisma, createPayment }) {
+  const DEFAULT_MERCH_ASSETS = {
+    '00000000-0000-0000-0000-000000000002': { cover: '/merch/hoodie.jpg', images: ['/merch/hoodie.jpg'] },
+    '40000000-0000-0000-0000-000000000002': { cover: '/merch/tee.jpg', images: ['/merch/tee.jpg'] },
+    '40000000-0000-0000-0000-000000000003': { cover: '/merch/flask.jpg', images: ['/merch/flask.jpg'] },
+    '40000000-0000-0000-0000-000000000004': { cover: '/merch/cap.jpg', images: ['/merch/cap.jpg'] },
+    '40000000-0000-0000-0000-000000000005': { cover: '/merch/stickers.jpg', images: ['/merch/stickers.jpg'] },
+  };
+
+  function resolveProductImages(p) {
+    if (DEFAULT_MERCH_ASSETS[p.id]) return DEFAULT_MERCH_ASSETS[p.id];
+    const name = (p.name || '').toLowerCase();
+    if (name.includes('hoodie')) return { cover: '/merch/hoodie.jpg', images: ['/merch/hoodie.jpg'] };
+    if (name.includes('tee') || name.includes('t-shirt')) return { cover: '/merch/tee.jpg', images: ['/merch/tee.jpg'] };
+    if (name.includes('flask') || name.includes('bottle')) return { cover: '/merch/flask.jpg', images: ['/merch/flask.jpg'] };
+    if (name.includes('cap') || name.includes('hat')) return { cover: '/merch/cap.jpg', images: ['/merch/cap.jpg'] };
+    if (name.includes('sticker')) return { cover: '/merch/stickers.jpg', images: ['/merch/stickers.jpg'] };
+    return { cover: '/merch/hoodie.jpg', images: ['/merch/hoodie.jpg'] };
+  }
+
   function formatProduct(p) {
     if (!p) return null;
+    const resolved = resolveProductImages(p);
+    const dbImages = (p.images || []).map((img) => (img.file?.storageKey ? `/api/v1/files/${img.fileId}` : img.url)).filter(Boolean);
+    const coverImageUrl = p.coverImageUrl || (dbImages.length ? dbImages[0] : resolved.cover);
+    const images = dbImages.length ? dbImages : resolved.images;
+
     return {
       ...p,
+      coverImageUrl,
+      images,
       memberPricePaise: Number(p.memberPricePaise ?? 0),
       nonMemberPricePaise: Number(p.nonMemberPricePaise ?? 0),
       variants: (p.variants || []).map((v) => ({
