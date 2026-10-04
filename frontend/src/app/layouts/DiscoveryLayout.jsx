@@ -141,6 +141,7 @@ export default function DiscoveryLayout() {
     if (roles.includes("PRESIDENT")) {
       return [
         ["/manage", "Console"],
+        ["/manage/meetings", "Meetings & Agendas"],
         ["/manage/events", "Events Console"],
         ["/manage/sponsorship", "Sponsorship"],
         ["/manage/claims", "Claims Review"],

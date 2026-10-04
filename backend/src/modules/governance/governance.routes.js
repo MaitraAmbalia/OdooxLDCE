@@ -27,7 +27,7 @@ function formatCycle(cycle) {
   };
 }
 
-export function createGovernanceRouter({ prisma, authenticate }) {
+export function createGovernanceRouter({ prisma, authenticate, authorize }) {
   const router = Router();
 
   router.get('/selection/cycles', async (_req, res) => {
@@ -38,7 +38,7 @@ export function createGovernanceRouter({ prisma, authenticate }) {
     return res.json({ data: cycles.map(formatCycle) });
   });
 
-  router.post('/selection/cycles', authenticate, async (req, res) => {
+  router.post('/selection/cycles', authenticate, authorize('selection.manage'), async (req, res) => {
     const input = req.body;
     const created = await prisma.selectionCycle.create({
       data: {
@@ -56,7 +56,7 @@ export function createGovernanceRouter({ prisma, authenticate }) {
     return res.status(201).json({ data: formatCycle(created) });
   });
 
-  router.patch('/selection/cycles/:id', authenticate, async (req, res) => {
+  router.patch('/selection/cycles/:id', authenticate, authorize('selection.manage'), async (req, res) => {
     const input = req.body;
     const updated = await prisma.selectionCycle.update({
       where: { id: req.params.id },
@@ -74,7 +74,7 @@ export function createGovernanceRouter({ prisma, authenticate }) {
     return res.json({ data: formatCycle(updated) });
   });
 
-  router.post('/selection/cycles/:id/posts', authenticate, async (req, res) => {
+  router.post('/selection/cycles/:id/posts', authenticate, authorize('selection.manage'), async (req, res) => {
     const input = req.body;
     const post = await prisma.selectionPost.create({
       data: {
@@ -92,7 +92,7 @@ export function createGovernanceRouter({ prisma, authenticate }) {
     return res.status(201).json({ data: post });
   });
 
-  router.delete('/selection/posts/:id', authenticate, async (req, res) => {
+  router.delete('/selection/posts/:id', authenticate, authorize('selection.manage'), async (req, res) => {
     await prisma.selectionPost.delete({ where: { id: req.params.id } });
     return res.status(204).send();
   });
@@ -169,7 +169,7 @@ export function createGovernanceRouter({ prisma, authenticate }) {
     return res.status(201).json({ data: { id: application.id, status: application.status, submittedAt: application.createdAt } });
   });
 
-  router.get('/selection/cycles/:id/applications', authenticate, async (req, res) => {
+  router.get('/selection/cycles/:id/applications', authenticate, authorize('selection.manage', 'selection.review'), async (req, res) => {
     const applications = await prisma.application.findMany({
       where: { post: { cycleId: req.params.id } },
       include: {
@@ -193,7 +193,7 @@ export function createGovernanceRouter({ prisma, authenticate }) {
     });
   });
 
-  router.patch('/selection/applications/:id/status', authenticate, async (req, res) => {
+  router.patch('/selection/applications/:id/status', authenticate, authorize('selection.review'), async (req, res) => {
     const { status, note } = req.body;
     
     if (!req.user.roles || !req.user.roles.includes('MENTOR')) {
@@ -251,8 +251,10 @@ export function createGovernanceRouter({ prisma, authenticate }) {
     }
   });
 
-  router.get('/meetings', authenticate, async (_req, res) => {
+  router.get('/meetings', authenticate, async (req, res) => {
+    const canManageMeetings = req.user.permissions?.includes('meeting.manage');
     const meetings = await prisma.meeting.findMany({
+      where: canManageMeetings ? undefined : { invites: { some: { userId: req.user.id } } },
       orderBy: { startAt: 'asc' },
       include: {
         agendaItems: { orderBy: { sortOrder: 'asc' }, include: { owner: { select: { id: true, name: true } } } },
@@ -270,7 +272,7 @@ export function createGovernanceRouter({ prisma, authenticate }) {
     });
   });
 
-  router.post('/meetings', authenticate, async (req, res) => {
+  router.post('/meetings', authenticate, authorize('meeting.manage'), async (req, res) => {
     const { title, date, startAt, endAt, venue, location, meetingLink, audience = 'BOTH', agendaItems, agenda } = req.body;
     const starts = new Date(startAt || date);
     if (Number.isNaN(starts.getTime())) throw new AppError('INVALID_DATE', 400, 'A valid meeting date is required');
@@ -280,6 +282,34 @@ export function createGovernanceRouter({ prisma, authenticate }) {
       : typeof agenda === 'string'
         ? agenda.split('\n').map((topic) => ({ topic: topic.trim(), durationMin: 15 })).filter((item) => item.topic)
         : [];
+
+    const now = new Date();
+    const [leaderAssignments, volunteers] = await Promise.all([
+      ['LEADERS', 'BOTH'].includes(audience)
+        ? prisma.roleAssignment.findMany({
+            where: {
+              role: { in: ['PRESIDENT', 'TREASURER', 'EVENT_HEAD', 'VOLUNTEER_HEAD', 'MARKETING_HEAD', 'SPONSORSHIP_HEAD'] },
+              termStart: { lte: now },
+              termEnd: { gt: now },
+              OR: [{ endedAt: null }, { endedAt: { gt: now } }],
+            },
+            select: { userId: true },
+          })
+        : [],
+      ['VOLUNTEERS', 'BOTH'].includes(audience)
+        ? prisma.volunteer.findMany({
+            where: {
+              status: 'ACTIVE',
+              user: { memberships: { some: { status: 'ACTIVE', OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] } } },
+            },
+            select: { userId: true },
+          })
+        : [],
+    ]);
+    const requiredUserIds = [...new Set([
+      ...leaderAssignments.map((entry) => entry.userId),
+      ...volunteers.map((entry) => entry.userId),
+    ])];
 
     const created = await prisma.meeting.create({
       data: {
@@ -298,6 +328,9 @@ export function createGovernanceRouter({ prisma, authenticate }) {
             ownerId: item.ownerId || null,
             durationMin: Number(item.durationMin || item.minutes || 15),
           })),
+        } : undefined,
+        invites: requiredUserIds.length ? {
+          create: requiredUserIds.map((userId) => ({ userId, isRequired: true })),
         } : undefined,
       },
       include: { agendaItems: { orderBy: { sortOrder: 'asc' } }, invites: true },

@@ -68,16 +68,16 @@ export function createApp({
   app.use('/api/v1', createAuthRouter({ service: createAuthService({ prisma, config }), authenticate: auth }));
   app.use('/api/v1', createUsersRouter({ service: createUsersService({ prisma }), authenticate: auth, authorize }));
   app.use('/api/v1', createAccessRouter({ service: createAccessService({ prisma }), authenticate: auth, authorize }));
-  app.use('/api/v1', createVolunteersRouter({ service: createVolunteersService({ prisma }), authenticate: auth }));
-  app.use('/api/v1', createProjectsRouter({ service: createProjectsService({ prisma }), authenticate: auth }));
-  app.use('/api/v1', createNotificationsRouter({ service: createNotificationsService({ prisma }), authenticate: auth, prisma }));
+  app.use('/api/v1', createVolunteersRouter({ service: createVolunteersService({ prisma }), authenticate: auth, authorize }));
+  app.use('/api/v1', createProjectsRouter({ service: createProjectsService({ prisma }), authenticate: auth, authorize }));
+  app.use('/api/v1', createNotificationsRouter({ service: createNotificationsService({ prisma }), authenticate: auth, authorize, prisma }));
   app.use('/api/v1', createEventsRouter({ service: createEventsService({ prisma }), authenticate: auth, authorize }));
 
   const paymentsService = createPaymentsService({ prisma, config, logger });
   app.use('/api/v1', createTicketsRouter({ service: createTicketsService({ prisma, config, createPayment: paymentsService.createPayment }), authenticate: auth, authorize }));
   const filesService = createFilesService({ prisma, config });
 
-  app.use('/api/v1', createMerchRouter({ service: createMerchService({ prisma, createPayment: paymentsService.createPayment }), authenticate: auth }));
+  app.use('/api/v1', createMerchRouter({ service: createMerchService({ prisma, createPayment: paymentsService.createPayment }), authenticate: auth, authorize }));
   app.use('/api/v1/payments', createPaymentsRouter({ service: paymentsService, authenticate: auth, config }));
   app.use('/api/v1/files', createFilesRouter({ service: filesService, authenticate: auth }));
   app.use(
@@ -93,7 +93,7 @@ export function createApp({
   app.use('/api/v1', createFinanceRouter({ service: createFinanceService({ prisma, files: filesService }), authenticate: auth, requirePermission: authorize }));
   app.use('/api/v1', createApprovalsRouter({ service: createApprovalsService({ prisma }), authenticate: auth, requirePermission: authorize }));
   app.use('/api/v1', createDashboardsRouter({ service: createDashboardsService({ prisma }), authenticate: auth }));
-  app.use('/api/v1', createGovernanceRouter({ prisma, authenticate: auth }));
+  app.use('/api/v1', createGovernanceRouter({ prisma, authenticate: auth, authorize }));
   app.use(
     '/api/v1',
     createNewsletterRouter({

@@ -147,7 +147,7 @@ Skyline implements a **12-role hierarchy** with scoped permissions:
 | **Cash Desk** | `/cash-desk` | Collect cash payments, submit for verification |
 | **Volunteer** | `/volunteer/*` | View assigned tasks, submit expense claims, task chat |
 | **Task Assignee** | `/volunteer/*` | Scoped task execution within projects |
-| **Member** | `/*` | Buy tickets at member prices, vote in selections, access members-only events |
+| **Member** | `/*` | Buy tickets at member prices, apply for leadership positions, access members-only events |
 | **User** | `/*` | Browse events, buy tickets, shop merch, register as member |
 
 ---

@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   ArrowUpRight,
   CalendarDays,
   HeartHandshake,
   LayoutDashboard,
+  Mail,
   ShieldCheck,
   ShoppingBag,
   Ticket,
@@ -14,6 +16,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function AccountHome() {
   usePageTitle("My account");
+  const queryClient = useQueryClient();
   const { data: authData, isLoading: authLoading } = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: async () => {
@@ -45,6 +48,34 @@ export default function AccountHome() {
   });
 
   const user = authData?.data;
+  const { data: newsletterData } = useQuery({
+    queryKey: ['newsletter', 'preference', 'me'],
+    enabled: Boolean(user),
+    queryFn: async () => {
+      const res = await fetch('/api/v1/newsletter/preferences/me', { credentials: 'include' });
+      if (!res.ok) throw new Error('Could not load newsletter preference');
+      return res.json();
+    },
+  });
+  const newsletterStatus = newsletterData?.data?.status || 'UNSUBSCRIBED';
+  const newsletterMutation = useMutation({
+    mutationFn: async (enabled) => {
+      const res = await fetch('/api/v1/newsletter/preferences/me', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error?.message || 'Could not update newsletter preference');
+      return json;
+    },
+    onSuccess: (result) => {
+      queryClient.setQueryData(['newsletter', 'preference', 'me'], result);
+      toast.success(result.data.status === 'PENDING_CONFIRMATION' ? 'Check your email to confirm the subscription.' : 'Newsletter preference updated.');
+    },
+    onError: (error) => toast.error(error.message),
+  });
   const roles = user?.roles || [];
   const isLeadership = Boolean(
     roles.some((r) =>
@@ -225,6 +256,28 @@ export default function AccountHome() {
           </Link>
         )}
       </div>
+
+      <section className="mb-10 flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 sm:flex-row sm:items-center sm:justify-between" aria-labelledby="newsletter-preference-heading">
+        <div className="flex items-start gap-3">
+          <span className="rounded-xl bg-secondary p-2.5 text-primary"><Mail className="size-5" aria-hidden="true" /></span>
+          <div>
+            <h2 id="newsletter-preference-heading" className="font-display text-lg font-semibold">Promotional newsletters</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {newsletterStatus === 'SUBSCRIBED' && 'You are opted in to Skyline promotional email.'}
+              {newsletterStatus === 'PENDING_CONFIRMATION' && 'Check your inbox to confirm your opt-in.'}
+              {newsletterStatus === 'UNSUBSCRIBED' && 'You are opted out of promotional email.'}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          disabled={newsletterMutation.isPending}
+          onClick={() => newsletterMutation.mutate(newsletterStatus === 'UNSUBSCRIBED')}
+          className="inline-flex min-h-10 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium hover:bg-muted disabled:opacity-60"
+        >
+          {newsletterMutation.isPending ? 'Updating…' : newsletterStatus === 'UNSUBSCRIBED' ? 'Opt in' : 'Opt out'}
+        </button>
+      </section>
 
       {/* Quick Action Navigation Links */}
       <div className="grid gap-4 sm:grid-cols-3">

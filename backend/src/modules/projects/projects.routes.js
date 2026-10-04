@@ -1,26 +1,26 @@
 import { Router } from 'express';
 import { getIO } from '../../lib/socket.js';
 
-export function createProjectsRouter({ service, authenticate }) {
+export function createProjectsRouter({ service, authenticate, authorize }) {
   const router = Router();
 
-  router.post('/projects', authenticate, async (req, res) => {
+  router.post('/projects', authenticate, authorize('project.manage', 'volunteer.manage'), async (req, res) => {
     res.status(201).json({ data: await service.createProject(req.user.sub, req.body) });
   });
 
-  router.get('/projects', authenticate, async (req, res) => {
+  router.get('/projects', authenticate, authorize('project.manage', 'volunteer.manage'), async (req, res) => {
     res.json(await service.listProjects(req.query));
   });
 
-  router.get('/projects/:id', authenticate, async (req, res) => {
+  router.get('/projects/:id', authenticate, authorize('project.manage', 'volunteer.manage'), async (req, res) => {
     res.json({ data: await service.getProject(req.params.id) });
   });
 
-  router.post('/projects/:id/close', authenticate, async (req, res) => {
+  router.post('/projects/:id/close', authenticate, authorize('project.manage', 'volunteer.manage'), async (req, res) => {
     res.json({ data: await service.closeProject(req.params.id) });
   });
 
-  router.post('/projects/:id/tasks', authenticate, async (req, res) => {
+  router.post('/projects/:id/tasks', authenticate, authorize('project.manage', 'volunteer.manage'), async (req, res) => {
     res.status(201).json({ data: await service.createTask(req.user.sub, req.params.id, req.body) });
   });
 

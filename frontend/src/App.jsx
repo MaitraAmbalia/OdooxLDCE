@@ -112,7 +112,7 @@ function App() {
 
         {/* Phase 9: Selection (Public) */}
         <Route path="selection" element={<SelectionHub />} />
-        <Route path="selection/posts/:postId/apply" element={<ApplicationForm />} />
+        <Route path="selection/posts/:postId/apply" element={<ProtectedRoute requireAuth requireMember unauthorizedMessage="Only active members can apply for a leadership position."><ApplicationForm /></ProtectedRoute>} />
 
         {/* Phase 3, 4, 5, 6, 7, 8 & 9: Manage */}
         <Route

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-export function createMerchRouter({ service, authenticate }) {
+export function createMerchRouter({ service, authenticate, authorize }) {
   const router = Router();
 
   // GET /merch/products & /products - List hoodie & t-shirt products (Public)
@@ -24,11 +24,11 @@ export function createMerchRouter({ service, authenticate }) {
   });
 
   // Staff fulfilment queue
-  router.get('/orders', authenticate, async (req, res) => {
+  router.get('/orders', authenticate, authorize('order.fulfil'), async (req, res) => {
     res.json(await service.listOrders(req.query));
   });
 
-  router.patch('/orders/:id/status', authenticate, async (req, res) => {
+  router.patch('/orders/:id/status', authenticate, authorize('order.fulfil'), async (req, res) => {
     res.json({ data: await service.updateOrderStatus(req.user.sub, req.params.id, req.body.status) });
   });
 

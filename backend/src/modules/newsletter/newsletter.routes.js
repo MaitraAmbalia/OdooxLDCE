@@ -11,6 +11,30 @@ import {
 export function createNewsletterRouter({ service, authenticate, authorize }) {
   const router = Router();
 
+  router.get('/newsletter/preferences/me', authenticate, async (req, res, next) => {
+    try {
+      res.json({ data: await service.getProfilePreference({ userId: req.user.id }) });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.patch('/newsletter/preferences/me', authenticate, async (req, res, next) => {
+    try {
+      if (typeof req.body.enabled !== 'boolean') return res.status(400).json({ error: { message: 'enabled must be a boolean' } });
+      const result = await service.setProfilePreference({
+        userId: req.user.id,
+        name: req.user.name,
+        enabled: req.body.enabled,
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+      res.json({ data: result });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   // 1. Public Subscription Endpoints
   router.post('/newsletter/subscribe', validate({ body: subscribeSchema }), async (req, res, next) => {
     try {

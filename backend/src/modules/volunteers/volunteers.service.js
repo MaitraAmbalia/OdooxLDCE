@@ -34,13 +34,25 @@ export function createVolunteersService({ prisma }) {
 
     async list(query = {}) {
       const page = parsePagination(query, { defaultLimit: 50 });
+      const now = new Date();
       const [data, total] = await Promise.all([
         prisma.volunteer.findMany({
           skip: page.skip,
           take: page.take,
           include: {
             user: {
-              select: { id: true, name: true, email: true, studentId: true, phone: true },
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                studentId: true,
+                phone: true,
+                memberships: {
+                  where: { status: 'ACTIVE', OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+                  select: { id: true },
+                  take: 1,
+                },
+              },
             },
           },
         }),

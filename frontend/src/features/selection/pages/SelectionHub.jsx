@@ -29,6 +29,7 @@ export default function SelectionHub() {
 
   const user = authData?.data;
   const isPresidentOrMentor = user?.roles?.includes('PRESIDENT') || user?.roles?.includes('MENTOR');
+  const isActiveMember = user?.membership?.status === 'ACTIVE';
 
   const cycles = cyclesData?.data || [];
   const openCycles = cycles.filter(c => c.status === 'OPEN' && new Date(c.deadlineAt) > new Date());
@@ -40,7 +41,7 @@ export default function SelectionHub() {
         <p className="mb-3 text-sm font-medium text-primary">Shape what comes next</p>
         <h1 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Bring your ideas. Build your community.</h1>
         <p className="mt-4 text-base leading-7 text-muted-foreground">
-          Find open Skyline roles, understand the commitment, and apply when the fit feels right.
+          Find open Skyline roles, understand the commitment, and apply when the fit feels right. Applications are available only to active members; this process does not include student voting.
         </p>
       </div>
 
@@ -100,6 +101,13 @@ export default function SelectionHub() {
                         >
                           Ineligible (Supervisory role)
                         </button>
+                      ) : user && !isActiveMember ? (
+                        <Link
+                          to="/join"
+                          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted"
+                        >
+                          Activate membership to apply
+                        </Link>
                       ) : (
                         <Link
                           to={`/selection/posts/${post.id}/apply`}

@@ -12,6 +12,7 @@ import { Input } from "../../../components/ui/input";
 import { Badge } from "../../../components/ui/badge";
 import { usePageTitle } from "../../../hooks/usePageTitle";
 import { useSession } from "../../../hooks/useSession";
+import { getPostLoginPath } from "../../../lib/access";
 
 export default function Login() {
   usePageTitle("Log in");
@@ -27,16 +28,7 @@ export default function Login() {
 
   useEffect(() => {
     if (!isSessionPending && currentUser) {
-      const redirectTarget = searchParams.get("redirect");
-      if (redirectTarget && redirectTarget.startsWith("/") && !redirectTarget.startsWith("//")) {
-        navigate(redirectTarget, { replace: true });
-      } else if (currentUser.roles && currentUser.roles.length > 0) {
-        navigate("/manage", { replace: true });
-      } else if (currentUser.isVolunteer) {
-        navigate("/volunteer", { replace: true });
-      } else {
-        navigate("/me", { replace: true });
-      }
+      navigate(getPostLoginPath(currentUser, searchParams.get("redirect")), { replace: true });
     }
   }, [isSessionPending, currentUser, searchParams, navigate]);
 
@@ -56,17 +48,7 @@ export default function Login() {
       const user = json.data;
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
 
-      const redirectTarget = searchParams.get("redirect");
-      if (redirectTarget && redirectTarget.startsWith("/") && !redirectTarget.startsWith("//")) {
-        navigate(redirectTarget, { replace: true });
-      } else if (user?.roles && user.roles.length > 0) {
-        navigate("/manage", { replace: true });
-      } else if (user?.isVolunteer) {
-        navigate("/volunteer", { replace: true });
-      } else {
-        navigate("/me", { replace: true });
-      }
-      window.location.reload();
+      navigate(getPostLoginPath(user, searchParams.get("redirect")), { replace: true });
     } catch (err) {
       setErrorMsg(err.message);
     }
@@ -152,7 +134,7 @@ export default function Login() {
       badge: "Member Perks",
       icon: ShieldCheck,
       color: "bg-[#f5e4db] text-[#86533d]",
-      desc: "Digital QR pass, member discounts, ticket wallet & election voting."
+      desc: "Digital QR pass, member discounts, ticket wallet & leadership applications."
     }
   ];
 

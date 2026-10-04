@@ -25,6 +25,24 @@ export function createProjectsService({ prisma }) {
 
   const toMessage = (m) => ({ id: m.id, body: m.body, createdAt: m.createdAt, sender: m.sender });
 
+  async function validateVolunteerAssignees(userIds = []) {
+    const uniqueIds = [...new Set(userIds.filter((id) => typeof id === 'string' && id))];
+    if (!uniqueIds.length) return [];
+    const now = new Date();
+    const volunteers = await prisma.volunteer.findMany({
+      where: {
+        userId: { in: uniqueIds },
+        status: 'ACTIVE',
+        user: { memberships: { some: { status: 'ACTIVE', OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] } } },
+      },
+      select: { userId: true },
+    });
+    if (volunteers.length !== uniqueIds.length) {
+      throw new AppError('INVALID_ASSIGNEE', 400, 'Tasks can only be assigned to active member volunteers');
+    }
+    return uniqueIds;
+  }
+
   return {
     async getTask(user, taskId) {
       const task = await accessibleTask(user, taskId);
@@ -134,17 +152,37 @@ export function createProjectsService({ prisma }) {
       if (!project) throw new AppError('NOT_FOUND', 404, 'Project not found');
       if (project.status === 'CLOSED') throw new AppError('PROJECT_CLOSED', 400, 'Cannot add tasks to a closed project');
 
-      return prisma.task.create({
+      const title = typeof input.title === 'string' ? input.title.trim() : '';
+      if (!title) throw new AppError('VALIDATION_ERROR', 400, 'Task title is required');
+      if (!['LOW', 'MEDIUM', 'HIGH'].includes(input.priority ?? 'MEDIUM')) {
+        throw new AppError('VALIDATION_ERROR', 400, 'Invalid task priority');
+      }
+      const assigneeUserIds = await validateVolunteerAssignees(input.assigneeUserIds);
+      const dueAt = input.dueAt || input.dueDate ? new Date(input.dueAt || input.dueDate) : new Date(Date.now() + 7 * 24 * 3600000);
+      if (Number.isNaN(dueAt.getTime())) throw new AppError('VALIDATION_ERROR', 400, 'A valid task due date is required');
+
+      const task = await prisma.task.create({
         data: {
           projectId,
-          title: input.title,
+          title,
           description: input.description ?? '',
           priority: input.priority ?? 'MEDIUM',
           status: 'TODO',
           createdById: creatorId,
-          dueAt: input.dueAt || input.dueDate ? new Date(input.dueAt || input.dueDate) : new Date(Date.now() + 7 * 24 * 3600000),
+          dueAt,
+          assignees: assigneeUserIds.length ? {
+            create: assigneeUserIds.map((userId) => ({ userId })),
+          } : undefined,
         },
+        include: { assignees: assigneeInclude },
       });
+      await notifyMany(prisma, assigneeUserIds, {
+        type: 'TASK_ASSIGNED',
+        title: 'New task assigned',
+        body: `You were added to "${task.title}".`,
+        link: `/volunteer/tasks/${task.id}`,
+      });
+      return task;
     },
 
     async updateTaskStatus(user, taskId, status) {
@@ -160,16 +198,17 @@ export function createProjectsService({ prisma }) {
 
     async assignTask(user, taskId, userIds = []) {
       if (!isManager(user)) throw new AppError('FORBIDDEN', 403, 'Only project leads can assign tasks');
+      const assigneeUserIds = await validateVolunteerAssignees(userIds);
       const task = await prisma.task.findUnique({ where: { id: taskId }, include: { assignees: { where: { removedAt: null } } } });
       if (!task) throw taskNotFound();
       const before = new Set(task.assignees.map((a) => a.userId));
       await prisma.taskAssignee.deleteMany({ where: { taskId } });
-      if (userIds && userIds.length > 0) {
+      if (assigneeUserIds.length > 0) {
         await prisma.taskAssignee.createMany({
-          data: userIds.map((userId) => ({ taskId, userId })),
+          data: assigneeUserIds.map((userId) => ({ taskId, userId })),
         });
       }
-      await notifyMany(prisma, userIds.filter((id) => !before.has(id)), {
+      await notifyMany(prisma, assigneeUserIds.filter((id) => !before.has(id)), {
         type: 'TASK_ASSIGNED',
         title: 'New task assigned',
         body: `You were added to "${task.title}".`,

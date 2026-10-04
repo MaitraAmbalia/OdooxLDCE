@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { parsePagination, createPageMeta } from '../../lib/pagination.js';
 
-export function createNotificationsRouter({ service, authenticate, prisma }) {
+export function createNotificationsRouter({ service, authenticate, authorize, prisma }) {
   const router = Router();
 
   // 1. In-App Notifications
@@ -74,7 +74,7 @@ export function createNotificationsRouter({ service, authenticate, prisma }) {
     }
   });
 
-  router.post('/announcements', authenticate, async (req, res) => {
+  router.post('/announcements', authenticate, authorize('announcement.publish'), async (req, res) => {
     try {
       const { title, body, audience = 'PUBLIC' } = req.body;
       if (!title || !body) {

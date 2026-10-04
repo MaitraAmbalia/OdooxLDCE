@@ -2,22 +2,14 @@ import { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useSession } from "@/hooks/useSession";
-
-const LEADERSHIP_ROLES = [
-  "PRESIDENT",
-  "TREASURER",
-  "EVENT_HEAD",
-  "VOLUNTEER_HEAD",
-  "MARKETING_HEAD",
-  "SPONSORSHIP_HEAD",
-  "MENTOR",
-];
+import { getDefaultLandingPath, isLeadershipUser } from "@/lib/access";
 
 export default function ProtectedRoute({
   children,
   requireAuth = true,
   requireLeadership = false,
   requireVolunteer = false,
+  requireMember = false,
   anyPermission = null,
   allPermissions = null,
   fallbackPath = null,
@@ -27,15 +19,14 @@ export default function ProtectedRoute({
   const user = data?.data;
   const location = useLocation();
 
-  const isLeadership = Boolean(
-    user?.roles?.some((role) => LEADERSHIP_ROLES.includes(role))
-  );
+  const isLeadership = isLeadershipUser(user);
   const isVolunteer = Boolean(user?.isVolunteer || isLeadership);
+  const isMember = user?.membership?.status === "ACTIVE";
   const userPermissions = user?.permissions || [];
 
   // Determine authorization status
   let authorized = true;
-  let defaultFallback = isLeadership ? "/manage" : "/me";
+  let defaultFallback = getDefaultLandingPath(user);
   let defaultMsg = "You do not have permission to view that section.";
 
   if (requireAuth && !user) {
@@ -48,6 +39,10 @@ export default function ProtectedRoute({
     authorized = false;
     defaultFallback = "/me";
     defaultMsg = "Volunteer portal access is required.";
+  } else if (requireMember && !isMember) {
+    authorized = false;
+    defaultFallback = "/join";
+    defaultMsg = "Active membership is required.";
   } else if (anyPermission && anyPermission.length > 0) {
     const hasAny = anyPermission.some((perm) => userPermissions.includes(perm));
     if (!hasAny) {

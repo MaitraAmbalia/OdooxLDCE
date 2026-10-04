@@ -24,6 +24,67 @@ export function createNewsletterService({ prisma, config }) {
   }
 
   return {
+    async getProfilePreference({ userId }) {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+      if (!user) throw new AppError('NOT_FOUND', 404, 'User not found');
+      const email = user.email;
+      const subscriber = await prisma.newsletterSubscriber.findFirst({
+        where: { OR: [{ userId }, { email: email.trim().toLowerCase() }] },
+        select: { status: true, email: true },
+      });
+      return { status: subscriber?.status ?? 'UNSUBSCRIBED', email };
+    },
+
+    async setProfilePreference({ userId, name, enabled, ip, userAgent }) {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+      if (!user) throw new AppError('NOT_FOUND', 404, 'User not found');
+      const email = user.email;
+      const normalizedEmail = email.trim().toLowerCase();
+      const existing = await prisma.newsletterSubscriber.findFirst({
+        where: { OR: [{ userId }, { email: normalizedEmail }] },
+      });
+
+      if (!enabled) {
+        if (!existing) return { status: 'UNSUBSCRIBED', email: normalizedEmail };
+        await prisma.$transaction([
+          prisma.newsletterSubscriber.update({
+            where: { id: existing.id },
+            data: { userId, email: normalizedEmail, name: name || existing.name, status: 'UNSUBSCRIBED' },
+          }),
+          prisma.newsletterConsent.create({
+            data: { subscriberId: existing.id, action: 'OPT_OUT', source: 'PROFILE', ip, userAgent },
+          }),
+        ]);
+        return { status: 'UNSUBSCRIBED', email: normalizedEmail };
+      }
+
+      if (existing?.status === 'SUBSCRIBED') {
+        await prisma.newsletterSubscriber.update({ where: { id: existing.id }, data: { userId } });
+        return { status: 'SUBSCRIBED', email: normalizedEmail };
+      }
+
+      const rawConfirmToken = genToken();
+      const rawUnsubToken = genToken();
+      const subscriber = existing
+        ? await prisma.newsletterSubscriber.update({
+            where: { id: existing.id },
+            data: { userId, email: normalizedEmail, name: name || existing.name, status: 'PENDING_CONFIRMATION', confirmTokenHash: hashToken(rawConfirmToken), unsubscribeTokenHash: hashToken(rawUnsubToken) },
+          })
+        : await prisma.newsletterSubscriber.create({
+            data: { userId, email: normalizedEmail, name: name || 'Subscriber', status: 'PENDING_CONFIRMATION', confirmTokenHash: hashToken(rawConfirmToken), unsubscribeTokenHash: hashToken(rawUnsubToken) },
+          });
+
+      await prisma.$transaction([
+        prisma.newsletterConsent.create({
+          data: { subscriberId: subscriber.id, action: 'OPT_IN', source: 'PROFILE', ip, userAgent },
+        }),
+        prisma.emailOutbox.create({
+          data: { to: normalizedEmail, template: 'newsletter_confirm', payload: { name: subscriber.name, confirmUrl: `${frontendUrl}/newsletter/confirm?token=${rawConfirmToken}` } },
+        }),
+      ]);
+      return { status: 'PENDING_CONFIRMATION', email: normalizedEmail };
+    },
+
     async subscribe({ email, name = 'Subscriber', ip, userAgent }) {
       const normalizedEmail = email.trim().toLowerCase();
       const existing = await prisma.newsletterSubscriber.findUnique({
