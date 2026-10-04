@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import DiscoveryLayout from "./app/layouts/DiscoveryLayout";
 import Login from "./features/auth/pages/Login";
 import Register from "./features/auth/pages/Register";
@@ -196,6 +196,8 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="claims/new" element={<Navigate to="/volunteer/claims/new" replace />} />
+        <Route path="claim/new" element={<Navigate to="/volunteer/claims/new" replace />} />
         <Route
           path="volunteer/claims/:id"
           element={

@@ -1,9 +1,10 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
   ArrowUpRight,
-  CalendarDays,
-  MapPin,
+  ChevronLeft,
+  ChevronRight,
   ShoppingBag,
   Ticket,
   Users,
@@ -14,15 +15,11 @@ import { ContentState } from "@/components/common/ContentState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useEvents } from "@/features/events/hooks/useEvents";
 import {
-  EventArtwork,
   EventCard,
   EventCardSkeleton,
 } from "@/features/events/components/EventCard";
-import {
-  categoryLabel,
-  filterEvents,
-  formatEventDate,
-} from "@/features/events/lib/events";
+import { HeroEventSlider } from "@/features/events/components/HeroEventSlider";
+import { filterEvents } from "@/features/events/lib/events";
 
 const pathways = [
   {
@@ -58,7 +55,14 @@ export default function Home() {
   usePageTitle("Your campus, connected");
   const { data, isPending, isError, refetch } = useEvents();
   const upcoming = filterEvents(data?.data || []);
-  const featured = upcoming[0];
+  const railRef = useRef(null);
+
+  const scrollRail = (direction) => {
+    if (!railRef.current) return;
+    const offset = direction === "left" ? -360 : 360;
+    railRef.current.scrollBy({ left: offset, behavior: "smooth" });
+  };
+
   return (
     <>
       <section
@@ -116,68 +120,8 @@ export default function Home() {
                 <Skeleton className="h-4 w-1/2" />
               </div>
             </div>
-          ) : featured ? (
-            <Link
-              to={`/events/${featured.id}`}
-              className="group block overflow-hidden rounded-2xl border border-border bg-card shadow-xl shadow-primary/5"
-            >
-              <EventArtwork
-                event={featured}
-                className="home-hero-art"
-                priority
-              />
-              <div className="p-6 sm:p-7">
-                <div className="mb-3 flex items-center justify-between gap-3 text-xs font-medium">
-                  <span className="rounded-full bg-secondary px-2.5 py-1 text-primary">
-                    Coming up next
-                  </span>
-                  <span className="text-muted-foreground">
-                    {categoryLabel(featured.category)}
-                  </span>
-                </div>
-                <h2 className="font-display text-2xl font-semibold tracking-tight group-hover:text-primary">
-                  {featured.title}
-                </h2>
-                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <CalendarDays className="size-4" aria-hidden="true" />
-                    {formatEventDate(featured, {
-                      day: "numeric",
-                      month: "long",
-                    })}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <MapPin className="size-4 shrink-0" aria-hidden="true" />
-                    {featured.venue || "Venue to be announced"}
-                  </span>
-                </div>
-                <div className="mt-5 flex items-center justify-between border-t border-border pt-4 text-sm font-medium text-primary">
-                  Take a closer look
-                  <ArrowUpRight className="size-5" aria-hidden="true" />
-                </div>
-              </div>
-            </Link>
           ) : (
-            <div className="relative flex min-h-96 flex-col justify-between overflow-hidden rounded-2xl bg-secondary p-8 text-primary">
-              <div className="poster-orbit" aria-hidden="true" />
-              <span className="relative text-sm font-medium">
-                A place to belong.
-              </span>
-              <div className="relative">
-                <Users
-                  className="mb-6 size-12"
-                  strokeWidth={1}
-                  aria-hidden="true"
-                />
-                <p className="max-w-xs font-display text-5xl font-semibold leading-[1.05] tracking-tight">
-                  Your next chapter starts here.
-                </p>
-                <p className="mt-5 max-w-xs text-sm leading-6">
-                  Discover the people and possibilities beyond your everyday
-                  routine.
-                </p>
-              </div>
-            </div>
+            <HeroEventSlider events={upcoming} />
           )}
         </div>
       </section>
@@ -237,11 +181,37 @@ export default function Home() {
               A few good reasons to step out and show up.
             </p>
           </div>
-          <Button asChild variant="outline" className="h-11 bg-card">
-            <Link to="/events">
-              All events <ArrowRight aria-hidden="true" />
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            {upcoming.length > 3 && (
+              <div className="flex items-center gap-1.5 mr-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-10 rounded-full bg-card shadow-sm hover:bg-secondary"
+                  onClick={() => scrollRail("left")}
+                  aria-label="Previous events"
+                >
+                  <ChevronLeft className="size-5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-10 rounded-full bg-card shadow-sm hover:bg-secondary"
+                  onClick={() => scrollRail("right")}
+                  aria-label="Next events"
+                >
+                  <ChevronRight className="size-5" />
+                </Button>
+              </div>
+            )}
+            <Button asChild variant="outline" className="h-11 bg-card">
+              <Link to="/events">
+                All events <ArrowRight aria-hidden="true" />
+              </Link>
+            </Button>
+          </div>
         </div>
         {isPending ? (
           <div
@@ -261,9 +231,20 @@ export default function Home() {
             action={() => refetch()}
           />
         ) : upcoming.length ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {upcoming.slice(0, 3).map((event) => (
-              <EventCard key={event.id} event={event} />
+          <div
+            ref={railRef}
+            className="flex gap-6 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory scroll-smooth no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0"
+            tabIndex={0}
+            role="region"
+            aria-label="Upcoming events carousel"
+          >
+            {upcoming.map((event) => (
+              <div
+                key={event.id}
+                className="w-[min(85vw,340px)] sm:w-[350px] shrink-0 snap-start transition-transform duration-300 hover:-translate-y-1"
+              >
+                <EventCard event={event} />
+              </div>
             ))}
           </div>
         ) : (
