@@ -83,20 +83,79 @@ export function getEventCover(event) {
   if (!event) return null;
   if (event.coverImageUrl) return event.coverImageUrl;
   const title = (event.title || "").toLowerCase();
+  const category = (event.category || "").toUpperCase();
+
+  // Specific high-priority title matches
+  if (title.includes("open mic") || title.includes("poetry") || title.includes("acoustic")) {
+    return "/banners/open_mic_poetry.jpg";
+  }
+  if (title.includes("esport") || title.includes("valorant") || title.includes("gaming") || title.includes("bgmi")) {
+    return "/banners/esports_championship.jpg";
+  }
+  if (title.includes("robowars") || title.includes("drone") || title.includes("combat robot") || title.includes("rocketry") || title.includes("aerospace")) {
+    return "/banners/robowars_drones.jpg";
+  }
+  if (title.includes("cultural") || title.includes("raas") || title.includes("garba") || title.includes("dance") || title.includes("bands")) {
+    return "/banners/cultural_night_raas.jpg";
+  }
+  if (title.includes("tedx") || title.includes("conclave") || title.includes("symposium") && !title.includes("workshop")) {
+    return "/banners/tedx_talks.jpg";
+  }
+  if (title.includes("sports") || title.includes("clash of departments") || title.includes("cricket") || title.includes("football") || title.includes("athlete")) {
+    return "/banners/sports_meet.jpg";
+  }
+  if (
+    title.includes("workshop") ||
+    title.includes("bootcamp") ||
+    title.includes("full stack") ||
+    title.includes("ai &") ||
+    title.includes("machine learning") ||
+    title.includes("fintech") ||
+    title.includes("install-fest")
+  ) {
+    return "/banners/ai_workshop.jpg";
+  }
   if (
     event.id === "30000000-0000-0000-0000-000000000002" ||
     title.includes("hackathon") ||
-    title.includes("codewave")
+    title.includes("codewave") ||
+    title.includes("ctf") ||
+    title.includes("devfest")
   ) {
     return "/banners/codewave_hackathon_2026.jpg";
   }
   if (
     event.id === "00000000-0000-0000-0000-000000000001" ||
     title.includes("gala") ||
-    title.includes("spring gala")
+    title.includes("spring gala") ||
+    title.includes("awards")
   ) {
     return "/banners/spring_gala_2026.jpg";
   }
-  return null;
+
+  // Category-based fallbacks
+  switch (category) {
+    case "GALA":
+      return "/banners/spring_gala_2026.jpg";
+    case "HACKATHON":
+      return "/banners/codewave_hackathon_2026.jpg";
+    case "COMPETITION":
+      return "/banners/robowars_drones.jpg";
+    case "SPORTS":
+      return "/banners/sports_meet.jpg";
+    case "CULTURAL":
+      return "/banners/cultural_night_raas.jpg";
+    case "CONFERENCE":
+      return "/banners/tedx_talks.jpg";
+    case "WORKSHOP":
+    case "ACADEMIC":
+      return "/banners/ai_workshop.jpg";
+    case "SOCIAL":
+      return "/banners/open_mic_poetry.jpg";
+    case "EXHIBITION":
+      return "/banners/robowars_drones.jpg";
+    default:
+      return "/banners/spring_gala_2026.jpg";
+  }
 }
 

@@ -24,13 +24,68 @@ const budgetLineData = (b) => ({ category: b.category, amountPaise: BigInt(b.amo
 const resolveCoverUrl = (e) => {
   if (e.coverFileId) return `/api/v1/files/${e.coverFileId}`;
   const t = (e.title || '').toLowerCase();
-  if (e.id === '30000000-0000-0000-0000-000000000002' || t.includes('hackathon') || t.includes('codewave')) {
+  const c = (e.category || '').toUpperCase();
+
+  if (t.includes('open mic') || t.includes('poetry') || t.includes('acoustic')) {
+    return '/banners/open_mic_poetry.jpg';
+  }
+  if (t.includes('esport') || t.includes('valorant') || t.includes('gaming') || t.includes('bgmi')) {
+    return '/banners/esports_championship.jpg';
+  }
+  if (t.includes('robowars') || t.includes('drone') || t.includes('combat robot') || t.includes('rocketry') || t.includes('aerospace')) {
+    return '/banners/robowars_drones.jpg';
+  }
+  if (t.includes('cultural') || t.includes('raas') || t.includes('garba') || t.includes('dance') || t.includes('bands')) {
+    return '/banners/cultural_night_raas.jpg';
+  }
+  if (t.includes('tedx') || t.includes('conclave') || (t.includes('symposium') && !t.includes('workshop'))) {
+    return '/banners/tedx_talks.jpg';
+  }
+  if (t.includes('sports') || t.includes('clash of departments') || t.includes('cricket') || t.includes('football') || t.includes('athlete')) {
+    return '/banners/sports_meet.jpg';
+  }
+  if (
+    t.includes('workshop') ||
+    t.includes('bootcamp') ||
+    t.includes('full stack') ||
+    t.includes('ai &') ||
+    t.includes('machine learning') ||
+    t.includes('fintech') ||
+    t.includes('install-fest')
+  ) {
+    return '/banners/ai_workshop.jpg';
+  }
+  if (
+    e.id === '30000000-0000-0000-0000-000000000002' ||
+    t.includes('hackathon') ||
+    t.includes('codewave') ||
+    t.includes('ctf') ||
+    t.includes('devfest')
+  ) {
     return '/banners/codewave_hackathon_2026.jpg';
   }
-  if (e.id === '00000000-0000-0000-0000-000000000001' || t.includes('gala') || t.includes('spring gala')) {
+  if (
+    e.id === '00000000-0000-0000-0000-000000000001' ||
+    t.includes('gala') ||
+    t.includes('spring gala') ||
+    t.includes('awards')
+  ) {
     return '/banners/spring_gala_2026.jpg';
   }
-  return null;
+
+  switch (c) {
+    case 'GALA': return '/banners/spring_gala_2026.jpg';
+    case 'HACKATHON': return '/banners/codewave_hackathon_2026.jpg';
+    case 'COMPETITION': return '/banners/robowars_drones.jpg';
+    case 'SPORTS': return '/banners/sports_meet.jpg';
+    case 'CULTURAL': return '/banners/cultural_night_raas.jpg';
+    case 'CONFERENCE': return '/banners/tedx_talks.jpg';
+    case 'WORKSHOP':
+    case 'ACADEMIC': return '/banners/ai_workshop.jpg';
+    case 'SOCIAL': return '/banners/open_mic_poetry.jpg';
+    case 'EXHIBITION': return '/banners/robowars_drones.jpg';
+    default: return '/banners/spring_gala_2026.jpg';
+  }
 };
 
 // BigInt is not JSON-serialisable; paise amounts fit in a Number.
@@ -52,7 +107,7 @@ export async function eventSpend(db, eventId) {
     SELECT COALESCE(SUM(CASE WHEN direction = 'OUT' AND source_type <> 'REVERSAL' THEN amount_paise
                              WHEN direction = 'IN'  AND source_type =  'REVERSAL' THEN -amount_paise
                              ELSE 0 END), 0)::bigint AS spent
-    FROM ledger_entries WHERE event_id = ${eventId}::uuid`;
+    FROM ledger_entries WHERE status = 'POSTED' AND event_id = ${eventId}::uuid`;
   return Number(row.spent);
 }
 

@@ -110,7 +110,7 @@ test('Treasurer receipt posts to the existing sponsorship ledger using the authe
   assert.equal(insertedAudit.action, 'SPONSORSHIP.RECEIPT_RECORDED');
 });
 
-test('Won sponsorships are marked done and notify Treasurer and Mentor idempotently', async () => {
+test('Won sponsorships are marked done, committed to the ledger, and notify Treasurer and Mentor idempotently', async () => {
   const event = {
     id: '22222222-2222-4222-8222-222222222222',
     title: 'Demo Day',
@@ -125,9 +125,16 @@ test('Won sponsorships are marked done and notify Treasurer and Mentor idempoten
     sponsorBenefits: 'Brand placement',
   };
   const notificationWrites = [];
+  const ledgerWrites = [];
   const prisma = {
     event: { findUnique: async () => event },
-    ledgerEntry: { findMany: async () => [] },
+    ledgerEntry: {
+      findMany: async () => [],
+      createMany: async (input) => {
+        ledgerWrites.push(input);
+        return { count: input.data.length };
+      },
+    },
     roleAssignment: {
       findMany: async () => [
         { userId: '11111111-1111-4111-8111-111111111111' },
@@ -154,6 +161,7 @@ test('Won sponsorships are marked done and notify Treasurer and Mentor idempoten
           probability: 100,
           stage_id: [4, 'Won'],
           active: true,
+          date_closed: '2026-10-04T12:00:00.000Z',
         }];
       }
       throw new Error(`Unexpected Odoo call: ${model}.${method}`);
@@ -167,6 +175,13 @@ test('Won sponsorships are marked done and notify Treasurer and Mentor idempoten
   assert.equal(first.won[0].status, 'DONE');
   assert.equal(first.won[0].crmStatus, 'WON');
   assert.equal(first.won[0].paymentStatus, 'COMMITTED');
+  assert.equal(ledgerWrites[0].skipDuplicates, true);
+  assert.equal(ledgerWrites[0].data[0].status, 'COMMITTED');
+  assert.equal(ledgerWrites[0].data[0].sourceType, 'SPONSORSHIP_COMMITMENT');
+  assert.equal(ledgerWrites[0].data[0].amountPaise, 100000n);
+  assert.equal(ledgerWrites[0].data[0].eventId, event.id);
+  assert.equal(ledgerWrites[0].data[0].occurredAt.toISOString(), '2026-10-04T12:00:00.000Z');
+  assert.equal(ledgerWrites[0].data[0].sourceId, ledgerWrites[1].data[0].sourceId);
   assert.equal(notificationWrites[0].skipDuplicates, true);
   assert.equal(notificationWrites[0].data.length, 2);
   assert.deepEqual(

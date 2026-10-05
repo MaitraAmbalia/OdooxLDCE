@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CalendarDays, MapPin, Users } from "lucide-react";
+import { ArrowLeft, Building2, CalendarDays, HandCoins, MapPin, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
+import { getEventCover } from "../../lib/events";
 import { Button } from "@/components/ui/button";
 import { ContentState } from "@/components/common/ContentState";
 import { Input } from "@/components/ui/input";
@@ -65,6 +66,7 @@ export default function MentorReview() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["sponsorship"] });
       toast.success("Review decision recorded.");
       navigate("/manage/events");
     },
@@ -97,11 +99,109 @@ export default function MentorReview() {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section className="rounded-2xl border border-border bg-card p-5 sm:p-7" aria-labelledby="proposal-title">
+          {/* Event Cover Banner */}
+          {(event.coverImageUrl || getEventCover(event)) && (
+            <div className="relative mb-6 h-56 w-full overflow-hidden rounded-xl border border-border bg-[#272747] sm:h-72">
+              <img
+                src={event.coverImageUrl || getEventCover(event)}
+                alt={event.title}
+                className="size-full object-cover"
+              />
+              <div className="absolute top-3 left-3">
+                <span className="rounded-md border border-white/20 bg-[#272747]/85 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white backdrop-blur-md">
+                  {event.category || "Event"}
+                </span>
+              </div>
+            </div>
+          )}
+
           <p className="text-xs font-semibold uppercase tracking-wider text-primary">{event.category || "Event"}</p>
           <h2 id="proposal-title" className="mt-2 font-display text-3xl font-semibold">{event.title}</h2>
           <p className="mt-2 text-sm text-muted-foreground">Proposed by {event.proposedBy?.name || "Event team"}</p>
           <div className="mt-6 grid gap-3 rounded-xl bg-secondary/40 p-4 text-sm sm:grid-cols-3"><p className="flex items-start gap-2"><CalendarDays className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" /><span>{startAt ? new Date(startAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "Schedule unavailable"}</span></p><p className="flex items-start gap-2"><MapPin className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" /><span>{event.venue}</span></p><p className="flex items-start gap-2"><Users className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" /><span>{event.capacity} capacity</span></p></div>
-          <div className="mt-7"><h3 className="text-sm font-semibold">Description</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{event.description}</p></div>
+          
+          <div className="mt-7">
+            <h3 className="text-sm font-semibold">Description</h3>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{event.description}</p>
+          </div>
+
+          {/* Corporate Sponsorship Brief */}
+          {event.sponsorshipRequired && (
+            <div className="mt-8 rounded-xl border border-primary/20 bg-primary/5 p-5">
+              <div className="flex items-center gap-2 text-primary font-semibold">
+                <HandCoins className="size-4" />
+                <span>Corporate Sponsorship Required</span>
+              </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 text-sm">
+                <div>
+                  <span className="text-xs text-muted-foreground block">Funding Target</span>
+                  <span className="font-mono font-bold text-base text-foreground">
+                    {event.sponsorshipTargetPaise ? money.format(Number(event.sponsorshipTargetPaise) / 100) : "Not set"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground block">Target Deadline</span>
+                  <span className="font-medium text-foreground">
+                    {event.sponsorshipDeadline ? new Date(event.sponsorshipDeadline).toLocaleDateString(undefined, { dateStyle: "medium" }) : "Open"}
+                  </span>
+                </div>
+              </div>
+              {event.sponsorshipPitch && (
+                <div className="mt-3">
+                  <span className="text-xs text-muted-foreground block">Pitch to Sponsors</span>
+                  <p className="mt-1 text-sm text-foreground/90">{event.sponsorshipPitch}</p>
+                </div>
+              )}
+              {event.sponsorBenefits && (
+                <div className="mt-3">
+                  <span className="text-xs text-muted-foreground block">Sponsor Deliverables & Benefits</span>
+                  <p className="mt-1 text-sm text-foreground/90">{event.sponsorBenefits}</p>
+                </div>
+              )}
+              {Array.isArray(event.sponsorshipPackages) && event.sponsorshipPackages.length > 0 && (
+                <div className="mt-4">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-2">Sponsorship Packages</span>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {event.sponsorshipPackages.map((pkg, i) => (
+                      <div key={i} className="rounded-lg border border-border bg-card p-3 text-xs">
+                        <div className="flex justify-between items-center font-semibold">
+                          <span>{pkg.name || pkg.tier}</span>
+                          <span className="font-mono text-primary">{pkg.amount ? `₹${pkg.amount.toLocaleString('en-IN')}` : pkg.price || ''}</span>
+                        </div>
+                        {pkg.slots && <div className="mt-1 text-muted-foreground">{pkg.slots} slots available</div>}
+                        {pkg.perks && <div className="mt-1 text-muted-foreground">{pkg.perks}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Logistics & Volunteers */}
+          {(event.volunteersNeeded || event.logisticsNotes) && (
+            <div className="mt-8 rounded-xl border border-border bg-secondary/20 p-5">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Sparkles className="size-4 text-primary" />
+                Logistics & Operations
+              </h3>
+              <div className="mt-3 grid gap-3 text-sm">
+                {event.volunteersNeeded && (
+                  <div>
+                    <span className="text-xs text-muted-foreground block">Volunteers Needed</span>
+                    <span className="font-medium text-foreground">{event.volunteersNeeded} crew members</span>
+                  </div>
+                )}
+                {event.logisticsNotes && (
+                  <div>
+                    <span className="text-xs text-muted-foreground block">Operational Notes</span>
+                    <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">{event.logisticsNotes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="mt-8"><h3 className="text-sm font-semibold">Ticket allocation</h3>{ticketTypes.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">No ticket types were configured.</p> : <div className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border">{ticketTypes.map((ticket) => <div key={ticket.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-medium">{ticket.name}</p><p className="mt-1 text-xs text-muted-foreground">{ticket.audience.replaceAll("_", " ")} · Maximum {ticket.maxPerUser} per person</p></div><div className="text-sm sm:text-right"><p className="font-mono font-semibold">{money.format(Number(ticket.pricePaise || 0) / 100)}</p><p className="mt-1 text-xs text-muted-foreground">{ticket.quota} places</p></div></div>)}</div>}</div>
           <div className="mt-8"><h3 className="text-sm font-semibold">Budget request</h3>{!event.budgetLines?.length ? <p className="mt-3 text-sm text-muted-foreground">No budget was requested.</p> : <div className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border">{event.budgetLines.map((line) => <div key={line.id} className="flex items-center justify-between gap-4 p-4 text-sm"><div><p className="font-medium">{line.category}</p>{line.note && <p className="mt-1 text-xs text-muted-foreground">{line.note}</p>}</div><p className="font-mono font-semibold">{money.format(line.amountPaise / 100)}</p></div>)}<div className="flex items-center justify-between bg-secondary/40 p-4 text-sm font-semibold"><span>Total requested</span><span className="font-mono">{money.format((event.requestedBudgetPaise || 0) / 100)}</span></div></div>}</div>
           {event.reviews?.length > 0 && <div className="mt-8"><h3 className="text-sm font-semibold">Review history</h3><ol className="mt-3 space-y-2">{[...event.reviews].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)).map((review) => <li key={review.id} className="rounded-xl border border-border p-3 text-sm"><p className="font-medium">{review.decision.replaceAll("_", " ")} · {review.reviewer?.name}</p><p className="text-xs text-muted-foreground">{new Date(review.createdAt).toLocaleString()}</p>{review.comment && <p className="mt-1 text-muted-foreground">{review.comment}</p>}</li>)}</ol></div>}

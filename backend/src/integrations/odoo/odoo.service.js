@@ -68,6 +68,28 @@ async function notifyWonCommitments(prisma, event, wonLeads) {
   });
 }
 
+async function recordWonCommitments(prisma, event, wonLeads) {
+  if (!wonLeads.length) return;
+  await prisma.ledgerEntry.createMany({
+    data: wonLeads.map((lead) => {
+      const committedAt = lead.committedAt ? new Date(lead.committedAt) : new Date();
+      return {
+        direction: 'IN',
+        category: 'SPONSORSHIP',
+        amountPaise: BigInt(lead.expectedAmountPaise),
+        sourceType: 'SPONSORSHIP_COMMITMENT',
+        sourceId: deterministicUuid(`odoo-commitment:${event.id}:${lead.id}`),
+        status: 'COMMITTED',
+        eventId: event.id,
+        description: `[ODOO_LEAD:${lead.id}] ${lead.sponsor} sponsorship won — committed; payment pending`,
+        occurredAt: Number.isNaN(committedAt.getTime()) ? new Date() : committedAt,
+        recordedById: null,
+      };
+    }),
+    skipDuplicates: true,
+  });
+}
+
 export function createOdooService({ prisma, client }) {
   async function requireEvent(eventId) {
     const event = await prisma.event.findUnique({
@@ -134,7 +156,7 @@ export function createOdooService({ prisma, client }) {
     const campaign = await findCampaign(event);
     if (!campaign) return { campaign: null, leads: [] };
     const leads = await client.execute('crm.lead', 'search_read', [[['campaign_id', '=', campaign.id]]], {
-      fields: ['id', 'name', 'partner_id', 'contact_name', 'email_from', 'expected_revenue', 'probability', 'stage_id', 'active', 'activity_state', 'activity_date_deadline'],
+      fields: ['id', 'name', 'partner_id', 'contact_name', 'email_from', 'expected_revenue', 'probability', 'stage_id', 'active', 'activity_state', 'activity_date_deadline', 'date_closed'],
       context: { active_test: false },
       order: 'id desc',
     });
@@ -216,7 +238,7 @@ export function createOdooService({ prisma, client }) {
     const event = await requireEvent(eventId);
     const { campaign, leads } = await leadsForEvent(event);
     const ledgerRows = await prisma.ledgerEntry.findMany({
-      where: { eventId, direction: 'IN', category: 'SPONSORSHIP', sourceType: 'MANUAL' },
+      where: { eventId, direction: 'IN', category: 'SPONSORSHIP', sourceType: 'MANUAL', status: 'POSTED' },
       select: { id: true, amountPaise: true, occurredAt: true, description: true },
     });
 
@@ -242,6 +264,7 @@ export function createOdooService({ prisma, client }) {
           id: lead.id,
           status: 'DONE',
           crmStatus: 'WON',
+          committedAt: lead.date_closed || null,
           name: lead.name,
           sponsor: partnerName(lead.partner_id) || lead.contact_name || lead.email_from || 'Sponsor',
           expectedAmountPaise: expectedPaise,
@@ -255,7 +278,10 @@ export function createOdooService({ prisma, client }) {
       }
     }
 
-    await notifyWonCommitments(prisma, event, won);
+    await Promise.all([
+      recordWonCommitments(prisma, event, won),
+      notifyWonCommitments(prisma, event, won),
+    ]);
 
     return {
       eventId,
@@ -285,7 +311,7 @@ export function createOdooService({ prisma, client }) {
     if (!isWon(lead)) throw new AppError('ODOO_OPPORTUNITY_NOT_WON', 409, 'Only a Won opportunity can be recorded as received');
 
     const existingEntries = await prisma.ledgerEntry.findMany({
-      where: { eventId, direction: 'IN', category: 'SPONSORSHIP', sourceType: 'MANUAL' },
+      where: { eventId, direction: 'IN', category: 'SPONSORSHIP', sourceType: 'MANUAL', status: 'POSTED' },
       select: { amountPaise: true, description: true },
     });
     const alreadyReceived = existingEntries
@@ -305,6 +331,7 @@ export function createOdooService({ prisma, client }) {
           category: 'SPONSORSHIP',
           amountPaise: BigInt(input.amountReceivedPaise),
           sourceType: 'MANUAL',
+          status: 'POSTED',
           sourceId,
           eventId,
           description: `[ODOO_LEAD:${odooLeadId}] ${lead.name}; payment ${normalizedReference}${input.note ? `; ${input.note}` : ''}`,

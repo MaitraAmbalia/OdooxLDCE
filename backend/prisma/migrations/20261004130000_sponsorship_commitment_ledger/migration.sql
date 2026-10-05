@@ -1,0 +1,6 @@
+CREATE TYPE "LedgerEntryStatus" AS ENUM ('COMMITTED', 'POSTED');
+
+ALTER TYPE "LedgerSourceType" ADD VALUE 'SPONSORSHIP_COMMITMENT' BEFORE 'MANUAL';
+
+ALTER TABLE "ledger_entries"
+ADD COLUMN "status" "LedgerEntryStatus" NOT NULL DEFAULT 'POSTED';

@@ -55,7 +55,7 @@ export function createDashboardsService({ prisma }) {
         case 'treasurer': {
           if (!userPermissions.includes('treasurer.dashboard')) throw new AppError('FORBIDDEN', 403, 'Requires treasurer dashboard permission');
           const [[balanceRow], unverifiedCash, pendingClaims] = await Promise.all([
-            prisma.$queryRaw`SELECT COALESCE(SUM(CASE direction WHEN 'IN' THEN amount_paise ELSE -amount_paise END), 0)::bigint AS balance FROM ledger_entries`,
+            prisma.$queryRaw`SELECT COALESCE(SUM(CASE direction WHEN 'IN' THEN amount_paise ELSE -amount_paise END), 0)::bigint AS balance FROM ledger_entries WHERE status = 'POSTED'`,
             prisma.cashCollection.count({ where: { status: 'PENDING_VERIFICATION' } }),
             prisma.expenseClaim.count({ where: { status: 'SUBMITTED' } })
           ]);

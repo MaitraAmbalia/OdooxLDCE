@@ -155,9 +155,15 @@ enum LedgerSourceType {
   CASH_COLLECTION
   CLAIM
   ALLOCATION
+  SPONSORSHIP_COMMITMENT
   MANUAL
   REVERSAL
   REFUND
+}
+
+enum LedgerEntryStatus {
+  COMMITTED
+  POSTED
 }
 
 enum BudgetAllocationSource {
@@ -560,44 +566,44 @@ model CashCollection {
 }
 
 model Event {
-  id                  String            @id @default(uuid()) @db.Uuid
-  title               String
-  description         String            @db.Text
-  category            String
-  venue               String
-  startAt             DateTime          @map("start_at") @db.Timestamptz(6)
-  endAt               DateTime          @map("end_at") @db.Timestamptz(6)
-  capacity            Int
-  seatsSold           Int               @default(0) @map("seats_sold")
-  visibility          EventVisibility   @default(PUBLIC)
-  status              EventStatus       @default(DRAFT)
-  volunteersNeeded    Int               @default(0) @map("volunteers_needed")
-  logisticsNotes      String?           @map("logistics_notes") @db.Text
-  coverFileId         String?           @map("cover_file_id") @db.Uuid
-  approvedBudgetPaise BigInt?           @map("approved_budget_paise")
-  sponsorshipRequired Boolean           @default(false) @map("sponsorship_required")
-  sponsorshipTargetPaise BigInt?        @map("sponsorship_target_paise")
-  sponsorshipDeadline DateTime?         @map("sponsorship_deadline") @db.Timestamptz(6)
-  sponsorshipPitch    String?           @map("sponsorship_pitch") @db.Text
-  sponsorshipPackages Json?             @map("sponsorship_packages") @db.JsonB
-  sponsorBenefits     String?           @map("sponsor_benefits") @db.Text
-  proposedById        String            @map("proposed_by") @db.Uuid
-  approvedById        String?           @map("approved_by") @db.Uuid
-  approvedAt          DateTime?         @map("approved_at") @db.Timestamptz(6)
-  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
-  proposedBy          User              @relation("EventProposer", fields: [proposedById], references: [id], onDelete: Restrict)
-  approvedBy          User?             @relation("EventApprover", fields: [approvedById], references: [id], onDelete: Restrict)
-  budgetLines         EventBudgetLine[]
-  reviews             EventReview[]
-  ticketTypes         TicketType[]
-  tickets             Ticket[]
-  ledgerEntries       LedgerEntry[]
-  expenseClaims       ExpenseClaim[]
-  coverFile           File?             @relation("EventCover", fields: [coverFileId], references: [id], onDelete: SetNull)
-  projects            Project[]
-  announcements       Announcement[]
-  doorStaff           EventDoorStaff[]
+  id                     String            @id @default(uuid()) @db.Uuid
+  title                  String
+  description            String            @db.Text
+  category               String
+  venue                  String
+  startAt                DateTime          @map("start_at") @db.Timestamptz(6)
+  endAt                  DateTime          @map("end_at") @db.Timestamptz(6)
+  capacity               Int
+  seatsSold              Int               @default(0) @map("seats_sold")
+  visibility             EventVisibility   @default(PUBLIC)
+  status                 EventStatus       @default(DRAFT)
+  volunteersNeeded       Int               @default(0) @map("volunteers_needed")
+  logisticsNotes         String?           @map("logistics_notes") @db.Text
+  coverFileId            String?           @map("cover_file_id") @db.Uuid
+  approvedBudgetPaise    BigInt?           @map("approved_budget_paise")
+  sponsorshipRequired    Boolean           @default(false) @map("sponsorship_required")
+  sponsorshipTargetPaise BigInt?           @map("sponsorship_target_paise")
+  sponsorshipDeadline    DateTime?         @map("sponsorship_deadline") @db.Timestamptz(6)
+  sponsorshipPitch       String?           @map("sponsorship_pitch") @db.Text
+  sponsorshipPackages    Json?             @map("sponsorship_packages") @db.JsonB
+  sponsorBenefits        String?           @map("sponsor_benefits") @db.Text
+  proposedById           String            @map("proposed_by") @db.Uuid
+  approvedById           String?           @map("approved_by") @db.Uuid
+  approvedAt             DateTime?         @map("approved_at") @db.Timestamptz(6)
+  createdAt              DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  proposedBy             User              @relation("EventProposer", fields: [proposedById], references: [id], onDelete: Restrict)
+  approvedBy             User?             @relation("EventApprover", fields: [approvedById], references: [id], onDelete: Restrict)
+  budgetLines            EventBudgetLine[]
+  reviews                EventReview[]
+  ticketTypes            TicketType[]
+  tickets                Ticket[]
+  ledgerEntries          LedgerEntry[]
+  expenseClaims          ExpenseClaim[]
+  coverFile              File?             @relation("EventCover", fields: [coverFileId], references: [id], onDelete: SetNull)
+  projects               Project[]
+  announcements          Announcement[]
+  doorStaff              EventDoorStaff[]
 
   @@index([status, startAt])
   @@index([visibility, status, startAt])
@@ -698,26 +704,27 @@ model Ticket {
 }
 
 model LedgerEntry {
-  id               String           @id @default(uuid()) @db.Uuid
+  id               String            @id @default(uuid()) @db.Uuid
   direction        LedgerDirection
   category         LedgerCategory
-  amountPaise      BigInt           @map("amount_paise")
-  sourceType       LedgerSourceType @map("source_type")
-  sourceId         String           @map("source_id") @db.Uuid
-  eventId          String?          @map("event_id") @db.Uuid
-  projectId        String?          @map("project_id") @db.Uuid
-  description      String           @db.Text
-  occurredAt       DateTime         @map("occurred_at") @db.Timestamptz(6)
-  recordedById     String?          @map("recorded_by") @db.Uuid
-  reversesEntryId  String?          @unique @map("reverses_entry_id") @db.Uuid
-  attachmentFileId String?          @map("attachment_file_id") @db.Uuid
-  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  attachmentFile   File?            @relation("LedgerAttachment", fields: [attachmentFileId], references: [id], onDelete: Restrict)
-  event            Event?           @relation(fields: [eventId], references: [id], onDelete: Restrict)
-  recordedBy       User?            @relation("LedgerRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
-  reversesEntry    LedgerEntry?     @relation("LedgerReversal", fields: [reversesEntryId], references: [id], onDelete: Restrict)
-  reversedBy       LedgerEntry?     @relation("LedgerReversal")
-  project          Project?         @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  amountPaise      BigInt            @map("amount_paise")
+  sourceType       LedgerSourceType  @map("source_type")
+  status           LedgerEntryStatus @default(POSTED)
+  sourceId         String            @map("source_id") @db.Uuid
+  eventId          String?           @map("event_id") @db.Uuid
+  projectId        String?           @map("project_id") @db.Uuid
+  description      String            @db.Text
+  occurredAt       DateTime          @map("occurred_at") @db.Timestamptz(6)
+  recordedById     String?           @map("recorded_by") @db.Uuid
+  reversesEntryId  String?           @unique @map("reverses_entry_id") @db.Uuid
+  attachmentFileId String?           @map("attachment_file_id") @db.Uuid
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  attachmentFile   File?             @relation("LedgerAttachment", fields: [attachmentFileId], references: [id], onDelete: Restrict)
+  event            Event?            @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  recordedBy       User?             @relation("LedgerRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+  reversesEntry    LedgerEntry?      @relation("LedgerReversal", fields: [reversesEntryId], references: [id], onDelete: Restrict)
+  reversedBy       LedgerEntry?      @relation("LedgerReversal")
+  project          Project?          @relation(fields: [projectId], references: [id], onDelete: Restrict)
 
   @@unique([sourceType, sourceId])
   @@index([occurredAt])

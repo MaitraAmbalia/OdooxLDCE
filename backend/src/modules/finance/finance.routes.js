@@ -13,7 +13,8 @@ const listQuery = z.object({
   from: z.coerce.date().optional(), to: z.coerce.date().optional(),
   direction: direction.optional(), category: category.optional(),
   type: z.string().optional(),
-  sourceType: z.enum(['PAYMENT', 'CASH_COLLECTION', 'CLAIM', 'ALLOCATION', 'MANUAL', 'REVERSAL', 'REFUND']).optional(),
+  status: z.enum(['COMMITTED', 'POSTED']).optional(),
+  sourceType: z.enum(['PAYMENT', 'CASH_COLLECTION', 'CLAIM', 'ALLOCATION', 'SPONSORSHIP_COMMITMENT', 'MANUAL', 'REVERSAL', 'REFUND']).optional(),
   eventId: z.guid().optional(), projectId: z.guid().optional(),
   page: z.string().optional(), limit: z.string().optional(), sort: z.string().optional(), // parsed by lib/pagination.js
 });

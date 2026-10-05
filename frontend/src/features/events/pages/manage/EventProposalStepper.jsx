@@ -169,6 +169,7 @@ export default function EventProposalStepper() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["sponsorship"] });
       toast.success(isEdit ? "Event proposal updated." : "Proposal submitted for mentor review. Tickets go on sale once it is approved.");
       navigate("/manage/events");
     },

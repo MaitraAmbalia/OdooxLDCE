@@ -15,7 +15,7 @@ const SYSTEM_ONLY = ['DUES', 'TICKETS', 'MERCH', 'BUDGET_ALLOCATION'];
 // BigInt is not JSON-serialisable; paise amounts fit in a Number.
 const toPublic = (e) => ({
   id: e.id, direction: e.direction, category: e.category, amountPaise: Number(e.amountPaise),
-  sourceType: e.sourceType, sourceId: e.sourceId, eventId: e.eventId, projectId: e.projectId,
+  sourceType: e.sourceType, sourceId: e.sourceId, status: e.status, eventId: e.eventId, projectId: e.projectId,
   description: e.description, occurredAt: e.occurredAt, recordedBy: e.recordedById,
   reversesEntryId: e.reversesEntryId, attachmentFileId: e.attachmentFileId, createdAt: e.createdAt,
   date: new Date(e.occurredAt ?? e.createdAt).toLocaleDateString('en-CA'), // server-local YYYY-MM-DD
@@ -35,6 +35,7 @@ async function post(direction, entry, tx) {
     data: [{
       direction, category: entry.category, amountPaise: BigInt(entry.amountPaise),
       sourceType: entry.sourceType, sourceId: entry.sourceId,
+      status: entry.status ?? 'POSTED',
       eventId: entry.eventId ?? null, projectId: entry.projectId ?? null,
       description: entry.description, occurredAt: entry.occurredAt ?? new Date(),
       recordedById: entry.recordedBy ?? null, // null = posted by the system
@@ -59,6 +60,7 @@ export function createFinanceService({ prisma, files }) {
       ...(direction && { direction }),
       ...(q.category && { category: q.category }),
       ...(q.sourceType && { sourceType: q.sourceType }),
+      ...(q.status && { status: q.status }),
       ...(q.eventId && { eventId: q.eventId }),
       ...(q.projectId && { projectId: q.projectId }),
       ...((q.from || q.to) && { occurredAt: { ...(q.from && { gte: q.from }), ...(q.to && { lte: q.to }) } }),
@@ -74,7 +76,8 @@ export function createFinanceService({ prisma, files }) {
   async function balance() {
     const [row] = await prisma.$queryRaw`
       SELECT COALESCE(SUM(CASE direction WHEN 'IN' THEN amount_paise ELSE -amount_paise END), 0)::bigint AS balance
-      FROM ledger_entries`;
+      FROM ledger_entries
+      WHERE status = 'POSTED'`;
     return { balancePaise: Number(row.balance) };
   }
 
@@ -123,6 +126,7 @@ export function createFinanceService({ prisma, files }) {
       return await prisma.$transaction(async (tx) => {
         const original = await tx.ledgerEntry.findUnique({ where: { id } });
         if (!original) throw notFound();
+        if (original.status !== 'POSTED') throw new AppError('INVALID_STATE_TRANSITION', 409, 'Committed sponsorship records cannot be reversed as cash transactions');
         if (original.sourceType === 'REVERSAL') throw new AppError('INVALID_STATE_TRANSITION', 409, 'A reversal entry cannot be reversed');
         const entry = await tx.ledgerEntry.create({
           data: {
@@ -193,7 +197,7 @@ export function createFinanceService({ prisma, files }) {
                         WHEN direction = 'IN'  AND source_type =  'REVERSAL' THEN -amount_paise
                         ELSE 0 END)::bigint AS spent
         FROM ledger_entries
-        WHERE occurred_at >= ${start} AND occurred_at < ${end}
+        WHERE status = 'POSTED' AND occurred_at >= ${start} AND occurred_at < ${end}
         GROUP BY category`,
     ]);
     const limitBy = new Map(limits.map((l) => [l.category, Number(l.limitPaise)]));
@@ -216,7 +220,7 @@ export function createFinanceService({ prisma, files }) {
     });
     const spentAggs = await prisma.ledgerEntry.groupBy({
       by: ['category'],
-      where: { direction: 'OUT' },
+      where: { direction: 'OUT', status: 'POSTED' },
       _sum: { amountPaise: true },
     });
     const spentMap = new Map(spentAggs.map((r) => [r.category, Number(r._sum.amountPaise || 0)]));
@@ -230,7 +234,7 @@ export function createFinanceService({ prisma, files }) {
 
   // Totals plus where the money came from / went (tickets, merch, dues, claims...) for reconciliation.
   async function reportSummary(type = 'SUMMARY') {
-    const baseWhere = {};
+    const baseWhere = { status: 'POSTED' };
     if (type === 'EVENT') baseWhere.eventId = { not: null };
     if (type === 'PROJECT') baseWhere.projectId = { not: null };
 
